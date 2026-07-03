@@ -322,12 +322,17 @@ DICE = {
 def obj_tiles():
     tiles = []
     defs = {}
+    pals = []   # OBJ palette index per 4-tile (16x16) group, for the preview
     defs["OBJT_HAND"] = len(tiles)
     tiles += sprite_tiles(HAND, SPR_LEG, 2, 2)
-    for i, name in enumerate(["d4", "d6", "d8", "d10", "d12", "d20"]):
+    pals.append(7)
+    # dice are tinted per damage type at runtime; preview one die per ramp
+    for name, pal in [("d4", 11), ("d6", 10), ("d8", 12),
+                      ("d10", 13), ("d12", 14), ("d20", 9)]:
         defs["OBJT_DIE_" + name.upper()] = len(tiles)
         tiles += sprite_tiles(DICE[name], DICE_LEG, 2, 2)
-    return tiles, defs
+        pals.append(pal)
+    return tiles, defs, pals
 
 # ---------------------------------------------------------------- field art
 
@@ -386,12 +391,15 @@ def build_portraits():
 SIZEMAP = {(2, 2): 1, (2, 4): 7, (4, 4): 2, (4, 2): 5, (4, 8): 8}
 
 def build_sprites():
-    """OBJ tiles: UI sprites, field sprites, then battle sprites."""
-    tiles, defs = obj_tiles()
+    """OBJ tiles: UI sprites, field sprites, then battle sprites.
+    grouppals records the OBJ palette index of every 4-tile (16x16) group as
+    the stream is built, so previews can't drift from the real tile order."""
+    tiles, defs, grouppals = obj_tiles()
     for sname, spec in SF.SPRITES.items():
         defs["OBJT_" + sname.upper()] = len(tiles)
         for fname in spec["frames"]:
             tiles += sprite_tiles(SF.FRAMES[fname], SF.LEG, 2, 2)
+            grouppals.append(spec["pal"])
     for sname, spec in SB.SPRITES.items():
         w, hgt = spec["w"], spec["h"]
         try:                                    # resilient to mid-edit sprite files
@@ -406,9 +414,11 @@ def build_sprites():
         defs["OBJTPF_" + up] = w * hgt
         for ft in frames:
             tiles += ft
+            grouppals += [spec["pal"]] * (len(ft) // 4)
     for idx, colors in SF.PALS.items():
         OBJ_PALS[idx] = pal16(colors)
-    return tiles, defs
+    assert len(grouppals) == len(tiles) // 4
+    return tiles, defs, grouppals
 
 # Digit/dice palettes: [transparent, face/digit, outline/shadow, face shade].
 # Damage types tint both the popup numbers and the dice sprites.
@@ -576,7 +586,7 @@ def main():
     ui = fonts + wins
     flat = [hw for t in ui for hw in t]
 
-    objs, objdefs = build_sprites()
+    objs, objdefs, objpals = build_sprites()
     objflat = [hw for t in objs for hw in t]
 
     ftiles, flut, fsolid, mtdefs = build_field()
@@ -681,7 +691,7 @@ def main():
     if preview:
         render_preview(ui)
         render_field_preview(ftiles, flut)
-        render_sprite_preview(objs)
+        render_sprite_preview(objs, objpals)
         render_portrait_preview(ptiles)
 
 # ---------------------------------------------------------------- preview
@@ -773,29 +783,19 @@ def render_portrait_preview(tiles):
     write_png_scaled(out, w, h, img, 3)
     print(f"preview: {out}")
 
-def render_sprite_preview(tiles):
-    """16x16 sprites, 4 tiles each, using a generic bright palette per file."""
+def render_sprite_preview(tiles, grouppals):
+    """16x16 cells, 4 tiles each; palette per group recorded by build_sprites.
+    OBJ pal 0 is copied in at runtime (class palette), so preview it as bard."""
     from pnglib import write_png_scaled
-    pals = {name: OBJ_PALS[SF.SPRITES[name]["pal"]] for name in SF.SPRITES}
-    # flatten: draw every 4-tile group as one 16x16 cell
     groups = len(tiles) // 4
     cols = 8
     rows = (groups + cols - 1) // cols
     w, h = cols * 17, rows * 17
     img = bytearray(b"\x28\x18\x28" * (w * h))
-    # figure out palette per group from sprite table order
-    grouppal = [OBJ_PALS[7]] * groups   # default: cursor pal
-    gi = len(obj_tiles()[0]) // 4   # leading UI groups (hand, dice) precede field sprites
-    order = list(SF.SPRITES.items())
-    for name, spec in order:
-        pal = OBJ_PALS[spec["pal"]] if spec["pal"] else pal16(SF.PAL_TAV["bard"])
-        for _ in spec["frames"]:
-            if gi < groups:
-                grouppal[gi] = pal
-            gi += 1
     for g in range(groups):
+        colors = OBJ_PALS[grouppals[g]] if grouppals[g] else pal16(SF.PAL_TAV["bard"])
         pal = [((v & 31) * 255 // 31, ((v >> 5) & 31) * 255 // 31, ((v >> 10) & 31) * 255 // 31)
-               for v in grouppal[g]]
+               for v in colors]
         ox, oy = (g % cols) * 17, (g // cols) * 17
         for q in range(4):
             px = tile_px(tiles[g * 4 + q])
