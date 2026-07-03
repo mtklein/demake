@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "game.h"
 #include "battle.h"
+#include "audio.h"
 
 #define ME(t, h, v, p) ((u16)((t) | ((h) << 10) | ((v) << 11) | ((p) << 12)))
 #define TXT ((vu16*)SCREENBLOCK(30))
@@ -941,6 +942,7 @@ retry:
     }
     for (int i = 0; i < f->n; i++) add_enemy(f->e[i], f->x[i], f->y[i], 1);
 
+    music(helm ? SONG_BOSS : SONG_BATTLE);
     ui_base();
     rounds_show();
     draw_units();
@@ -996,9 +998,9 @@ retry:
                 }
                 /* victory */
                 sync_to_G();
+                music(SONG_VICTORY);
                 for (int i = 0; i < NU; i++)
                     if (U[i].side == 0 && U[i].alive) U[i].pose = PO_VICTORY;
-                sfx_play(SFX_HEAL);
                 pump(30);
                 {
                     char m[24];

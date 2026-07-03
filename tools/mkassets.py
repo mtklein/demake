@@ -250,6 +250,7 @@ def build_maps():
     return out
 
 from art import sprites_battle as SB
+from music import songs as MUSIC
 
 SIZEMAP = {(2, 2): 1, (2, 4): 7, (4, 4): 2, (4, 2): 5, (4, 8): 8}
 
@@ -344,7 +345,8 @@ def main():
     defs.update(objdefs)
     defs.update(mtdefs)
 
-    h = ["#ifndef ASSETS_H", "#define ASSETS_H", '#include "gba.h"', ""]
+    h = ["#ifndef ASSETS_H", "#define ASSETS_H", '#include "gba.h"',
+         '#include "audio.h"', ""]
     c = ['#include "assets.h"', ""]
     for k, v in defs.items():
         h.append(f"#define {k} {v}")
@@ -382,6 +384,27 @@ def main():
         h.append(f"#define MAP_{up}_H {hgt}")
         h.append(f"extern const u8 map_{mname}[{w * hgt}];")
         c.append("const u8 map_%s[%d] = {%s};" % (mname, w * hgt, ",".join(map(str, cells))))
+
+    # --- music ---
+    c.append('#include "audio.h"')
+    for i, name in enumerate(MUSIC.ORDER):
+        h.append(f"#define SONG_{name} {i}")
+        s = MUSIC.SONGS[name]
+        rows = len(s["ch"][0])
+        for ci, chan in enumerate(s["ch"]):
+            assert len(chan) == rows, (name, ci, len(chan), rows)
+            c.append("static const u8 song_%s_%d[%d] = {%s};"
+                     % (name, ci, rows, ",".join(str(v) for v in chan)))
+    h.append(f"#define SONG_COUNT {len(MUSIC.ORDER)}")
+    h.append("extern const Song songs[SONG_COUNT];")
+    c.append("const Song songs[%d] = {" % len(MUSIC.ORDER))
+    for name in MUSIC.ORDER:
+        s = MUSIC.SONGS[name]
+        rows = len(s["ch"][0])
+        c.append("  { {song_%s_0,song_%s_1,song_%s_2,song_%s_3}, %d, 0x%04x, %d, 0x%04x, 0x%04x, 0x%04x },"
+                 % (name, name, name, name, rows, s["loop"], s["speed"],
+                    s["env1"], s["env2"], s["wavevol"]))
+    c.append("};")
 
     h.append("#endif")
 

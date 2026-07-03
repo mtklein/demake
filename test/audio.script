@@ -1,0 +1,14 @@
+poke 0203ff00 01
+poke 0203ff03 00
+poke 0203ff05 00
+wait 160
+until 0203ff05 01 4000
+msg EXPLORE(expect ch active bits):
+peek 04000084 1
+wait 12
+peek 04000084 1
+wait 12
+peek 04000084 1
+wait 12
+peek 04000084 1
+wait 12

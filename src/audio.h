@@ -24,6 +24,7 @@ void audio_init(void);
 void audio_tick(void);
 void music_play(const Song* s);
 void music_stop(void);
+void music(int song_id);   /* play by SONG_* index (see assets.h) */
 void sfx_play(int id);
 void sfx_noise(int frames);
 

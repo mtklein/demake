@@ -40,6 +40,12 @@ void audio_init(void) {
 void music_play(const Song* s) {
     song = s; row = 0; row_timer = 1;
 }
+
+void music(int id) {
+    extern const Song songs[];
+    if (id < 0) music_stop();
+    else music_play(&songs[id]);
+}
 void music_stop(void) {
     song = 0;
     REG_SOUND1CNT_H = 0x0800; REG_SOUND1CNT_X = 0x8000;

@@ -24,6 +24,7 @@ void game_title(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
     REG_BLDCNT = 0x00FF; REG_BLDY = 16;
 
+    music(SONG_PRELUDE);
     win_draw(7, 5, 16, 5);
     txt_put(10, 6, "N A U T I L O I D", 1);
     txt_put(9, 8, "a BG3 demake of the", 2);
