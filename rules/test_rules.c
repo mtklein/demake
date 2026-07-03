@@ -248,6 +248,7 @@ static void test_conditions_and_conc(void) {
     CHECK(r5_conds_effective(C_PARALYZED) & C_INCAPACITATED);
     CHECK(r5_conds_effective(C_STUNNED) & C_INCAPACITATED);
     CHECK(r5_conds_effective(C_UNCONSCIOUS) & C_INCAPACITATED);
+    CHECK(r5_conds_effective(C_UNCONSCIOUS) & C_PRONE);   /* falls prone */
     CHECK(r5_conds_effective(C_PETRIFIED) & C_INCAPACITATED);
     CHECK(!(r5_conds_effective(C_PRONE) & C_INCAPACITATED));
     CHECK(r5_conc_dc(22) == 11);

@@ -15,12 +15,13 @@ LDFLAGS := $(ARCH) -nostdlib -T gba.ld -Wl,-Map,$(BUILD)/rom.map
 HOSTCC  ?= cc
 
 CSRC     := $(wildcard src/*.c)
-RULESSRC := rules/dice.c rules/core.c rules/features.c rules/tables.c
-GENSRC   := $(BUILD)/gen/assets.c $(BUILD)/gen/screens.c
+RULESSRC := rules/dice.c rules/core.c rules/features.c
+SRDTAB   := $(BUILD)/gen/srd_tables.c
+GENSRC   := $(BUILD)/gen/assets.c $(BUILD)/gen/screens.c $(SRDTAB)
 OBJ      := $(BUILD)/crt0.o \
             $(patsubst src/%.c,$(BUILD)/%.o,$(CSRC)) \
             $(patsubst rules/%.c,$(BUILD)/r_%.o,$(RULESSRC)) \
-            $(BUILD)/gen/assets.o $(BUILD)/gen/screens.o
+            $(BUILD)/gen/assets.o $(BUILD)/gen/screens.o $(BUILD)/gen/srd_tables.o
 
 TOOLSRC := $(wildcard tools/*.py tools/art/*.py tools/music/*.py)
 
@@ -46,13 +47,16 @@ $(BUILD)/gen/%.o: $(BUILD)/gen/%.c | $(BUILD)
 $(BUILD)/r_%.o: rules/%.c rules/rules.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(SRDTAB): tools/mksrd.py tools/srd/srd_data.py tools/srd/overrides.py | $(BUILD)
+	$(PY) tools/mksrd.py
+
 .PHONY: test-rules
 test-rules: $(BUILD)/test_rules
 	$(BUILD)/test_rules
 
-$(BUILD)/test_rules: $(RULESSRC) rules/rules.h rules/test_rules.c | $(BUILD)
+$(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) rules/rules.h rules/test_rules.c | $(BUILD)
 	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules \
-	    -o $@ $(RULESSRC) rules/test_rules.c
+	    -o $@ $(RULESSRC) $(SRDTAB) rules/test_rules.c
 
 $(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)
 	$(PY) tools/mkassets.py

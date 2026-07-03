@@ -3,6 +3,7 @@
 /* ---------------------------------------------------------------- conditions */
 
 uint16_t r5_conds_effective(uint16_t c) {
+    if (c & C_UNCONSCIOUS) c |= C_PRONE;      /* an unconscious creature drops */
     if (c & (C_PARALYZED | C_PETRIFIED | C_STUNNED | C_UNCONSCIOUS))
         c |= C_INCAPACITATED;
     return c;

@@ -205,6 +205,9 @@ enum { R5W_DAGGER, R5W_SHORTSWORD, R5W_LONGSWORD, R5W_GREATSWORD, R5W_RAPIER,
 extern const R5Class r5_classes[R5C_COUNT];
 
 extern const R5Monster r5_monsters[];
-enum { R5M_IMP, R5M_BOAR, R5M_DEVOURER, R5M_CAMBION, R5M_FLAYER, R5M_COUNT };
+/* IMP/BOAR are true SRD stat blocks (test-validated); the rest are our
+ * prologue homebrew from tools/srd/overrides.py */
+enum { R5M_IMP, R5M_BOAR, R5M_DEVOURER, R5M_CAMBION, R5M_FLAYER, R5M_ZHALK,
+       R5M_LESSER_IMP, R5M_LESSER_BOAR, R5M_COUNT };
 
 #endif
