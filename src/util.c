@@ -51,6 +51,14 @@ void* memset(void* d, int c, unsigned n) {
     return d;
 }
 
+/* xorshift RNG */
+static u32 rngs = 2463534242u;
+u32 rnd(void) {
+    rngs ^= rngs << 13; rngs ^= rngs >> 17; rngs ^= rngs << 5;
+    return rngs;
+}
+int rnd_range(int n) { return n > 0 ? (int)(rnd() % (u32)n) : 0; }
+
 /* --- mGBA debug logging --- */
 static void log_flush(int level) { MGBA_LOG_FLAGS = (u16)(level | 0x100); }
 

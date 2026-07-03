@@ -129,5 +129,7 @@ void memcpy16(vu16* dst, const u16* src, u32 halfwords);
 void memset16(vu16* dst, u16 val, u32 halfwords);
 void mgba_log(const char* s);
 void mgba_logf(const char* fmt, ...);   /* tiny: %d %x %s only */
+u32  rnd(void);
+int  rnd_range(int n);
 
 #endif

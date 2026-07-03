@@ -165,6 +165,18 @@ def window_tiles():
         tiles.append(pack_tile(["iiiiiiii"] * 8, leg(s)))
     tiles.append(pack_tile(["bbbbbbbb"] * 8, {"b": 10}))            # +14 solid black
     tiles.append(pack_tile(["WWWWWWWW"] * 8, {"W": 8}))             # +15 solid white
+
+    # +16..24: ATB gauge fills 0..8 px (silver), +25: full gold
+    def gauge(fill, color):
+        rows = ["........", "gggggggg"]
+        for _ in range(3):
+            rows.append(color * fill + "t" * (8 - fill))
+        rows += ["gggggggg", "........", "........"]
+        rows = rows[:8]
+        return pack_tile(rows, {".": 0, "g": 9, "t": 6, "s": 13, "y": 12})
+    for f in range(9):
+        tiles.append(gauge(f, "s"))
+    tiles.append(gauge(8, "y"))
     return tiles
 
 # ---------------------------------------------------------------- sprites
@@ -237,16 +249,34 @@ def build_maps():
         out[mname] = (w, h, cells)
     return out
 
+from art import sprites_battle as SB
+
+SIZEMAP = {(2, 2): 1, (2, 4): 7, (4, 4): 2, (4, 2): 5, (4, 8): 8}
+
 def build_sprites():
-    """OBJ tiles for field sprites, appended after UI sprites."""
+    """OBJ tiles: UI sprites, field sprites, then battle sprites."""
     tiles, defs = obj_tiles()
     for sname, spec in SF.SPRITES.items():
         defs["OBJT_" + sname.upper()] = len(tiles)
         for fname in spec["frames"]:
             tiles += sprite_tiles(SF.FRAMES[fname], SF.LEG, 2, 2)
+    for sname, spec in SB.SPRITES.items():
+        up = sname.upper()
+        w, hgt = spec["w"], spec["h"]
+        defs["OBJT_" + up] = len(tiles)
+        defs["OBJS_" + up] = SIZEMAP[(w, hgt)]
+        defs["OBJP_" + up] = spec["pal"]
+        defs["OBJTPF_" + up] = w * hgt
+        for fname in spec["frames"]:
+            tiles += sprite_tiles(SB.FRAMES[fname], SB.LEG, w, hgt)
     for idx, colors in SF.PALS.items():
         OBJ_PALS[idx] = pal16(colors)
     return tiles, defs
+
+# OBJ pal 8: heal-green digits; OBJ pal 9: gold digits; OBJ pal 10: white digits
+OBJ_PALS[8] = pal16([(0, 0, 0), (10, 29, 12), (2, 7, 3)])
+OBJ_PALS[9] = pal16([(0, 0, 0), (31, 28, 8), (8, 6, 1)])
+OBJ_PALS[10] = pal16([(0, 0, 0), (31, 31, 31), (3, 3, 4)])
 
 def sky_tiles():
     """8 simple Avernus sky tiles: 2 variants x 4 gradient bands, BG pal 4."""
