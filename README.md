@@ -4,8 +4,10 @@ A Game Boy Advance homebrew retelling of the opening mission of *Baldur's Gate 3
 ("Escape the Nautiloid"): 16-bit-style tile exploration with FF4-Advance menus and
 portraits, and **real D&D 5e SRD combat fought right on the map**, Chrono-Trigger
 style — visible initiative rolls, actions and bonus actions, opportunity attacks,
-and every d20 shown as it lands. A PSG chiptune score, all on a real 240×160 GBA
-in about 15 minutes of play.
+and every die drawn as it lands, colored by damage type. The ship is alive:
+sentries patrol with real vision cones, and stealth, ambushes, and surprise
+rounds cut both ways. A PSG chiptune score, all on a real 240×160 GBA in about
+15 minutes of play.
 
 Everything here is **built from scratch**: no game engine, no devkitPro, no libgba,
 no ripped assets. The toolchain is a stock `arm-none-eabi-gcc`; the sprites, tiles,
@@ -15,6 +17,11 @@ header, startup code, and interrupt handler are hand-written.
 ![gameplay: title, the nautiloid, battles, the helm finale](docs/demo.gif)
 
 ## Play
+
+Grab a prebuilt `nautiloid.gba` from the
+[Releases page](https://github.com/mtklein/demake/releases) and load it in any
+accurate GBA emulator ([mGBA](https://mgba.io) recommended), or build it
+yourself:
 
 ```sh
 make        # build build/nautiloid.gba
@@ -34,13 +41,14 @@ hardware (a flashcart / EverDrive).
 | D-pad | Walk | Move cursor |
 | A | Talk / examine / confirm | Confirm |
 | B | — | Cancel / back |
-| Start | Advance title, dismiss the ending | — |
+| Start | Party menu: Status / Equip / Items / Tactics | — |
+| Start (title) | Begin | — |
 | Select (title) | Jukebox | — |
 | L (title) | Attract mode: the game plays itself | — |
 
-Hold **A** or **B** to fast-forward dialogue text. In battle, the **Tactics**
-command sets DQ-style AI per member — Orders, Wisely, All Out, Healer, No
-Slots — so companions can fight themselves while you drive the hero.
+Hold **A** or **B** to fast-forward dialogue text. **Tactics** (in the party
+menu or mid-battle) sets DQ-style AI per member — Orders, Wisely, All Out,
+Healer, No Slots — so companions can fight themselves while you drive the hero.
 
 ## The mission
 
@@ -64,13 +72,26 @@ Faithful beats from the BG3 prologue, condensed into an FF4 dungeon:
 Your choices — who you freed, who you saved, whether you took the blade — are
 tallied over the wreckage on the Ravaged Beach.
 
-Combat is SRD 5e for real: d20 + modifiers vs AC with the roll on screen,
-advantage/disadvantage, crits that double dice, spell slots, concentration,
-and class features at their real levels — Second Wind at fighter 1, Action
-Surge at 2, sneak attack from Hide, Sleep as an HP-pool with auto-crits on
-sleepers. Fights happen where you stand: initiative pops over every head, the
-camera frames the brawl, melee dashes in, and enemies pick targets by expected
-value (imps hunt your squishiest). Defeat offers an instant retry.
+Combat is SRD 5e for real: d20 + modifiers vs AC with every die drawn as it
+lands (polyhedra in damage-type colors), advantage/disadvantage, crits that
+double dice, spell slots, concentration, and class features at their real
+levels — Second Wind at fighter 1, Action Surge at 2, sneak attack from Hide,
+Sleep as an HP-pool with auto-crits on sleepers. Fights happen where you
+stand: initiative pops over every head, the camera frames the brawl, melee
+dashes in, downed friends lie where they fell, sleeping foes snore, and
+enemies pick targets by expected value (imps hunt your squishiest). Defeat
+offers an instant retry.
+
+Between the set-piece fights the ship itself pushes back. Imps patrol with
+forward vision cones — blunder into one and it runs you down for an ambush
+where your whole side is surprised; skirt its peripheral vision (a rogue-led
+party walks quieter) and strike from behind to surprise *it* instead, in the
+full 5e sense: the surprised side simply loses round one. Doors between the
+surgery, deck, and pod rooms open both ways, so gear you missed stays
+reachable — weapons turn up on corpses and in chests, and what you find knows
+who you are: the dead githyanki duelist offers a bard a rapier, a rogue a
+shortsword, a ranger a trident. Zhalk's Everburn Blade still burns (a real
+weapon rider: +1d4 fire, DEX save for half) if you can take it from him.
 
 ## How it's built
 
@@ -89,8 +110,9 @@ src/            bare-metal GBA C + the game
   game.c        title, prologue crawl, class select, name entry
   events.c      the story: rooms, dialogue, cutscenes, the finale
   data.c        party stats, class kits, enemy definitions
+  menu.c        Start menu: status sheets, equipment, items, tactics
 rules/          pure C 5e SRD combat core -- dual-target: compiled into the
-                ROM and natively for `make test-rules` (240k+ property checks,
+                ROM and natively for `make test-rules` (247k property checks,
                 closed-form expectations validated against Monte Carlo)
 tools/          Python asset pipeline (no binary art in the repo)
   mkassets.py   compiles art/music sources -> build/gen/assets.{c,h}
@@ -115,7 +137,9 @@ a small in-ROM demo mode (auto-advancing dialogue, a poked choice buffer, and a
 guessing frame counts. `test/scenario.py` encodes several branching paths
 (different classes, sparing vs. mutilating Us, saving vs. abandoning Shadowheart,
 connecting the transponder vs. killing Zhalk) that are run and screenshot-checked
-end to end.
+end to end, plus living-encounter scenarios: sneaking a backstab on a patroller
+(`sneak_strike`), getting run down by one (`cone_ambush`), and the helm's
+sleepers (`helm_sleepz`).
 
 ## Debug flags (CodeBreaker cheats)
 
@@ -134,3 +158,10 @@ Original game *Baldur's Gate 3* © Larian Studios; *Final Fantasy IV* © Square
 Enix. This is a non-commercial fan demake with all-original code, art, and music
 — no assets from either game are used. The 8×8 text font is
 [font8x8](https://github.com/dhepper/font8x8) by Daniel Hepper (public domain).
+
+This work includes material from the System Reference Document 5.1 and the
+System Reference Document 5.2.1 by Wizards of the Coast LLC, available at
+[dndbeyond.com/srd](https://www.dndbeyond.com/srd), licensed under the
+[Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode).
+Creatures not in the SRD (the devourer, cambion commander, and mind flayer
+stand-ins) are original homebrew.

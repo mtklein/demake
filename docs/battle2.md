@@ -3,7 +3,10 @@
 > **Status: SHIPPED.** The cutover is complete — every encounter (deck imps,
 > awakened thralls, the helm finale with countdown, warping cambions, and the
 > Zhalk/flayer duel) runs on encounter.c + rules/; the FF4 battle system is
-> deleted. This doc is kept as the design rationale.
+> deleted. All three encounter triggers below are live: proximity patrols
+> with forward vision cones, scripted fights, and player-initiated ambushes,
+> with surprise rounds in both directions. This doc is kept as the design
+> rationale.
 
 The FF4 battle system (separate scene, ATB, abstract numbers) gets replaced by
 encounters fought **in place on the field map** with **SRD 5e mechanics** and
