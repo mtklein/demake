@@ -101,12 +101,31 @@ def prelude():
 SONGS['PRELUDE'] = prelude()
 
 # ------------------------------------------------------------ EXPLORE (dungeon)
-# A-minor dread, 224 rows, form A A' B A''.
-#   A  (0-63):    sparse melody over sustained dyads; Am Am F Am Dm C E Am.
-#   A' (64-127):  same tune, ch1 becomes a counter-melody (6ths + contrary).
-#   B  (128-159): lift to C major (fragile hope), iv-V retransition @152.
-#   A'' (160-223): reprise; seam bar swaps in an E7 pickup (G#-B -> A) @216.
+# The dread-heart of the dying nautiloid. 440 rows, rondo: A A' B A C A D E A''.
+# Home is the original A-minor motif (A-C-B-A turn, F-E-D-C descent, G# pull);
+# every excursion develops that DNA, and every seam is a different door back.
+#   A   (0-63):    Am dread, sparse melody over dyads; Am Am F Am Dm C E Am.
+#   A'  (64-127):  counter-melody pass; last bar converges on B over G (V of C).
+#   B   (128-175): C-major fragile hope, extended: the motif recolored MAJOR
+#                  (C-E-D-C @152) crests at E5, then G7 collapses into iv-V.
+#   A   (176-207): first phrase only; drums thin out, bass slides C#3 -> D.
+#   C   (208-271): "the ship is alive" -- D minor. Texture inverts: the wave
+#                  bass sings the motif INVERTED + AUGMENTED (D-Bb-C-D, then
+#                  the descent cell F-E-D-C-Bb augmented) in its tenor range
+#                  while the squares breathe staggered ghost dyads above.
+#                  Kick every 32 rows only. V-of-Dm (A, C#) pulls back to A.
+#   A   (272-303): second phrase of the tune; hats creep in, snare fill -> D.
+#   D   (304-351): "something approaches" -- E Phrygian. Off-beat square stabs
+#                  in parallel 4ths SEQUENCE the motif cell up E-F-G-A over a
+#                  rising octave-pulse bass and 8th-note hats; at the peak the
+#                  cell lands on the ORIGINAL A-C-B-A, on the beat, fortissimo
+#                  -- then everything cuts dead for 8 rows.
+#   E   (352-375): engine room: squares silent, bass + drums alone on an E
+#                  pedal (dominant); heartbeat kick returns, G#-B walk -> A''.
+#   A'' (376-439): finale: tune + counter-melody an octave up, snare enters;
+#                  seam bar sinks back to the old register, E7 pickup -> row 0.
 def explore():
+    # ---- home material (unchanged DNA) ----
     melA = bars('''A3 . . .  C4 . B3 .  | A3 . . .  x  x E4 .
                  | F4 . . .  E4 . D4 .  | C4 . . .  x  x x  x
                  | A3 . . .  E4 . F4 .  | E4 . D4 . C4 . B3 .
@@ -123,23 +142,81 @@ def explore():
                   | A3 . . .  G3 . F3 .  | E3 . . .  G3 E3 D3 .
                   | F3 . . .  C4 . D4 .  | C4 . B3 . A3 .  G3 .
                   | C3 . D3 . E3 . .  .  | E3 . . .  G3 .  B3 .''')
+    # A' seam: both voices converge on B3 over G2 (V of C) -> door into B.
+    melAp  = melA[:56]  + bars('A3 . . . G3 . B3 .')
+    bassAp = bassA[:56] + bars('A2 . . . E2 . G2 .')
+    # ---- B: fragile hope, extended.  Bars 4-5 quote the A motif in MAJOR
+    # (C-E-D-C) at the top of the range, answer with the descent cell; the
+    # G7 under it refuses to resolve home and folds into Dm-E (iv-V) instead.
     melB  = bars('''E4 . G4 . C5 . .  .  | B4 . G4 . D5 . .   .
-                  | A4 . G4 . F4 . E4 .  | F4 . D4 . B3 . G#3 .''')
+                  | A4 . G4 . F4 . E4 .  | C5 . . . E5 . D5   .
+                  | C5 . B4 . A4 . G4 .  | F4 . D4 . B3 . G#3 .''')
     harmB = bars('''C4 . E4 . G4 . .  .  | G4 . D4 . B4 . .   .
-                  | F4 . D4 . C4 . .  .  | D4 . A3 . E3 . .   .''')
+                  | F4 . D4 . C4 . .  .  | F4 . . . A4 . .    .
+                  | E4 . . . F4 . .   .  | D4 . A3 . E3 . .   .''')
     bassB = bars('''C2 . . .  G2 . .  .  | G2 . . .  B2 . .   .
-                  | F2 . . .  C3 . .  .  | D2 . . .  E2 . B2  .''')
-    melS  = bars('A3 . . . x  x G#3 B3')          # seam: E7 pickup -> loop A3
-    harmS = bars('C3 . . . E3 . .   .')
-    bassS = bars('A2 . . . E2 . E2  .')
-    mel  = melA + melA + melB + melA[:56] + melS
-    harm = harmA + cntr + harmB + harmA[:56] + harmS
-    bass = bassA + bassA + bassB + bassA[:56] + bassS
+                  | F2 . . .  C3 . .  .  | F2 . . .  A2 . .   .
+                  | G2 . . .  G2 . F2 .  | D2 . . .  E2 . B2  .''')
+    # A return #1: bass bar 4 slides chromatically C#3 -> D3 (into C section).
+    bassR1 = bassA[:24] + bars('A2 . . . E2 . C#3 .')
+    # ---- C: the ship is alive.  Wave bass = A motif inverted (1-3-2-1 flips
+    # to 1-b6-b7-1: D-Bb-C-D) and augmented x2 (rhythm 8/4/4/8 = 4/2/2/4 of
+    # bar 1 doubled); phrase 2 = the F-E-D-C-Bb descent cell augmented, then
+    # V of Dm (A2, C#2 half-step under D2) hands back to A.  Squares:
+    # staggered ghost dyads that enter two rows apart and exhale into rests.
+    def ghost(hi, lo, sound=12, total=16):
+        top = [n(hi)] + [HOLD] * (sound - 1) + [REST] * (total - sound)
+        bot = [REST, REST, n(lo)] + [HOLD] * (sound - 3) + [REST] * (total - sound)
+        return top, bot
+    g1t, g1b = ghost('A4',  'F4')
+    g2t, g2b = ghost('G4',  'D4')
+    g3t, g3b = ghost('C5',  'F4')
+    g4t, g4b = ghost('A#4', 'F4', sound=8)
+    ch0C, ch1C = g1t + g2t + g3t + g4t, g1b + g2b + g3b + g4b
+    bassC = bars('''D3 . . . D3  . .  . | A#2 . . . C3  . .   .
+                  | D3 . . . D3  . .  . | x   x A2 . .  . .   .
+                  | F3 . . . .   . .  . | E3  . . . D3  . .   .
+                  | C3 . . . A#2 . .  . | A2  . . . A2  . C#2 .''')
+    # ---- D: something approaches.  The motif cell (1-3-2) as off-beat stabs
+    # in parallel 4ths, sequenced up E-F-G-A with chromatic color; the peak
+    # bar is the original A-C-B-A hammered ON the beat, then 8 rows of void.
+    melD  = bars('''x  x E4 . x  G4  . F4  | x  x F4 . x G#4 . G4
+                  | x  x G4 . x  A#4 . A4  | x  x A4 . x C5  . B4
+                  | A4 . C5 . B4 .   A4 .  | x  x x  x x x   x x''')
+    harmD = bars('''x  x B3 . x  D4  . C4  | x  x C4 . x D#4 . D4
+                  | x  x D4 . x  F4  . E4  | x  x E4 . x G4  . F#4
+                  | E4 . G4 . F#4 .  E4 .  | x  x x  x x x   x x''')
+    bassD = bars('''E2 . E3 . E2 . E3 .    | F2 . F3 . F2 . F3 .
+                  | G2 . G3 . G2 . G3 .    | A2 . A3 . A2 . A3 .
+                  | A2 . A2 . A2 . A2 .    | x  x x  x x  x x  x''')
+    # ---- E: engine room -- bass and drums only, dominant pedal -> finale.
+    bassE = bars('''E2 . . E2 x  E2 E3  .  | E2 . . E2 x E2 D3 .
+                  | E2 . . .  E2 .  G#2 B2''')
+    # ---- A'': finale reprise an octave up; seam sinks home for the loop.
+    def up(ch):
+        return [v + 12 if v <= 59 else v for v in ch]
+    melF  = up(melA[:56]) + bars('A4 . . . x  x G#3 B3')   # E7 pickup -> A3
+    harmF = up(cntr[:56]) + bars('C4 . . . E3 . .   .')
+    bassF = bassA[:56]    + bars('A2 . . . E2 . G#2 .')
+    # ---- assembly:  A    A'     B      A(1)        C     A(2)        D     E          A'' ----
+    mel  = melA + melAp + melB + melA[:32]  + ch0C + melA[32:]  + melD + [REST] * 24 + melF
+    harm = harmA + cntr + harmB + harmA[:32] + ch1C + harmA[32:] + harmD + [REST] * 24 + harmF
+    bass = bassA + bassAp + bassB + bassR1  + bassC + bassA[32:] + bassD + bassE      + bassF
     R = REST
-    beat  = [0,R,R,R, 2,R,R,R, 0,R,R,R, R,R,R,R]  # heartbeat kick, distant hat
-    beatB = [0,R,R,R, 2,R,R,R]                    # B: hats double (small earn)
-    drum = rep(beat, 8) + rep(beatB, 3) + [0,R,R,R, 2,R,1,1] \
-         + rep(beat, 3) + beatB + [0,R,R,R, 0,R,1,1]
+    heart  = [0,R,R,R, 2,R,R,R, 0,R,R,R, R,R,R,R]  # heartbeat kick, distant hat
+    heart2 = [0,R,R,R, 2,R,R,R, 0,R,R,R, 2,R,R,R]  # + answering hat
+    pulse8 = [0,R,R,R, 2,R,R,R]
+    drive  = [0,R,2,R, 2,R,1,2]                    # D: 8th hats, off-beat snare
+    full16 = [0,R,R,R, 2,R,R,R, 0,R,2,R, 1,R,2,R]  # finale: snare enters
+    drum = ( rep(heart, 4)                                        # A
+           + rep(heart, 2) + rep(heart2, 2)                       # A'
+           + rep(pulse8, 5) + [0,R,R,R, 2,R,1,1]                  # B + fill
+           + heart + [0,R,R,R, R,R,R,R, 0,R,R,R, R,R,R,R]         # A(1): hat dies
+           + [0] + [R]*31 + [0] + [R]*27 + [2,R,2,2]              # C: two kicks
+           + heart2 + [0,R,2,R, 2,R,2,R] + [0,R,2,R, 1,1,1,1]     # A(2) + fill
+           + rep(drive, 4) + [0,2,2,2, 1,2,1,2] + [R]*8           # D, peak, void
+           + pulse8 + [0,R,R,R, 2,R,0,R] + [0,R,2,R, 1,1,1,3]     # E + crash
+           + rep(full16, 3) + pulse8 + [0,R,R,R, 2,R,1,1] )       # A'' -> loop
     return dict(ch=[mel, harm, bass, drum], loop=0, speed=10,
                 env1=envelope(11, 0, 0, 2), env2=envelope(8, 0, 0, 1),
                 wavevol=0x2000)
