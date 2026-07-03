@@ -24,6 +24,10 @@ int main(void) {
     char nm[8];
     game_name_entry(nm);
     party_init(cls, nm);
+    {
+        void party5_refresh_all(void);
+        party5_refresh_all();
+    }
     memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
     mgba_logf("start: class=%d name=%s", cls, nm);
 

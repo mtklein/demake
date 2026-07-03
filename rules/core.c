@@ -86,6 +86,7 @@ static void resolve_to_hit(R5RNG* r, R5Attack* out, int to_hit_bonus,
     out->crit = (out->d20.total == 20);
     out->fumble = (out->d20.total == 1);
     out->hit = out->crit || (!out->fumble && out->total >= target_ac);
+    if (out->hit && (flags & R5F_AUTOCRIT)) out->crit = 1;
 }
 
 /* damage roll: crit doubles the DICE, never the modifier */

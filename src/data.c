@@ -103,6 +103,9 @@ void party_heal_full(void) {
         G.pm[i].hp = G.pm[i].hpmax;
         G.pm[i].mp = G.pm[i].mpmax;
     }
+    /* keep the 5e party in step (Battle 2.0) */
+    void party5_heal_full(void);
+    party5_heal_full();
 }
 
 /* ------------------------------------------------ enemies ------ */

@@ -97,6 +97,17 @@ def ranger_full():
     setup(2, [0, 0, 0, 0, 0])             # ranger, spare Us, save everyone, connect
     intro(); nursery(); surgery(); deck(); pods(); helm()
 
+@scn
+def b2_deck():
+    """Battle 2.0 pilot: the deck imp fight as a 5e on-map encounter."""
+    setup(3, [0, 0, 0, 0, 0])             # wizard: exercises sleep/missiles/firebolt
+    poke(0x0203FF08, 1)                   # G_BATTLE2
+    intro(); nursery(); surgery()
+    walk("DOWN", 1)                       # trigger Lae'zel -> encounter
+    wait(800); shot("b2_mid")
+    ready(24000)                          # encounter + post-dialog completes
+    shot("b2_won")
+
 if __name__ == "__main__":
     SCN[sys.argv[1]]()
     print("\n".join(out))

@@ -107,6 +107,43 @@ def gen_classes(o):
             ", ".join(map(str, sneak))))
     o.append("};")
 
+# ---------------------------------------------------------------- spells
+
+SPELL_MAP = [  # rules.h R5S_ order
+    ("R5S_VICIOUS_MOCKERY", "vicious mockery"),
+    ("R5S_HEALING_WORD", "healing word"),
+    ("R5S_FIRE_BOLT", "fire bolt"),
+    ("R5S_MAGIC_MISSILE", "magic missile"),
+    ("R5S_SLEEP", "sleep"),
+    ("R5S_CURE_WOUNDS", "cure wounds"),
+    ("R5S_GUIDING_BOLT", "guiding bolt"),
+    ("R5S_BLESS", "bless"),
+    ("R5S_HUNTERS_MARK", "hunter's mark"),
+]
+HEAL_SPELLS = {"healing word", "cure wounds"}
+
+def gen_spells(o):
+    o.append("const R5Spell r5_spells[] = {")
+    for enum, key in SPELL_MAP:
+        s = SRD.SPELLS[key]
+        d, count, plus = s.get("dice"), 1, 0
+        if isinstance(d, dict):
+            count, plus, d = d["count"], d.get("plus", 0), d["dice"]
+        save_ab, save_half = "0xFF", 0
+        if s.get("save"):
+            ab, mode = s["save"]
+            save_ab, save_half = str(AB[ab]), 1 if mode == "half" else 0
+        heal = key in HEAL_SPELLS
+        add_mod = 1 if heal else 0
+        dt = DT.get(s.get("dmg_type") or "", "0")
+        o.append('    [%s] = { "%s", %d, %d, %d, %d, %s, %d, %s, %d, %s, %d, %d },' % (
+            enum, key.title().replace("'S", "'s"), s["level"],
+            1 if s["cast"] == "bonus" else 0,
+            1 if s["concentration"] else 0,
+            1 if s.get("attack") else 0,
+            save_ab, save_half, dice(d, plus), count, dt, heal, add_mod))
+    o.append("};")
+
 # ---------------------------------------------------------------- monsters
 
 MONSTER_MAP = [  # (enum, source dict, key) in rules.h R5M_ order
@@ -161,6 +198,7 @@ def main():
     ]
     gen_weapons(o); o.append("")
     gen_classes(o); o.append("")
+    gen_spells(o); o.append("")
     gen_monsters(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")

@@ -88,7 +88,17 @@ void field_remove_npc(int idx) { npcs[idx].flags |= NPC_GONE; }
 void field_exit(void) { exit_req = 1; }
 int  field_player_mx(void) { return (ppx + 8) / 16; }
 int  field_player_my(void) { return (ppy + 8) / 16; }
+int  field_player_x(void) { return ppx; }
+int  field_player_y(void) { return ppy; }
 int  field_face(void) { return pface; }
+int  field_cam_x(void) { return cam_x; }
+int  field_cam_y(void) { return cam_y; }
+
+static int player_hidden;
+void field_hide_player(int on) {
+    player_hidden = on;
+    if (on) obj_hide(OBJ_PLAYER);
+}
 
 static int npc_at(int mx, int my) {
     for (int i = 0; i < nnpc; i++) {
@@ -149,7 +159,8 @@ void field_draw(void) {
     ticks++;
     update_cam();
     int panim = pmoving ? ((pstep >> 2) & 1) : 0;
-    draw_walker(OBJ_PLAYER, ppx, ppy, OBJT_HERO, 0, pface, panim, 6);
+    if (!player_hidden)
+        draw_walker(OBJ_PLAYER, ppx, ppy, OBJT_HERO, 0, pface, panim, 6);
     for (int i = 0; i < nnpc; i++) {
         Npc* n = &npcs[i];
         if (n->flags & NPC_GONE) { obj_hide(OBJ_NPC0 + i); continue; }

@@ -47,6 +47,7 @@ enum {
     R5F_MARK      = 1 << 3,   /* hunter's mark: +1d6 damage        */
     R5F_VERSATILE = 1 << 4,   /* use two-handed damage die         */
     R5F_SNEAK     = 1 << 5,   /* add sneak attack dice (by level)  */
+    R5F_AUTOCRIT  = 1 << 6,   /* melee vs unconscious: hit -> crit */
 };
 
 /* weapon properties */
@@ -203,6 +204,27 @@ enum { R5W_DAGGER, R5W_SHORTSWORD, R5W_LONGSWORD, R5W_GREATSWORD, R5W_RAPIER,
        R5W_COUNT };
 
 extern const R5Class r5_classes[R5C_COUNT];
+
+/* spells (prologue set, generated from SRD data) */
+typedef struct {
+    const char* name;
+    uint8_t level;              /* 0 = cantrip */
+    uint8_t bonus_action;
+    uint8_t concentration;
+    uint8_t attack;             /* resolves as a ranged spell attack */
+    uint8_t save_ab;            /* 0xFF = no save */
+    uint8_t save_half;          /* save halves (else negates) */
+    R5DiceSpec dice;
+    uint8_t count;              /* separate hits (magic missile darts) */
+    uint8_t dmg_type;
+    uint8_t heal;               /* heals instead of damages */
+    uint8_t add_mod;            /* add caster ability mod to the dice */
+} R5Spell;
+
+extern const R5Spell r5_spells[];
+enum { R5S_VICIOUS_MOCKERY, R5S_HEALING_WORD, R5S_FIRE_BOLT,
+       R5S_MAGIC_MISSILE, R5S_SLEEP, R5S_CURE_WOUNDS, R5S_GUIDING_BOLT,
+       R5S_BLESS, R5S_HUNTERS_MARK, R5S_COUNT };
 
 extern const R5Monster r5_monsters[];
 /* IMP/BOAR are true SRD stat blocks (test-validated); the rest are our

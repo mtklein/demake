@@ -7,6 +7,8 @@
 #include "battle.h"
 #include "events.h"
 #include "screens.h"
+#include "encounter.h"
+#include "party5.h"
 
 /* Speaker lines upgrade to portraits automatically as each portrait lands
  * in tools/art/portraits.py (missing art falls back to plain say). */
@@ -304,7 +306,26 @@ static void deck_fight(void) {
     SAY_LZ("LAE'ZEL: \"First -- ghaik vermin come. Draw steel!\"");
     dlg_close();
     party_add_laezel();
+    party5_refresh_all();
     field_remove_npc(n_lz);
+
+    if (G_BATTLE2) {
+        /* Battle 2.0 pilot: fight the imps right here on the deck */
+        EncSpawn deck5[3];
+        for (int i = 0; i < 3; i++) {
+            deck5[i].mon = R5M_LESSER_IMP;
+            deck5[i].npc = (s8)n_imp[i];
+            deck5[i].xp = 40;
+        }
+        encounter_run(deck5, 3, us_with_us() ? ENCF_ALLY_US : 0);
+        G.flags |= GF_DECK_FOUGHT;
+        music(SONG_EXPLORE);
+        SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
+        if (us_with_us()) SAY_US("US: \"Us watched. Us approves!\"");
+        dlg_close();
+        return;
+    }
+
     field_remove_npc(n_imp[0]);
     field_remove_npc(n_imp[1]);
     field_remove_npc(n_imp[2]);

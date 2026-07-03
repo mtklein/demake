@@ -29,7 +29,12 @@ void field_face_npc(int idx, int dir);
 void field_shake(int frames);
 int  field_player_mx(void);
 int  field_player_my(void);
+int  field_player_x(void);
+int  field_player_y(void);
 int  field_face(void);
+int  field_cam_x(void);
+int  field_cam_y(void);
+void field_hide_player(int on);
 
 /* provided by events.c (game content) */
 void ev_interact(int mx, int my);
