@@ -1,0 +1,5 @@
+wait 30
+shot test/shots/boot30.ppm
+wait 120
+shot test/shots/boot150.ppm
+peek 03000000 8
