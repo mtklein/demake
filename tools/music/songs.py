@@ -533,4 +533,92 @@ def azure():
 
 SONGS['AZURE'] = azure()
 
-ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE']
+
+# ------------------------------------------------------------ GAIA (jukebox)
+# TOTAL_ROWS = 1072
+# FORM: 0 ORBIT / 160 TURNS / 400 HYMN / 656 SURGE / 912 DISSOLVE
+# Meter: bars 1-10 ORBIT 4/4 (16 rows) | bars 11-22 TURNS 5/4 (20 rows) | bars 23-64 4/4 (16 rows)
+# Key: G major (hymn); TURNS = D-mixolydian heartbeat (dominant pedal); ORBIT drifts G / Eb / Bb / D
+def gaia():
+    c0 = (
+        bars('x . . . . . . . . . . . . . . . D6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D#6 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . D6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . E6 . . . . . . . D6 . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . A4 . . . D5 . . . . . . . E5 . . . D5 . . . . . . . . . . . . . . . . . . . x . . . A4 . . . D5 . . . E5 . . . F#5 . . .') +
+        bars('E5 . . . . . . . . . . . . . . . x . . . . . . . D5 . . . E5 . . . F#5 . . . E5 . . . D5 . . . E5 . . . F#5 . . . G5 . . . F#5 . . . E5 . . .') +
+        bars('F#5 . . . G5 . . . A5 . . . G5 . . . F#5 . . . A5 . . . . . . . . . . . . . . . . . . . A5 . . . B5 . . . A5 . . . G5 . . . F#5 . . . . . . .') +
+        bars('. . . . . . . . . . . . x . . . B4 . . . A4 . . . G4 . . . A4 . . . B4 . . . C5 . . . D5 . . . . . . . E5 . . . D5 . . . C5 . . . B4 . . .') +
+        bars('A4 . . . . . . . . . . . . . . . B4 . . . A4 . . . G4 . . . A4 . . . B4 . . . C5 . . . D5 . . . . . . . C5 . . . B4 . . . A4 . . . . . . .') +
+        bars('G4 . . . . . . . . . . . . . . . A4 . . . B4 . . . C5 . . . . . . . B4 . . . C5 . . . D5 . . . . . . . C5 . . . D5 . . . E5 . . . . . . .') +
+        bars('D5 . . . . . . . C5 . . . A4 . . . B4 . . . A4 . . . G4 . . . A4 . . . B4 . . . C5 . . . D5 . . . E5 . . . D5 . . . . . . . C5 . . . A4 . . .') +
+        bars('G4 . . . . . . . . . . . . . . . B5 . . . A5 . . . G5 . . . A5 . . . B5 . . . C6 . . . D6 . . . . . . . E6 . . . D6 . . . C6 . . . B5 . . .') +
+        bars('A5 . . . . . . . . . . . . . . . B5 . . . A5 . . . G5 . . . A5 . . . B5 . . . C6 . . . D6 . . . . . . . C6 . . . B5 . . . A5 . . . . . . .') +
+        bars('G5 . . . . . . . . . . . . . . . A5 . . . B5 . . . C6 . . . . . . . B5 . . . C6 . . . D6 . . . . . . . C6 . . . D6 . . . E6 . . . . . . .') +
+        bars('D6 . . . . . . . C6 . . . A5 . . . B5 . . . A5 . . . G5 . . . A5 . . . B5 . . . C6 . . . D6 . . . E6 . . . D6 . . . . . . . C6 . . . A5 . . .') +
+        bars('G5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('D#6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('E6 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . .')
+    )
+    c1 = (
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('A#5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . A5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . D4 . . . G4 . . . . . . . A4 . . . G4 . . . x . . . . . . . . . . . . . . .') +
+        bars('. . . . D4 . . . G4 . . . A4 . . . B4 . . . A4 . . . B4 . . . C5 . . . D5 . . . C5 . . . B4 . . . C5 . . . D5 . . . E5 . . . D5 . . . C5 . . .') +
+        bars('D5 . . . E5 . . . F#5 . . . E5 . . . D5 . . . D5 . . . . . . . . . . . . . . . . . . . F#5 . . . G5 . . . F#5 . . . E5 . . . D5 . . . . . . .') +
+        bars('. . . . . . . . . . . . x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . C4 . . . D4 . . . E4 . . . . . . . G4 . . . A4 . . . B4 . . . . . . . A4 . . . B4 . . . C5 . . . . . . .') +
+        bars('A4 . . . . . . . . . . . F#4 . . . G4 . . . F#4 . . . E4 . . . F#4 . . . G4 . . . A4 . . . B4 . . . C5 . . . A4 . . . . . . . . . . . F#4 . . .') +
+        bars('D4 . . . . . . . . . . . . . . . G5 . . . F#5 . . . E5 . . . F#5 . . . G5 . . . A5 . . . B5 . . . . . . . C6 . . . B5 . . . A5 . . . G5 . . .') +
+        bars('F#5 . . . . . . . . . . . . . . . D5 . . . C5 . . . B4 . . . C5 . . . D5 . . . E5 . . . F#5 . . . . . . . E5 . . . D5 . . . C5 . . . . . . .') +
+        bars('B4 . . . . . . . . . . . . . . . C5 . . . D5 . . . E5 . . . . . . . G5 . . . A5 . . . B5 . . . . . . . A5 . . . B5 . . . C6 . . . . . . .') +
+        bars('A5 . . . . . . . . . . . F#5 . . . G5 . . . F#5 . . . E5 . . . F#5 . . . G5 . . . A5 . . . B5 . . . C6 . . . A5 . . . . . . . . . . . F#5 . . .') +
+        bars('B4 . . . . . . . . . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . . . . . . . . . G5 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . A#5 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G5 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . .')
+    )
+    c2 = (
+        bars('G2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G2 . . . . . . . . . . . . . . . D#2 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . A#2 . . . . . . . . . . . . . . . D2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('D2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D2 . D2 D2 D2 . . . D3 . . . D2 . D2 . D2 . . . D2 . D2 D2 D2 . . . D3 . . .') +
+        bars('D2 . D2 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . D2 . D2 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . A2 . C3 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . D2 . D2 .') +
+        bars('D2 . . . D2 . D2 D2 D2 . . . D3 . . . A2 . C3 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . D2 . D2 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . A2 . C3 . D2 . . .') +
+        bars('D2 . D2 D2 D2 . . . D3 . . . D2 . D2 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . A2 . C3 . D2 . . . D2 . D2 D2 D2 . . . D3 . . . D2 . D2 . D2 . . . D2 . D2 D2') +
+        bars('D2 . . . C3 . . . B2 . . . A2 . A2 . G2 . . . . . . . . . . . . . . . G2 . . . A2 . . . B2 . . . . . . . C3 . . . B2 . . . A2 . . . G2 . . .') +
+        bars('D3 . . . . . . . D2 . . . . . . . G2 . . . . . . . . . . . . . . . G2 . . . A2 . . . B2 . . . . . . . C3 . . . . . . . D3 . . . . . . .') +
+        bars('G2 . . . . . . . . . . . . . . . A2 . . . . . . . . . . . . . . . B2 . . . . . . . . . . . . . . . C3 . . . . . . . . . . . . . . .') +
+        bars('D3 . . . . . . . D2 . . . . . . . G2 . . . . . . . . . . . . . . . G2 . . . A2 . . . B2 . . . C3 . . . D3 . . . . . . . D2 . . . . . . .') +
+        bars('G2 . . . . . . . . . . . . . . . G2 . . . B2 . . . D3 . . . B2 . . . G2 . . . A2 . . . B2 . . . G2 . . . C3 . . . B2 . . . A2 . . . G2 . . .') +
+        bars('D3 . . . A2 . . . D2 . . . . . . . G2 . . . B2 . . . D3 . . . B2 . . . G2 . . . A2 . . . B2 . . . G2 . . . C3 . . . . . . . D3 . . . D2 . . .') +
+        bars('G2 . . . . . . . B2 . . . D3 . . . A2 . . . . . . . C3 . . . E3 . . . B2 . . . . . . . D3 . . . G2 . . . C3 . . . . . . . E3 . . . C3 . . .') +
+        bars('D3 . . . . . . . D2 . . . . . . . G2 . . . B2 . . . D3 . . . B2 . . . G2 . . . A2 . . . B2 . . . C3 . . . D3 . . . . . . . D2 . . . . . . .') +
+        bars('G2 . . . . . . . . . . . . . . . G2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G2 . . . . . . . . . . . . . . .') +
+        bars('D#2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . A#2 . . . . . . . . . . . . . . . G2 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . .')
+    )
+    c3 = (
+        [4,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,4,4,4,4] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,4,4,4,4,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,2,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD] +
+        [2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,HOLD] +
+        [2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD] +
+        [0,HOLD,2,2,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,2,2,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,2,2] +
+        [2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,HOLD,2,2,2,2,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,2,HOLD,4,4,4,4,3,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,2,HOLD,2,HOLD] +
+        [0,HOLD,HOLD,HOLD,2,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,1,1,1,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,1] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,1,1,1,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,1] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,1,HOLD,0,HOLD,HOLD,HOLD,1,1,1,1,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,1,1,1,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,1,1,1,1,1,1,1,1] +
+        [3,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [4,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,REST,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=8,
+                env1=envelope(12, 0, 0, 2), env2=envelope(10, 0, 0, 1), wavevol=0x2000)
+
+SONGS['GAIA'] = gaia()
+
+ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA']
