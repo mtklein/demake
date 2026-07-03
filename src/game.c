@@ -29,6 +29,8 @@ static const char* const jb_names[SONG_COUNT] = {
     "The Long Fall",     /* SONG_CRASH   */
     "Kind of Azure",     /* SONG_AZURE   */
     "Gaia",              /* SONG_GAIA    */
+    "Tadpole Twist",     /* SONG_TADPOLE */
+    "Under Selune",      /* SONG_SELUNE  */
 };
 
 /* Sound-test screen reached with SELECT from the title. */

@@ -621,4 +621,150 @@ def gaia():
 
 SONGS['GAIA'] = gaia()
 
-ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA']
+
+# ------------------------------------------------------------ TADPOLE (jukebox)
+# TOTAL_ROWS = 592
+# FORM: 0 A (E-hijaz riff x8, cliff-hold @112) | 128 A' (riff x6, ramp, DIVE @244)
+#     | 256 B (Am-G-F-E vamp, echo->stabs, cliff-hold @368) | 384 BREAK (drums roll)
+#     | 416 A'' (riff hotter, summit turns) | 544 TURN (E5 cliff, 2-octave DIVE @564 -> loop row 0)
+def tadpole():
+    c0 = (
+        bars('E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 E4 E4 F4 E4 D#4 D#4 E4 D#4 E4 E4 E4 E4 E4 E4 E4 E4') +
+        bars('E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 A4 A4 A4 A4 B4 B4 A4 B4 C5 C5 B4 C5 D#5 D#5 C5 D#5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5') +
+        bars('E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 E4 E4 F4 E4 D#4 D#4 E4 D#4 E4 E4 E4 E4 E4 E4 E4 E4') +
+        bars('E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 F4 F4 G#4 G#4 A4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 E5 E5 E5 E5 D#5 D5 C#5 C5 B4 A#4 A4 G#4 G4 F#4 F4 E4') +
+        bars('E5 E5 E5 E5 C5 C5 C5 C5 A4 A4 A4 A4 B4 B4 C5 C5 B4 B4 B4 B4 A4 A4 B4 B4 C5 C5 B4 B4 A4 A4 A4 A4 D5 D5 D5 D5 B4 B4 B4 B4 G4 G4 G4 G4 A4 A4 B4 B4 A4 A4 A4 A4 G4 G4 A4 A4 B4 B4 A4 A4 G4 G4 G4 G4') +
+        bars('C5 C5 C5 C5 A4 A4 A4 A4 F4 F4 F4 F4 G4 G4 A4 A4 G4 G4 G4 G4 F4 F4 G4 G4 A4 A4 G4 G4 F4 F4 F4 F4 E4 E4 E4 E4 G#4 G#4 G#4 G#4 B4 B4 B4 B4 D#5 D#5 D#5 D#5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5') +
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4') +
+        bars('E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 D#5 D#5 C5 C5 B4 B4 A4 G#4 E4 E4 F4 E4 D#4 D#4 E4 F4 G#4 A4 G#4 F4 E4 F4 G#4 A4 E5 E5 E5 E5 D#5 D#5 E5 D#5 C5 C5 D#5 C5 B4 B4 C5 B4') +
+        bars('A4 A4 B4 A4 G#4 G#4 A4 G#4 F4 F4 G#4 F4 E4 E4 F4 E4 E4 E4 E4 E4 F4 F4 G#4 G#4 A4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 D#5 D5 C#5 C5 B4 A#4 A4 G#4 G4 F#4 F4 E4') +
+        bars('D#4 D4 C#4 C4 B3 A#3 A3 G#3 G3 F#3 F3 E3 E3 E3 E3 E3')
+    )
+    c1 = (
+        bars('x x x E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 E4 E4 F4 E4 D#4 D#4 E4 D#4 E4 E4 E4 E4 E4') +
+        bars('E4 E4 E4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 A4 A4 A4 A4 B4 B4 A4 B4 C5 C5 B4 C5 D#5 D#5 C5 D#5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5') +
+        bars('E5 E5 E5 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 E4 E4 F4 E4 D#4 D#4 E4 D#4 E4 E4 E4 E4 E4') +
+        bars('E4 E4 E4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4 G#4 F4 F4 E4 E4 F4 F4 G#4 G#4 A4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 E5 E5 E5 E5 D#5 D5 C#5 C5 B4 A#4 A4 G#4 G4') +
+        bars('F#4 F4 E4 x A3 . x . . . . . E4 . x . . . . . C4 . x . . . . . E4 . x . . . . . D4 . x . . . . . D4 . x . . . . . B3 . x . . . . . D4 . x .') +
+        bars('. . . . C4 . x . . . . . C4 . x . . . . . A3 . x . . . . . C4 . x . . . . . E4 . x . . . . . G#4 . x . . . . . G#4 . x . . . . . G#4 . x .') +
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 B4 B4 C5 C5 B4 C5 B4 B4 A4 A4 G#4') +
+        bars('G#4 F4 F4 E4 E4 E4 E4 F4 F4 E4 F4 G#4 G#4 F4 G#4 A4 A4 G#4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 D#5 D#5 C5 C5 B4 B4 A4 G#4 E4 E4 F4 E4 D#4 D#4 E4 F4 G#4 A4 G#4 F4 E4 F4 G#4 A4 E5 E5 E5 E5 D#5 D#5 E5 D#5 C5 C5 D#5 C5 B4') +
+        bars('B4 C5 B4 A4 A4 B4 A4 G#4 G#4 A4 G#4 F4 F4 G#4 F4 E4 E4 F4 E4 E4 E4 E4 E4 F4 F4 G#4 G#4 A4 A4 B4 B4 C5 C5 D#5 D#5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 E5 D#5 D5 C#5 C5 B4 A#4 A4 G#4 G4') +
+        bars('F#4 F4 E4 D#4 D4 C#4 C4 B3 A#3 A3 G#3 G3 F#3 F3 E3 E3')
+    )
+    c2 = (
+        bars('E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . A2 . B2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . D#2 . E2 . F2 .') +
+        bars('E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . A2 . B2 . E2 . E2 . B2 . E2 . A2 . A2 . B2 . B2 . E2 . F2 . G#2 . A2 . B2 . C3 . D#3 . E3 .') +
+        bars('E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . A2 . B2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . D#2 . E2 . F2 .') +
+        bars('E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . E2 . A2 . B2 . E2 . E2 . B2 . E2 . A2 . A2 . B2 . B2 . E3 . D#3 . C3 . B2 . A2 . G#2 . F2 . E2 .') +
+        bars('A2 . A2 . E3 . A2 . A2 . A2 . E3 . A2 . A2 . A2 . E3 . A2 . A2 . A2 . B2 . A2 . G2 . G2 . D3 . G2 . G2 . G2 . D3 . G2 . G2 . G2 . D3 . G2 . G2 . G2 . A2 . G2 .') +
+        bars('F2 . F2 . C3 . F2 . F2 . F2 . C3 . F2 . F2 . F2 . C3 . F2 . F2 . F2 . G2 . F2 . E2 . E2 . B2 . E2 . E2 . E2 . B2 . E2 . E2 . F2 . G#2 . A2 . B2 . C3 . D#3 . E3 .') +
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 .') +
+        bars('E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . E2 . B2 . E2 . E2 . D#2 . E2 . F2 . E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 .') +
+        bars('E2 . E2 E2 B2 . E2 . E2 . E2 E2 B2 . E2 . E2 . F2 . G#2 . A2 . B2 . C3 . D#3 . E3 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 . E2 .') +
+        bars('E2 . F2 . G#2 . A2 . B2 . C3 . D#3 . E3 .')
+    )
+    c3 = (
+        [3,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,1,1,1] +
+        [0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,1,1,1,1,1,1,1,1] +
+        [3,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,1,1,1] +
+        [0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,1,1,1,0,HOLD,2,HOLD,1,1,1,1,1,1,1,1,1,1,1,1] +
+        [3,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,1,1,1] +
+        [0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,0,HOLD,1,1,1,1,1,1,1,1] +
+        [0,HOLD,0,HOLD,1,HOLD,0,HOLD,0,HOLD,0,HOLD,1,HOLD,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,1,1,1,3,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,0,HOLD,0,HOLD,2,HOLD,1,1,1,1,0,HOLD,2,HOLD,1,HOLD,0,HOLD,1,1,1,1,1,1,1,1,0,HOLD,2,HOLD,1,1,1,1,1,1,1,1,0,HOLD,0,HOLD] +
+        [1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=5,
+                env1=envelope(14, 0, 0, 1), env2=envelope(9, 0, 0, 1), wavevol=0x2000)
+
+SONGS['TADPOLE'] = tadpole()
+
+
+# ------------------------------------------------------------ SELUNE (jukebox)
+# TOTAL_ROWS = 1088
+# FORM: 0 INTRO / 128 VERSE1 / 256 PRECHORUS / 320 CHORUS / 448 TURN / 512 VERSE2 / 640 PRECHORUS / 704 CHORUS / 832 FINAL_CHORUS_D / 960 OUTRO
+def selune():
+    c0 = (
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G3 .') +
+        bars('C4 . D4 . E4 . . . . . D4 . C4 . C4 . . . B3 . . . x . . . . . . . A3 . C4 . D4 . E4 . . . G4 . . . D4 . F4 . . . E4 . . . x . . . . . . . A3 .') +
+        bars('A3 . . . C4 . D4 . C4 . . . A3 . D4 . . . C4 . . . x . . . . . . . E4 . F4 . . . E4 . D4 . . . C4 . D4 . . . . . . . . . . . x . . . . . E4 .') +
+        bars('F4 . G4 . A4 . . . . . . . G4 . G4 . . . . . . . A4 . B4 . . . . . . . . . A4 . . . . . G4 . A4 . B4 . C5 . . . . . . . . . D5 . . . . . . .') +
+        bars('. . C5 . . . . . . . . . A4 . C5 . . . B4 . . . . . . . A4 . x . E5 . . . . . . . . . D5 . B4 . . . C5 . . . . . . . . . B4 . A4 . . . D5 .') +
+        bars('. . . . . . C5 . . . A4 . . . . . . . G4 . . . . . A4 . B4 . . . C5 . . . . . . . . . . . D5 . E5 . . . . . . . D5 . . . C5 . . . . . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . G3 .') +
+        bars('C4 . D4 . E4 . F4 E4 . . D4 . C4 . C4 . . . B3 . . . x . . . . . . . A3 . C4 . D4 . E4 . . . G4 . . . E4 D4 F4 . . . E4 . . . x . . . . . . . A3 .') +
+        bars('A3 . . . C4 . D4 . C4 . A3 . C4 . D4 . . . C4 . . . x . . . . . . . E4 . F4 . . . E4 . D4 . E4 . C4 . D4 . . . . . . . . . . . x . . . . . E4 .') +
+        bars('F4 . G4 . A4 . . . . . . . G4 . G4 . . . . . . . A4 . B4 . . . . . . . . . A4 . . . . . G4 . A4 . B4 . C5 . . . . . . . . . D5 . . . . . . .') +
+        bars('. . C5 . . . . . . . . . A4 . C5 . . . B4 . . . . . . . A4 . x . E5 . . . . . . . . . D5 . B4 . . . C5 . . . . . . . . . B4 . A4 . . . D5 .') +
+        bars('. . . . . . C5 . . . A4 . . . . . . . G4 . . . . . A4 . B4 . . . C5 . . . . . . . . . . . D5 . E5 . . . . . . . x . . . A4 . B4 . C#5 . D5 .') +
+        bars('. . . . . . . . . . . . B4 . D5 . . . C#5 . . . . . . . B4 . x . F#5 . . . . . . . . . E5 . C#5 . . . D5 . . . . . . . . . C#5 . B4 . . . E5 .') +
+        bars('. . . . . . D5 . . . B4 . . . . . . . A4 . . . . . B4 . C#5 . . . D5 . . . . . . . . . . . E5 . F#5 . . . . . . . E5 . . . D5 . . . . . . .') +
+        bars('. . . . . . x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .')
+    )
+    c1 = (
+        bars('x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . E4 . A4 . C5 . E5 . . . . . . . D5 . C5 . . . . . A4 . . . B4 . . . . . E5 .') +
+        bars('. . D5 . C5 . . . . . A4 . . . G4 . . . . . . . A4 . B4 . . . . . . . C5 . . . . . A4 . G4 . . . . . . . F4 . . . E4 . D4 . G4 . . . . . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . D4 . E4 . G4 . x . . . . . . . . . . . . . . . . . . . . . . . . . E4 . D4 . C4 . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . C4 . D4 . E4 . x . . . . . . . . . . . . . . . . . . . . . . . . . D4 . E4 . F4 . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . .') +
+        bars('F4 . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . . G4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . .') +
+        bars('F4 . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . . G4 . . . . . . . . . . . . . G4 .') +
+        bars('C5 . D5 . E5 . . . . . D5 . C5 . . . . . B4 . . . . . G4 . A4 . B4 . . . A4 . C5 . E5 . . . . . D5 . C5 . A4 . . . . . . . G4 . B4 . . . D5 . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . D4 . E4 . A4 . x . . . . . . . . . . . . . . . . . . . . . . . . . E4 . D4 . C4 . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . C4 . D4 . E4 . x . . . . . . . . . . . . . . . . . . . . . . . . . D4 . E4 . F4 . x .') +
+        bars('. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . .') +
+        bars('F4 . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . . G4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . .') +
+        bars('F4 . . . . . . . . . . . . . . . D4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . x . . .') +
+        bars('G4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . . A4 . . . . . . . . . . . . . . . F#4 . . . . . . . . . . . . . . .') +
+        bars('G4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . . F#4 . . . . . . . . . . . . . . . F#4 . . . . . . . . . . . . . . .') +
+        bars('. . . . . . . . x . . . . . . . . . . . . . . . . . . . . . F#4 . B4 . D5 . F#5 . . . . . . . E5 . D5 . . . . . B4 . . . C#5 . . . . . D5 .') +
+        bars('. . . . . . x . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . F#4 . . . . . . . . . . . . . . . . .')
+    )
+    c2 = (
+        bars('C3 . G3 . C4 . D4 . E4 . D4 . C4 . G3 . B2 . D3 . G3 . B3 . D4 . B3 . G3 . D3 . A2 . E3 . A3 . C4 . E4 . C4 . A3 . E3 . F2 . C3 . A3 . C3 . G2 . D3 . B3 . D3 .') +
+        bars('C3 . G3 . C4 . D4 . E4 . D4 . C4 . G3 . B2 . D3 . G3 . B3 . D4 . B3 . G3 . D3 . F2 . C3 . A3 . C3 . E2 . C3 . G3 . C3 . D2 . A2 . F3 . A2 . G2 . D3 . C4 . B3 .') +
+        bars('C3 . G3 . E4 . G3 . C4 . G3 . E4 . G3 . B2 . D3 . G3 . D3 . B3 . D3 . G3 . D3 . A2 . E3 . C4 . E3 . A3 . E3 . G3 . E3 . G2 . E3 . C4 . E3 . G3 . E3 . C4 . E3 .') +
+        bars('F2 . C3 . A3 . C3 . F3 . C3 . A3 . C3 . E2 . C3 . G3 . C3 . E3 . C3 . G3 . C3 . D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . C4 . D3 . G3 . D3 . B3 . D3 .') +
+        bars('F2 . C3 . A3 . C3 . E3 . C3 . A3 . C3 . E2 . B2 . G3 . B2 . A2 . E3 . C4 . E3 . D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . C4 . D3 . G3 . D3 . B3 . D3 .') +
+        bars('F2 . C3 . A3 . C3 . E3 . C3 . A3 . C3 . G2 . D3 . B3 . D3 . G3 . D3 . B3 . D3 . E2 . B2 . G3 . B2 . E3 . B2 . D3 . B2 . A2 . E3 . C4 . E3 . A3 . E3 . G3 . E3 .') +
+        bars('D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . B3 . D3 . G3 . D3 . B3 . D3 . C3 . G3 . E4 . G3 . C4 . G3 . E4 . G3 . C3 . G3 . E4 . G3 . G2 . D3 . B3 . D3 .') +
+        bars('C3 . G3 . E4 . G3 . C4 . G3 . E4 . G3 . B2 . D3 . G3 . D3 . B3 . D3 . G3 . D3 . A2 . E3 . C4 . E3 . A3 . E3 . G3 . E3 . F2 . C3 . A3 . C3 . G2 . D3 . B3 . D3 .') +
+        bars('C3 . G3 . E4 . G3 . C4 . G3 . E4 . G3 . B2 . D3 . G3 . D3 . B3 . D3 . G3 . D3 . A2 . E3 . C4 . E3 . A3 . E3 . G3 . E3 . G2 . E3 . C4 . E3 . G3 . E3 . C4 . E3 .') +
+        bars('F2 . C3 . A3 . C3 . F3 . C3 . A3 . C3 . E2 . C3 . G3 . C3 . E3 . C3 . G3 . C3 . D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . C4 . D3 . G3 . D3 . B3 . D3 .') +
+        bars('F2 . C3 . A3 . C3 . E3 . C3 . A3 . C3 . E2 . B2 . G3 . B2 . A2 . E3 . C4 . E3 . D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . C4 . D3 . G3 . D3 . B3 . D3 .') +
+        bars('F2 . C3 . A3 . C3 . E3 . C3 . A3 . C3 . G2 . D3 . B3 . D3 . G3 . D3 . B3 . D3 . E2 . B2 . G3 . B2 . E3 . B2 . D3 . B2 . A2 . E3 . C4 . E3 . A3 . E3 . G3 . E3 .') +
+        bars('D2 . A2 . F3 . A2 . D3 . A2 . C3 . A2 . G2 . D3 . B3 . D3 . G3 . D3 . B3 . D3 . C3 . G3 . E4 . G3 . C4 . G3 . E4 . G3 . A2 . E3 . D4 . E3 . A3 . E3 . C#4 . E3 .') +
+        bars('G2 . D3 . B3 . D3 . F#3 . D3 . B3 . D3 . A2 . E3 . C#4 . E3 . A3 . E3 . C#4 . E3 . F#2 . C#3 . A3 . C#3 . F#3 . C#3 . E3 . C#3 . B2 . F#3 . D4 . F#3 . B3 . F#3 . A3 . F#3 .') +
+        bars('E2 . B2 . G3 . B2 . E3 . B2 . D3 . B2 . A2 . E3 . C#4 . E3 . A3 . E3 . C#4 . E3 . D3 . A3 . F#4 . A3 . D4 . A3 . F#4 . A3 . D3 . A3 . F#4 . A3 . D4 . A3 . F#4 . E4 .') +
+        bars('D3 . A3 . D4 . E4 . F#4 . E4 . D4 . A3 . C#3 . E3 . A3 . E3 . C#4 . E3 . A3 . E3 . B2 . F#3 . B3 . D4 . F#4 . D4 . B3 . F#3 . G2 . D3 . B3 . D3 . A2 . E3 . C#4 . E3 .') +
+        bars('D3 . . . A3 . . . D4 . . . E4 . . . B2 . . . F#3 . . . B3 . . . D4 . . . E2 . . . B2 . . . E3 . . . G3 . . . G2 . B2 . D3 . F#3 . G3 . . . . . . .')
+    )
+    c3 = (
+        [REST,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,HOLD] +
+        [3,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,1,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,1,HOLD] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,1,1] +
+        [3,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,1,1] +
+        [3,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD] +
+        [0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,3,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,4,HOLD,0,HOLD,4,HOLD,1,HOLD,HOLD,HOLD] +
+        [0,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD] +
+        [HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD,HOLD]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=12,
+                env1=envelope(13, 0, 0, 2), env2=envelope(11, 0, 0, 1), wavevol=0x2000)
+
+SONGS['SELUNE'] = selune()
+
+ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE']

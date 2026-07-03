@@ -23,6 +23,12 @@ CONSONANT = {0, 3, 4, 5, 7, 8, 9}          # interval classes mod 12
 DRUM = {0: 'K', 1: 'S', 2: 'h', 3: 'O', 4: 'R', HOLD: '.', REST: 'x'}
 
 # Form maps: (start_row, label). Kept here so songs.py stays engine-schema only.
+# Songs whose ch1 is a time-delayed ECHO of ch0 (surf slapback reverb), not an
+# independent harmony voice. The two squares are one voice offset in time, so
+# voice-crossing and square-vs-square dissonance checks don't apply: a descending
+# lead will always cross its own lagging echo -- that crossing IS the effect.
+ECHO_SONGS = {'TADPOLE'}
+
 FORMS = {
     'PRELUDE': [(0, 'A  arps C-C6-Am-Am (C maj)'), (64, "A' arps F-F-G-G, melody enters, ch1 echoes"),
                 (128, 'B  lift bVI-bVII (Ab-Bb), soaring melody'),
@@ -47,6 +53,20 @@ FORMS = {
                 (112, 'D  B7 peak + chromatic crash-fill -> loop')],
     'VICTORY': [(0, 'fanfare; ch1 countervoice F4->E4 sus resolve, G-A-B-C climb')],
     'CRASH':   [(0, 'chromatic plunge; ch1 shadows m6 below from row 8, resolves A2->D2')],
+    'TADPOLE': [(0, 'A: E-hijaz Misirlou riff x8, E5 tremolo cliff @112'),
+                (128, "A': riff, ramp, chromatic DIVE BOMB 1 @244 -> crash"),
+                (256, 'B: Am-G-F-E surf vamp, echo->backbeat stabs, cliff @368'),
+                (384, 'BREAK: kick gallop + 16-row snare roll'),
+                (416, "A'': riff hotter, hijaz summit-turn sequence down"),
+                (544, 'TURN: E5 cliff, 2-octave DIVE BOMB 2 @564 -> loop row 0')],
+    'SELUNE':  [(0, 'INTRO: wave arpeggio + answer-hook, no drums'),
+                (128, 'VERSE1: low conversational C-major, answer fills'),
+                (256, 'PRECHORUS: rising line'),
+                (320, 'CHORUS: melody opens an octave up'),
+                (448, 'TURN: instrumental answer-hook feature'),
+                (512, 'VERSE2 / (640) PRECHORUS / (704) CHORUS'),
+                (832, 'FINAL CHORUS in D: whole-step key change, ride'),
+                (960, 'OUTRO: intro material in D, add9 fade -> loop')],
     'GAIA':    [(0, 'ORBIT: G/Eb/Bb/D drift, high 4ths, susp. cymbal swells'),
                 (160, 'TURNS: 5/4 heartbeat ostinato on D pedal (mixolydian)'),
                 (400, 'HYMN: G major arch tune, bare then harmonized in 6ths'),
@@ -75,6 +95,7 @@ def sounding(ch):
 
 def check_song(name, s):
     errs, warns = [], []
+    is_echo = name in ECHO_SONGS
     ch = s['ch']
     if len(ch) != 4:
         return ['%s: needs 4 channels, has %d' % (name, len(ch))], []
@@ -110,7 +131,9 @@ def check_song(name, s):
                 diss_rows.append((r, nname(a), nname(b)))
     dpct = 100.0 * dissonant / strong if strong else 0.0
     if dpct > 5.0:
-        errs.append('strong-beat dissonance %.1f%% > 5%% at %s' % (dpct, diss_rows[:8]))
+        (warns if is_echo else errs).append(
+            'strong-beat dissonance %.1f%% > 5%% at %s%s' %
+            (dpct, diss_rows[:8], ' (echo: waived)' if is_echo else ''))
 
     # weak-beat both-attack dissonances: should resolve by step in either voice
     weak_bad = []
@@ -139,7 +162,9 @@ def check_song(name, s):
         if s0[r] - s1[r] > 19: wide += 1
     cpct = 100.0 * cross / both if both else 0.0
     if cpct > 2.0:
-        errs.append('voice crossing %.1f%% > 2%% at %s' % (cpct, cross_rows[:8]))
+        (warns if is_echo else errs).append(
+            'voice crossing %.1f%% > 2%% at %s%s' %
+            (cpct, cross_rows[:8], ' (echo: waived)' if is_echo else ''))
     if wide: warns.append('square spacing > a 12th on %d rows' % wide)
 
     # preferred ranges (informational)
