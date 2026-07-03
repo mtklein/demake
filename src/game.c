@@ -34,6 +34,96 @@ static const char* const jb_names[SONG_COUNT] = {
     "Baldur's Bossa",    /* SONG_BOSSA   */
 };
 
+/* Karaoke: lyric lines keyed to playback rows (see docs/under_selune.md).
+ * Each entry is two display rows; blank entries clear the screen during the
+ * instrumental intro, turn, and outro. Rows match SELUNE's 16-row bars. */
+typedef struct { u16 row; const char* a; const char* b; } Lyric;
+
+static const Lyric selune_ly[] = {
+    {   0, "", "" },
+    { 128, "I found you by the tide,", "and slept" },
+    { 160, "The far sky burned away,", "smoke rose" },
+    { 192, "You breathed, you were", "alive - with me" },
+    { 224, "and all that's left", "is you..." },
+    { 256, "if the morning takes", "my name," },
+    { 288, "hold on to me now,", "please..." },
+    { 320, "Hold us close,", "under dawn..." },
+    { 352, "Selune,", "you know our names;" },
+    { 384, "you stayed", "when all was gone," },
+    { 416, "you stayed with me.", "" },
+    { 448, "", "" },
+    { 512, "I never said the things", "I meant to say," },
+    { 544, "the fear behind my eyes,", "I kept from you" },
+    { 576, "but salt and sand, and", "you asleep at last," },
+    { 608, "there's nothing", "left to hide..." },
+    { 640, "if the morning takes", "my name," },
+    { 672, "hold on to me now,", "please..." },
+    { 704, "Hold us close,", "under dawn..." },
+    { 736, "Selune,", "you know our names;" },
+    { 768, "you stayed", "when all was gone," },
+    { 800, "you stayed with me.", "" },
+    { 832, "so shine - Selune,", "you know our names," },
+    { 896, "what we were remains,", "" },
+    { 928, "when all else goes -", "you stay with me." },
+    { 960, "", "" },
+};
+
+static int song_lyrics(int song, const Lyric** out) {
+    if (song == SONG_SELUNE) {
+        if (out) *out = selune_ly;
+        return (int)(sizeof selune_ly / sizeof selune_ly[0]);
+    }
+    return 0;
+}
+
+static void put_center(int y, const char* s, int pal) {
+    int n = 0;
+    while (s[n]) n++;
+    int x = (30 - n) / 2;
+    if (x < 0) x = 0;
+    txt_put(x, y, s, pal);
+}
+
+/* Full-screen synced lyric view; returns when the player presses A/B/Select. */
+static void karaoke(int song) {
+    const Lyric* ly;
+    int n = song_lyrics(song, &ly);
+    if (!n) return;
+    obj_hide(OBJ_CURSOR);
+    win_clear(SCR_JUKEBOX_BOX_X, SCR_JUKEBOX_BOX_Y,
+              SCR_JUKEBOX_BOX_W, SCR_JUKEBOX_BOX_H);
+    txt_clear(0, 0, 30, 20);
+    win_draw(1, 3, 28, 14);
+    put_center(5, jb_names[song], 0);
+    txt_put(10, 16, "(B) BACK", 2);
+
+    int cur = -1;
+    u32 t = 0;
+    for (;;) {
+        frame();
+        REG_BG3HOFS = (u16)((++t) >> 3);
+        int r = music_row();
+        int idx = 0;
+        for (int i = 0; i < n; i++) {
+            if ((int)ly[i].row <= r) idx = i; else break;
+        }
+        if (idx != cur) {                       /* line changed: repaint */
+            cur = idx;
+            txt_clear(2, 8, 26, 6);
+            put_center(8, ly[idx].a, 1);        /* current line: bright */
+            put_center(9, ly[idx].b, 1);
+            if (idx + 1 < n) {                  /* upcoming line: dim */
+                put_center(11, ly[idx + 1].a, 2);
+                put_center(12, ly[idx + 1].b, 2);
+            }
+        }
+        if (key_hit() & (KEY_A | KEY_B | KEY_SELECT)) break;
+    }
+    win_clear(1, 3, 28, 14);
+    txt_clear(0, 0, 30, 20);
+    scr_jukebox();
+}
+
 /* Sound-test screen reached with SELECT from the title. */
 static void jukebox(void) {
     obj_hide(OBJ_PLAYER);
@@ -54,7 +144,10 @@ static void jukebox(void) {
         u16 k = key_hit();
         if (k & KEY_UP)   { sel = (sel + SONG_COUNT - 1) % SONG_COUNT; sfx_play(SFX_CURSOR); }
         if (k & KEY_DOWN) { sel = (sel + 1) % SONG_COUNT; sfx_play(SFX_CURSOR); }
-        if (k & KEY_A)    { music(sel); playing = sel; sfx_play(SFX_CONFIRM); }
+        if (k & KEY_A)    {
+            music(sel); playing = sel; sfx_play(SFX_CONFIRM);
+            if (song_lyrics(sel, 0)) karaoke(sel);   /* sing along */
+        }
         if (k & (KEY_B | KEY_SELECT)) { sfx_play(SFX_CANCEL); break; }
     }
     obj_hide(OBJ_CURSOR);

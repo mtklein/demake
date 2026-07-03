@@ -5,6 +5,10 @@ the moon goddess Shadowheart once served. Written for the survivors on the
 Ravaged Beach: two people who woke with worms behind their eyes and a world on
 fire, and got one quiet night under the moon before whatever comes next.*
 
+> In the jukebox (SELECT on the title screen), pressing A on *Under Selune* opens a
+> synced karaoke view: the current line in gold, the next in grey, following the
+> music row by row.
+
 The melody was composed first, as an instrumental line — channel 0 is a
 square-wave "voice." These words were written afterward to fit that line
 **note for note**: one syllable per attack, the open vowels placed on the

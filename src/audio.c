@@ -46,6 +46,8 @@ void music(int id) {
     if (id < 0) music_stop();
     else music_play(&songs[id]);
 }
+int music_row(void) { return song ? (int)row : -1; }
+
 void music_stop(void) {
     song = 0;
     REG_SOUND1CNT_H = 0x0800; REG_SOUND1CNT_X = 0x8000;

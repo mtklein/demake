@@ -43,7 +43,7 @@ hardware (a flashcart / EverDrive).
 | B | — | Cancel / back |
 | Start | Party menu: Status / Equip / Items / Tactics | — |
 | Start (title) | Begin | — |
-| Select (title) | Jukebox | — |
+| Select (title) | Jukebox (press A on *Under Selune* for synced karaoke lyrics) | — |
 | L (title) | Attract mode: the game plays itself | — |
 
 Hold **A** or **B** to fast-forward dialogue text. **Tactics** (in the party
