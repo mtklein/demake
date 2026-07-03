@@ -200,6 +200,82 @@ def obj_tiles():
     tiles += sprite_tiles(HAND, SPR_LEG, 2, 2)
     return tiles, defs
 
+# ---------------------------------------------------------------- field art
+
+from art import field_tiles as FT
+from art import sprites_field as SF
+from art import maps as MP
+
+def build_field():
+    """Dedupe 8x8 tiles across metatiles; build metatile LUT + solid flags."""
+    tiles, index = [], {}
+
+    def add(t):
+        k = tuple(t)
+        if k not in index:
+            index[k] = len(tiles)
+            tiles.append(t)
+        return index[k]
+
+    lut, solid, mt_defs = [], [], {}
+    for i, name in enumerate(FT.ORDER):
+        ts = grid_tiles(FT.METATILES[name], FT.LEGEND, 2, 2)
+        lut += [add(t) | (3 << 12) for t in ts]      # palette 3 baked in
+        solid.append(1 if name in FT.SOLID else 0)
+        mt_defs["MT_" + name.upper()] = i
+    return tiles, lut, solid, mt_defs
+
+def build_maps():
+    name_to_id = {n: i for i, n in enumerate(FT.ORDER)}
+    out = {}
+    for mname, grid in MP.MAPS.items():
+        w, h = len(grid[0]), len(grid)
+        cells = []
+        for row in grid:
+            assert len(row) == w, (mname, row)
+            cells += [name_to_id[MP.MAPLEG[c]] for c in row]
+        out[mname] = (w, h, cells)
+    return out
+
+def build_sprites():
+    """OBJ tiles for field sprites, appended after UI sprites."""
+    tiles, defs = obj_tiles()
+    for sname, spec in SF.SPRITES.items():
+        defs["OBJT_" + sname.upper()] = len(tiles)
+        for fname in spec["frames"]:
+            tiles += sprite_tiles(SF.FRAMES[fname], SF.LEG, 2, 2)
+    for idx, colors in SF.PALS.items():
+        OBJ_PALS[idx] = pal16(colors)
+    return tiles, defs
+
+def sky_tiles():
+    """8 simple Avernus sky tiles: 2 variants x 4 gradient bands, BG pal 4."""
+    import random
+    rng = random.Random(7)
+    tiles = []
+    for variant in range(2):
+        for band in range(4):
+            rows = []
+            for y in range(8):
+                row = ""
+                for x in range(8):
+                    c = band + 1
+                    r = rng.random()
+                    if r < 0.06 and band < 3:
+                        c += 1          # ember speck
+                    elif r > 0.96 and band > 0:
+                        c -= 1          # dark wisp
+                    row += "%X" % c
+                rows.append(row)
+            tiles.append(pack_tile(rows, {"%X" % i: i for i in range(16)}))
+    return tiles
+
+BG_PALS[3] = pal16(FT.PAL)
+BG_PALS[4] = pal16([
+    (0, 0, 0), (7, 1, 2), (13, 3, 2), (21, 6, 2), (29, 11, 3),
+    (31, 18, 6), (31, 25, 12),
+])
+
 # ---------------------------------------------------------------- emit
 
 def emit_u16(name, vals):
@@ -218,15 +294,25 @@ def main():
     ui = fonts + wins
     flat = [hw for t in ui for hw in t]
 
-    objs, objdefs = obj_tiles()
+    objs, objdefs = build_sprites()
     objflat = [hw for t in objs for hw in t]
+
+    ftiles, flut, fsolid, mtdefs = build_field()
+    fflat = [hw for t in ftiles for hw in t]
+    maps = build_maps()
+    sky = sky_tiles()
+    skyflat = [hw for t in sky for hw in t]
 
     defs = {
         "TILE_WIN": len(fonts),          # window tile block base
         "UI_TILE_COUNT": len(ui),
         "OBJ_TILE_COUNT": len(objs),
+        "FIELD_TILE_COUNT": len(ftiles),
+        "SKY_TILE_COUNT": len(sky),
+        "METATILE_COUNT": len(fsolid),
     }
     defs.update(objdefs)
+    defs.update(mtdefs)
 
     h = ["#ifndef ASSETS_H", "#define ASSETS_H", '#include "gba.h"', ""]
     c = ['#include "assets.h"', ""]
@@ -235,23 +321,50 @@ def main():
     h += [
         "extern const u16 ui_tiles[%d];" % len(flat),
         "extern const u16 obj_tiles_gfx[%d];" % len(objflat),
+        "extern const u16 field_tiles_gfx[%d];" % len(fflat),
+        "extern const u16 sky_tiles_gfx[%d];" % len(skyflat),
+        "extern const u16 metatile_lut[%d];" % len(flut),
+        "extern const u8 metatile_solid[%d];" % len(fsolid),
         "extern const u16 pal_bg[256];",
         "extern const u16 pal_obj[256];",
+        "extern const u16 pal_tav_classes[4][16];",
     ]
     c.append(emit_u16("ui_tiles", flat))
     c.append(emit_u16("obj_tiles_gfx", objflat))
+    c.append(emit_u16("field_tiles_gfx", fflat))
+    c.append(emit_u16("sky_tiles_gfx", skyflat))
+    c.append(emit_u16("metatile_lut", flut))
+    c.append("const u8 metatile_solid[%d] = {%s};"
+             % (len(fsolid), ",".join(map(str, fsolid))))
     c.append(emit_u16("pal_bg", [v for p in BG_PALS for v in p]))
     c.append(emit_u16("pal_obj", [v for p in OBJ_PALS for v in p]))
+
+    tavorder = ["bard", "rogue", "ranger", "wizard"]
+    tavflat = [v for cls in tavorder for v in pal16(SF.PAL_TAV[cls])]
+    c.append("const u16 pal_tav_classes[4][16] = {")
+    for i in range(4):
+        c.append("  {" + ",".join("0x%04x" % v for v in tavflat[i*16:(i+1)*16]) + "},")
+    c.append("};")
+
+    for mname, (w, hgt, cells) in maps.items():
+        up = mname.upper()
+        h.append(f"#define MAP_{up}_W {w}")
+        h.append(f"#define MAP_{up}_H {hgt}")
+        h.append(f"extern const u8 map_{mname}[{w * hgt}];")
+        c.append("const u8 map_%s[%d] = {%s};" % (mname, w * hgt, ",".join(map(str, cells))))
+
     h.append("#endif")
 
     with open(os.path.join(OUT, "assets.h"), "w") as f:
         f.write("\n".join(h) + "\n")
     with open(os.path.join(OUT, "assets.c"), "w") as f:
         f.write("\n".join(c) + "\n")
-    print(f"assets: {len(ui)} ui tiles")
+    print(f"assets: {len(ui)} ui, {len(objs)} obj, {len(ftiles)} field tiles, {len(maps)} maps")
 
     if preview:
         render_preview(ui)
+        render_field_preview(ftiles, flut)
+        render_sprite_preview(objs)
 
 # ---------------------------------------------------------------- preview
 
@@ -265,10 +378,8 @@ def tile_px(t):
                 px[y][half * 4 + i] = (hw >> (4 * i)) & 15
     return px
 
-def render_preview(tiles):
+def sheet(tiles, pal255, cols, name, scale=3):
     from pnglib import write_png_scaled
-    pal = [(r * 255 // 31, g * 255 // 31, b * 255 // 31) for (r, g, b) in UI_PAL]
-    cols = 16
     rows = (len(tiles) + cols - 1) // cols
     w, h = cols * 9, rows * 9
     img = bytearray(w * h * 3)
@@ -277,11 +388,78 @@ def render_preview(tiles):
         ox, oy = (i % cols) * 9, (i // cols) * 9
         for y in range(8):
             for x in range(8):
-                r, g, b = pal[px[y][x]] if px[y][x] else (40, 24, 40)
+                r, g, b = pal255[px[y][x]] if px[y][x] else (40, 24, 40)
                 off = ((oy + y) * w + ox + x) * 3
                 img[off:off + 3] = bytes((r, g, b))
-    out = os.path.join(ROOT, "test", "shots", "preview_ui.png")
+    out = os.path.join(ROOT, "test", "shots", name)
     os.makedirs(os.path.dirname(out), exist_ok=True)
+    write_png_scaled(out, w, h, img, scale)
+    print(f"preview: {out}")
+
+def p255(pal):
+    return [(r * 255 // 31, g * 255 // 31, b * 255 // 31) for (r, g, b) in pal]
+
+def render_preview(tiles):
+    sheet(tiles, p255(UI_PAL), 16, "preview_ui.png")
+
+def render_field_preview(tiles, lut):
+    """Draw each metatile assembled (2x2) with the field palette."""
+    from pnglib import write_png_scaled
+    pal = p255(FT.PAL)
+    n = len(lut) // 4
+    cols = 8
+    rows = (n + cols - 1) // cols
+    w, h = cols * 17, rows * 17
+    img = bytearray(w * h * 3)
+    for m in range(n):
+        ox, oy = (m % cols) * 17, (m // cols) * 17
+        for q in range(4):
+            t = tiles[lut[m * 4 + q] & 0x3FF]
+            px = tile_px(t)
+            qx, qy = ox + (q % 2) * 8, oy + (q // 2) * 8
+            for y in range(8):
+                for x in range(8):
+                    c = pal[px[y][x]] if px[y][x] else (30, 18, 30)
+                    off = ((qy + y) * w + qx + x) * 3
+                    img[off:off + 3] = bytes(c)
+    out = os.path.join(ROOT, "test", "shots", "preview_field.png")
+    write_png_scaled(out, w, h, img, 3)
+    print(f"preview: {out}")
+
+def render_sprite_preview(tiles):
+    """16x16 sprites, 4 tiles each, using a generic bright palette per file."""
+    from pnglib import write_png_scaled
+    pals = {name: OBJ_PALS[SF.SPRITES[name]["pal"]] for name in SF.SPRITES}
+    # flatten: draw every 4-tile group as one 16x16 cell
+    groups = len(tiles) // 4
+    cols = 8
+    rows = (groups + cols - 1) // cols
+    w, h = cols * 17, rows * 17
+    img = bytearray(b"\x28\x18\x28" * (w * h))
+    # figure out palette per group from sprite table order
+    grouppal = [OBJ_PALS[7]] * groups   # default: cursor pal
+    gi = 1  # group 0 = hand
+    order = list(SF.SPRITES.items())
+    for name, spec in order:
+        pal = OBJ_PALS[spec["pal"]] if spec["pal"] else pal16(SF.PAL_TAV["bard"])
+        for _ in spec["frames"]:
+            if gi < groups:
+                grouppal[gi] = pal
+            gi += 1
+    for g in range(groups):
+        pal = [((v & 31) * 255 // 31, ((v >> 5) & 31) * 255 // 31, ((v >> 10) & 31) * 255 // 31)
+               for v in grouppal[g]]
+        ox, oy = (g % cols) * 17, (g // cols) * 17
+        for q in range(4):
+            px = tile_px(tiles[g * 4 + q])
+            qx, qy = ox + (q % 2) * 8, oy + (q // 2) * 8
+            for y in range(8):
+                for x in range(8):
+                    if px[y][x]:
+                        c = pal[px[y][x]]
+                        off = ((qy + y) * w + qx + x) * 3
+                        img[off:off + 3] = bytes(c)
+    out = os.path.join(ROOT, "test", "shots", "preview_sprites.png")
     write_png_scaled(out, w, h, img, 3)
     print(f"preview: {out}")
 
