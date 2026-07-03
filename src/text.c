@@ -33,6 +33,16 @@ void txt_put(int x, int y, const char* s, int pal) {
     while (*s && x < 30) { *p++ = ME((u8)*s++ - 32, 0, 0, pal); x++; }
 }
 
+/* write exactly w cells: truncates long text, space-pads short (so a slot
+ * redraw always fully overwrites its previous contents) */
+void txt_put_n(int x, int y, const char* s, int pal, int w) {
+    vu16* p = TXT + y * 32 + x;
+    for (int i = 0; i < w && x + i < 30; i++) {
+        char c = *s ? *s++ : ' ';
+        *p++ = ME((u8)c - 32, 0, 0, pal);
+    }
+}
+
 void txt_clear(int x, int y, int w, int h) {
     for (int j = 0; j < h; j++)
         memset16(TXT + (y + j) * 32 + x, 0, (u32)w);

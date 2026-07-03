@@ -6,6 +6,7 @@
 #include "game.h"
 #include "battle.h"
 #include "events.h"
+#include "screens.h"
 
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
@@ -581,11 +582,6 @@ void ev_npc(int idx) {
 
 /* ------------------------------------------------------------ ending */
 
-static void tally_line(int y, const char* label, const char* val, int pal) {
-    txt_put(5, y, label, 0);
-    txt_put(20, y, val, pal);
-}
-
 static void crash_sequence(int flayer_did_it) {
     /* battle already faded out; show narration over black */
     memset16(SCREENBLOCK(30), 0, 1024);
@@ -631,19 +627,21 @@ static void crash_sequence(int flayer_did_it) {
     field_wait(30);
 
     /* tally */
-    win_draw(2, 2, 26, 14);
-    txt_put(9, 3, "ESCAPE THE NAUTILOID", 1);
+    scr_tally();
     {
         static const char* const clsn[6] = { "Bard", "Rogue", "Ranger", "Wizard", "", "" };
-        tally_line(5, G.pm[0].name, clsn[G.pm[0].cls], 0);
+        txt_put_n(SCR_TALLY_WHO_X, SCR_TALLY_WHO_Y, G.pm[0].name, 0, SCR_TALLY_WHO_W);
+        txt_put_n(SCR_TALLY_CLS_X, SCR_TALLY_CLS_Y, clsn[G.pm[0].cls], 0, SCR_TALLY_CLS_W);
     }
-    tally_line(7, "Us freed", us_with_us() ? "YES" : (G.flags & GF_US_MUTILATED) ? "HURT" : "no", us_with_us() ? 1 : 2);
-    tally_line(8, "Lae'zel", (G.flags & GF_LAEZEL) ? "ALLY" : "no", (G.flags & GF_LAEZEL) ? 1 : 2);
-    tally_line(9, "Shadowheart", (G.flags & GF_SH_FREED) ? "SAVED" : "no", (G.flags & GF_SH_FREED) ? 1 : 2);
-    tally_line(10, "Cmdr Zhalk", (G.flags & GF_ZHALK_DEAD) ? "SLAIN" : "fled", (G.flags & GF_ZHALK_DEAD) ? 1 : 2);
-    if (G.everburn) tally_line(11, "Everburn Blade", "TAKEN", 1);
-    txt_put(8, 13, "THE ADVENTURE BEGINS", 0);
-    txt_put(9, 14, "...IN BALDUR'S GATE", 0);
+#define TVAL(slot, cond, yes, no) \
+    txt_put_n(SCR_TALLY_##slot##_X, SCR_TALLY_##slot##_Y, (cond) ? (yes) : (no), \
+              (cond) ? 1 : 2, SCR_TALLY_##slot##_W)
+    TVAL(V_US, us_with_us(), "YES", (G.flags & GF_US_MUTILATED) ? "HURT" : "no");
+    TVAL(V_LZ, G.flags & GF_LAEZEL, "ALLY", "no");
+    TVAL(V_SH, G.flags & GF_SH_FREED, "SAVED", "no");
+    TVAL(V_ZH, G.flags & GF_ZHALK_DEAD, "SLAIN", "fled");
+    TVAL(V_EB, G.everburn, "TAKEN", "-");
+#undef TVAL
 
     G_DONE = 1;
     for (;;) {

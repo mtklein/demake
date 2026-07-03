@@ -250,7 +250,21 @@ def build_maps():
     return out
 
 from art import sprites_battle as SB
+from art import portraits as PT
 from music import songs as MUSIC
+
+def build_portraits():
+    tiles, defs = [], {}
+    BG_PALS[5] = pal16(PT.PAL)
+    for i, (name, rows) in enumerate(PT.PORTRAITS.items()):
+        try:
+            t = grid_tiles(rows, PT.LEG, 6, 6)
+        except (KeyError, AssertionError) as e:
+            print(f"  skip portrait {name}: {e}")
+            continue
+        defs["POR_" + name.upper()] = len(tiles) // 36
+        tiles += t
+    return tiles, defs
 
 SIZEMAP = {(2, 2): 1, (2, 4): 7, (4, 4): 2, (4, 2): 5, (4, 8): 8}
 
@@ -312,6 +326,103 @@ BG_PALS[4] = pal16([
     (31, 18, 6), (31, 25, 12),
 ])
 
+# ---------------------------------------------------------------- screens
+
+def gen_screens():
+    """Build-time constrained layout: measure, center, assert, emit C."""
+    import ui_screens as UI
+
+    def width_of(it):
+        k = it[0]
+        if k == "l": return len(it[1])
+        if k == "s": return it[2]
+        if k == "g": return it[1]
+        if k == "m": return 0
+        raise AssertionError(it)
+
+    H = ["#ifndef SCREENS_H", "#define SCREENS_H"]
+    C = ['#include "gba.h"', '#include "engine.h"', '#include "screens.h"', ""]
+
+    for scr in UI.SCREENS:
+        sname = scr["name"].upper()
+        fn = [f"void scr_{scr['name']}(void) {{"]
+        rects = []
+
+        def place_items(pfx, items, al, cx0, avail_r, ry):
+            cx = cx0
+            n = len(items)
+            for j, it in enumerate(items):
+                if al == "sp" and j == n - 1:
+                    cx = avail_r - width_of(it)
+                k = it[0]
+                if k == "l":
+                    txt = it[1].replace('"', '\\"')
+                    fn.append(f'  txt_put({cx}, {ry}, "{txt}", {it[2]});')
+                elif k == "s":
+                    up = f"{pfx}_{it[1].upper()}"
+                    H.append(f"#define {up}_X {cx}")
+                    H.append(f"#define {up}_Y {ry}")
+                    H.append(f"#define {up}_W {it[2]}")
+                elif k == "m":
+                    up = f"{pfx}_{it[1].upper()}"
+                    H.append(f"#define {up}_X {cx}")
+                    H.append(f"#define {up}_Y {ry}")
+                cx += width_of(it)
+
+        for win in scr["wins"]:
+            pad = win.get("pad", 1)
+            rows = win["rows"]
+            interior = win.get("minw", 0)
+            for r in rows:
+                if r[0] == "row":
+                    interior = max(interior, sum(width_of(i) for i in r[2]))
+            W = interior + 2 + 2 * pad
+            Hh = len(rows) + 2
+            x = win.get("x", (30 - W) // 2)
+            y = win["y"]
+            wid = win["id"].upper()
+            assert x >= 0 and x + W <= 30 and y >= 0 and y + Hh <= 20, \
+                f"{scr['name']}.{win['id']}: rect ({x},{y} {W}x{Hh}) off-screen"
+            for (oid, ox, oy, ow, oh) in rects:
+                assert x + W <= ox or ox + ow <= x or y + Hh <= oy or oy + oh <= y, \
+                    f"{scr['name']}: {win['id']} overlaps {oid}"
+            rects.append((win["id"], x, y, W, Hh))
+            pfx = f"SCR_{sname}_{wid}"
+            for d, v in (("X", x), ("Y", y), ("W", W), ("H", Hh)):
+                H.append(f"#define {pfx}_{d} {v}")
+            fn.append(f"  win_draw({x}, {y}, {W}, {Hh});")
+            for i, r in enumerate(rows):
+                if r[0] != "row":
+                    continue
+                _, al, items = r
+                rw = sum(width_of(i2) for i2 in items)
+                assert rw <= interior, \
+                    f"{scr['name']}.{win['id']} row {i}: {rw} > interior {interior}"
+                ry = y + 1 + i
+                if al == "c":
+                    cx = x + (W - rw) // 2
+                elif al == "r":
+                    cx = x + W - 1 - pad - rw
+                else:
+                    cx = x + 1 + pad
+                place_items(f"SCR_{sname}", items, al, cx, x + W - 1 - pad, ry)
+
+        for fl in scr.get("floats", []):
+            items = fl["items"]
+            rw = sum(width_of(i2) for i2 in items)
+            al = fl.get("align", "c")
+            fy = fl["y"]
+            assert rw <= 30 and 0 <= fy < 20, f"{scr['name']} float row {fy}"
+            cx = (30 - rw) // 2 if al == "c" else fl.get("x", 0)
+            place_items(f"SCR_{sname}", items, al, cx, 30, fy)
+
+        fn.append("}")
+        C += fn + [""]
+        H.append(f"void scr_{scr['name']}(void);")
+
+    H.append("#endif")
+    return H, C
+
 # ---------------------------------------------------------------- emit
 
 def emit_u16(name, vals):
@@ -338,6 +449,8 @@ def main():
     maps = build_maps()
     sky = sky_tiles()
     skyflat = [hw for t in sky for hw in t]
+    ptiles, pdefs = build_portraits()
+    pflat = [hw for t in ptiles for hw in t]
 
     defs = {
         "TILE_WIN": len(fonts),          # window tile block base
@@ -346,9 +459,11 @@ def main():
         "FIELD_TILE_COUNT": len(ftiles),
         "SKY_TILE_COUNT": len(sky),
         "METATILE_COUNT": len(fsolid),
+        "PORTRAIT_COUNT": len(ptiles) // 36,
     }
     defs.update(objdefs)
     defs.update(mtdefs)
+    defs.update(pdefs)
 
     h = ["#ifndef ASSETS_H", "#define ASSETS_H", '#include "gba.h"',
          '#include "audio.h"', ""]
@@ -366,6 +481,9 @@ def main():
         "extern const u16 pal_obj[256];",
         "extern const u16 pal_tav_classes[4][16];",
     ]
+    if pflat:
+        h.append("extern const u16 portrait_tiles[%d];" % len(pflat))
+        c.append(emit_u16("portrait_tiles", pflat))
     c.append(emit_u16("ui_tiles", flat))
     c.append(emit_u16("obj_tiles_gfx", objflat))
     c.append(emit_u16("field_tiles_gfx", fflat))
@@ -417,12 +535,19 @@ def main():
         f.write("\n".join(h) + "\n")
     with open(os.path.join(OUT, "assets.c"), "w") as f:
         f.write("\n".join(c) + "\n")
+
+    sh, sc = gen_screens()
+    with open(os.path.join(OUT, "screens.h"), "w") as f:
+        f.write("\n".join(sh) + "\n")
+    with open(os.path.join(OUT, "screens.c"), "w") as f:
+        f.write("\n".join(sc) + "\n")
     print(f"assets: {len(ui)} ui, {len(objs)} obj, {len(ftiles)} field tiles, {len(maps)} maps")
 
     if preview:
         render_preview(ui)
         render_field_preview(ftiles, flut)
         render_sprite_preview(objs)
+        render_portrait_preview(ptiles)
 
 # ---------------------------------------------------------------- preview
 
@@ -481,6 +606,35 @@ def render_field_preview(tiles, lut):
                     off = ((qy + y) * w + qx + x) * 3
                     img[off:off + 3] = bytes(c)
     out = os.path.join(ROOT, "test", "shots", "preview_field.png")
+    write_png_scaled(out, w, h, img, 3)
+    print(f"preview: {out}")
+
+def render_portrait_preview(tiles):
+    """Each portrait 6x6 tiles, drawn over a window-blue background."""
+    from pnglib import write_png_scaled
+    n = len(tiles) // 36
+    if not n:
+        return
+    pal = p255(PT.PAL)
+    blue = (48, 48, 200)
+    cols = 4
+    rows = (n + cols - 1) // cols
+    w, h = cols * 50, rows * 50
+    img = bytearray()
+    for _ in range(w * h):
+        img += bytes(blue)
+    for p in range(n):
+        ox, oy = (p % cols) * 50 + 1, (p // cols) * 50 + 1
+        for q in range(36):
+            px = tile_px(tiles[p * 36 + q])
+            qx, qy = ox + (q % 6) * 8, oy + (q // 6) * 8
+            for y in range(8):
+                for x in range(8):
+                    c = px[y][x]
+                    if c:
+                        off = ((qy + y) * w + qx + x) * 3
+                        img[off:off + 3] = bytes(pal[c])
+    out = os.path.join(ROOT, "test", "shots", "preview_portraits.png")
     write_png_scaled(out, w, h, img, 3)
     print(f"preview: {out}")
 

@@ -14,6 +14,7 @@ void fade_in(int frames);
 
 /* text.c */
 void txt_put(int x, int y, const char* s, int pal);
+void txt_put_n(int x, int y, const char* s, int pal, int w);
 void txt_clear(int x, int y, int w, int h);
 void win_draw(int x, int y, int w, int h);
 void win_clear(int x, int y, int w, int h);

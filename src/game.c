@@ -1,8 +1,11 @@
-/* Title screen, prologue crawl, character creation. */
+/* Title screen, jukebox, prologue crawl, character creation.
+ * All static layout comes from the build-time-constrained screen generator
+ * (tools/ui_screens.py -> build/gen/screens.{c,h}). */
 #include "gba.h"
 #include "assets.h"
 #include "engine.h"
 #include "game.h"
+#include "screens.h"
 
 static void sky_full(void) {
     /* Avernus sky across the whole screen on BG3 */
@@ -29,19 +32,18 @@ static const char* const jb_names[SONG_COUNT] = {
 /* Sound-test screen reached with SELECT from the title. */
 static void jukebox(void) {
     obj_hide(OBJ_PLAYER);
-    win_clear(7, 5, 16, 5);
+    win_clear(SCR_TITLE_BOX_X, SCR_TITLE_BOX_Y, SCR_TITLE_BOX_W, SCR_TITLE_BOX_H);
     txt_clear(0, 0, 30, 20);
-    win_draw(4, 2, 22, 15);
-    txt_put(10, 3, "-- JUKEBOX --", 1);
-    txt_put(6, 13, "A:PLAY  B:BACK", 2);
+    scr_jukebox();
 
     int sel = 0, playing = 0;
     u32 t = 0;
     for (;;) {
         for (int i = 0; i < SONG_COUNT; i++)
-            /* the currently-playing track is drawn in yellow */
-            txt_put(10, 5 + i, jb_names[i], (i == playing) ? 1 : 0);
-        obj_set(OBJ_CURSOR, 9 * 8 - 6, (5 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            txt_put_n(SCR_JUKEBOX_TRK0_X, SCR_JUKEBOX_TRK0_Y + i,
+                      jb_names[i], (i == playing) ? 1 : 0, SCR_JUKEBOX_TRK0_W);
+        obj_set(OBJ_CURSOR, SCR_JUKEBOX_TRK0_X * 8 - 14,
+                (SCR_JUKEBOX_TRK0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
         frame();
         REG_BG3HOFS = (u16)((++t) >> 3);
         u16 k = key_hit();
@@ -51,14 +53,9 @@ static void jukebox(void) {
         if (k & (KEY_B | KEY_SELECT)) { sfx_play(SFX_CANCEL); break; }
     }
     obj_hide(OBJ_CURSOR);
-    win_clear(4, 2, 22, 15);
+    win_clear(SCR_JUKEBOX_BOX_X, SCR_JUKEBOX_BOX_Y, SCR_JUKEBOX_BOX_W, SCR_JUKEBOX_BOX_H);
     txt_clear(0, 0, 30, 20);
-
-    /* restore the title */
-    win_draw(7, 5, 16, 5);
-    txt_put(10, 6, "N A U T I L O I D", 1);
-    txt_put(9, 8, "a BG3 demake of the", 2);
-    txt_put(9, 9, "mind flayer prologue", 2);
+    scr_title();
     music(SONG_PRELUDE);
 }
 
@@ -70,13 +67,10 @@ void game_title(void) {
     REG_BLDCNT = 0x00FF; REG_BLDY = 16;
 
     music(SONG_PRELUDE);
-    win_draw(7, 5, 16, 5);
-    txt_put(10, 6, "N A U T I L O I D", 1);
-    txt_put(9, 8, "a BG3 demake of the", 2);
-    txt_put(9, 9, "mind flayer prologue", 2);
+    scr_title();
 
 #ifdef OBJT_NAUT
-    obj_set(OBJ_PLAYER, 104, 8, OBJS_NAUT == 2 ? 2 : 2, OBJT_NAUT, OBJP_NAUT, 2);
+    obj_set(OBJ_PLAYER, 104, 8, 2, OBJT_NAUT, OBJP_NAUT, 2);
 #endif
 
     fade_in(20);
@@ -85,9 +79,8 @@ void game_title(void) {
         frame();
         t++;
         REG_BG3HOFS = (u16)(t >> 3);
-        if (t & 32) txt_put(11, 14, "PRESS START", 0);
-        else txt_clear(11, 14, 11, 1);
-        txt_put(8, 17, "SELECT: JUKEBOX", 2);
+        if (t & 32) txt_put(SCR_TITLE_START_X, SCR_TITLE_START_Y, "PRESS START", 0);
+        else txt_clear(SCR_TITLE_START_X, SCR_TITLE_START_Y, SCR_TITLE_START_W, 1);
 #ifdef OBJT_NAUT
         obj_set(OBJ_PLAYER, 104, 10 + ((t >> 5) & 3), 2, OBJT_NAUT, OBJP_NAUT, 2);
 #endif
@@ -99,7 +92,7 @@ void game_title(void) {
     sfx_play(SFX_CONFIRM);
     fade_out(20);
     obj_hide(OBJ_PLAYER);
-    win_clear(7, 5, 16, 5);
+    win_clear(SCR_TITLE_BOX_X, SCR_TITLE_BOX_Y, SCR_TITLE_BOX_W, SCR_TITLE_BOX_H);
     txt_clear(0, 0, 30, 20);
 }
 
@@ -141,43 +134,40 @@ static const char* const cls_blurb[4] = {
     "Fire bolt,\nmissiles,\nsleep.\nBrilliant.",
 };
 
+static void blurb_draw(const char* s) {
+    for (int j = 0; j < 4; j++) {
+        char line[16];
+        int k = 0;
+        while (*s && *s != '\n' && k < 12) line[k++] = *s++;
+        if (*s == '\n') s++;
+        line[k] = 0;
+        txt_put_n(SCR_CLASSSEL_B0_X, SCR_CLASSSEL_B0_Y + j, line, 2, SCR_CLASSSEL_B0_W);
+    }
+}
+
 int game_class_select(void) {
     memset16(SCREENBLOCK(30), 0, 1024);
     memset16(SCREENBLOCK(31), 0, 1024);
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
     fade_in(10);
 
-    win_draw(3, 1, 24, 4);
-    txt_put(5, 2, "Who were you, before the", 0);
-    txt_put(5, 3, "nautiloid took you?", 0);
-
-    win_draw(3, 5, 10, 10);
-    for (int i = 0; i < 4; i++) txt_put(6, 7 + i * 2, cls_names[i], 0);
-    win_draw(13, 5, 14, 10);
+    scr_classsel();
+    for (int i = 0; i < 4; i++)
+        txt_put_n(SCR_CLASSSEL_C0_X, SCR_CLASSSEL_C0_Y + i * 2,
+                  cls_names[i], 0, SCR_CLASSSEL_C0_W);
 
     int sel = 0;
     int demo_hold = G_DEMO ? 60 : 0;
     for (;;) {
-        for (int i = 0; i < 4; i++) {
-            txt_clear(14, 7, 12, 6);
-        }
-        /* blurb for selection */
-        {
-            const char* s = cls_blurb[sel];
-            int x = 14, y = 8;
-            while (*s) {
-                if (*s == '\n') { x = 14; y++; s++; continue; }
-                char b[2] = { *s++, 0 };
-                txt_put(x++, y, b, 2);
-            }
-        }
-        /* hero preview sprite in blurb pane */
+        blurb_draw(cls_blurb[sel]);
         memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);
-        obj_set(OBJ_PLAYER, 152, 96, 1, OBJT_HERO, 0, 0);
+        obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
+                1, OBJT_HERO, 0, 0);
 
         int done = 0;
         for (;;) {
-            obj_set(OBJ_CURSOR, 3 * 8 - 6, (7 + sel * 2) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            obj_set(OBJ_CURSOR, SCR_CLASSSEL_LIST_X * 8 - 6,
+                    (SCR_CLASSSEL_C0_Y + sel * 2) * 8 - 4, 1, OBJT_HAND, 7, 0);
             frame();
             if (demo_hold) {
                 if (--demo_hold == 0) {
@@ -215,25 +205,22 @@ void game_name_entry(char* out) {
     if (G_DEMO) { out[0] = 'T'; out[1] = 'A'; out[2] = 'V'; out[3] = 0; return; }
 
     fade_in(8);
-    win_draw(6, 1, 18, 4);
-    txt_put(8, 2, "Name this soul:", 0);
-    win_draw(1, 6, 28, 9);
+    scr_namehdr();
     for (int r = 0; r < 4; r++)
         for (int c = 0; c < 13; c++) {
             char b[2] = { rowsrc[r][c], 0 };
-            txt_put(3 + c * 2, 8 + r, b, 0);
+            txt_put(SCR_NAMEHDR_GRID_X + c * 2, SCR_NAMEHDR_GRID_Y + r, b, 0);
         }
-    txt_put(3, 12, "END", 1);
+    txt_put(SCR_NAMEHDR_END_X, SCR_NAMEHDR_END_Y, "END", 1);
 
     int cr = 0, cc = 0;
     for (;;) {
-        /* current name display */
         for (int i = 0; i < 6; i++) {
             char b[2] = { i < len ? name[i] : '_', 0 };
-            txt_put(15 + i, 2, b, 1);
+            txt_put(SCR_NAMEHDR_NAME_X + i, SCR_NAMEHDR_NAME_Y, b, 1);
         }
-        int cx = (cr == 4) ? 3 : 3 + cc * 2;
-        int cy = (cr == 4) ? 12 : 8 + cr;
+        int cx = (cr == 4) ? SCR_NAMEHDR_END_X : SCR_NAMEHDR_GRID_X + cc * 2;
+        int cy = (cr == 4) ? SCR_NAMEHDR_END_Y : SCR_NAMEHDR_GRID_Y + cr;
         obj_set(OBJ_CURSOR, cx * 8 - 7, cy * 8 - 4, 1, OBJT_HAND, 7, 0);
         frame();
         u16 k = key_hit();

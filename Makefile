@@ -14,10 +14,10 @@ CFLAGS  := $(ARCH) -O2 -g -Wall -Wextra -ffreestanding -fno-strict-aliasing \
 LDFLAGS := $(ARCH) -nostdlib -T gba.ld -Wl,-Map,$(BUILD)/rom.map
 
 CSRC   := $(wildcard src/*.c)
-GENSRC := $(BUILD)/gen/assets.c
+GENSRC := $(BUILD)/gen/assets.c $(BUILD)/gen/screens.c
 OBJ    := $(BUILD)/crt0.o \
           $(patsubst src/%.c,$(BUILD)/%.o,$(CSRC)) \
-          $(BUILD)/gen/assets.o
+          $(BUILD)/gen/assets.o $(BUILD)/gen/screens.o
 
 TOOLSRC := $(wildcard tools/*.py tools/art/*.py tools/music/*.py)
 
@@ -34,13 +34,13 @@ $(ELF): $(OBJ) gba.ld
 $(BUILD)/crt0.o: src/crt0.s | $(BUILD)
 	$(CC) -mcpu=arm7tdmi -x assembler-with-cpp -c $< -o $@
 
-$(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h | $(BUILD)
+$(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h $(BUILD)/gen/screens.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/gen/assets.o: $(BUILD)/gen/assets.c | $(BUILD)
+$(BUILD)/gen/%.o: $(BUILD)/gen/%.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/gen/assets.c $(BUILD)/gen/assets.h: $(TOOLSRC) | $(BUILD)
+$(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)
 	$(PY) tools/mkassets.py
 
 $(BUILD):
