@@ -26,6 +26,9 @@ static void sq2_note(u16 env, u16 rate) { REG_SOUND2CNT_L = env; REG_SOUND2CNT_H
 static void sq2_cut(void) { REG_SOUND2CNT_L = 0x0800; REG_SOUND2CNT_H = 0x8000; }
 
 void audio_init(void) {
+    REG_SOUNDBIAS = 0x0200;     /* center the DAC bias (the BIOS normally does
+                                 * this; without it VBA-M-derived cores like
+                                 * Delta's clip the PSG output to silence) */
     REG_SOUNDCNT_X = 0x0080;
     REG_SOUNDCNT_L = 0xFF77;
     REG_SOUNDCNT_H = 0x0002;
