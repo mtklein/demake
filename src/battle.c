@@ -191,12 +191,17 @@ static void rounds_show(void) {
 }
 
 static void msg_show(const char* s) {
-    win_draw(4, 0, 22, 3);
-    txt_clear(5, 1, 20, 1);
-    txt_put(6, 1, s, 0);
+    win_clear(0, 0, 30, 3);
+    win_draw(0, 0, 26, 3);
+    char buf[25];
+    int i = 0;
+    while (s[i] && i < 24) { buf[i] = s[i]; i++; }
+    buf[i] = 0;
+    txt_put(1, 1, buf, 0);
+    rounds_show();
 }
 static void msg_hide(void) {
-    win_clear(4, 0, 22, 3);
+    win_clear(0, 0, 30, 3);
     rounds_show();
 }
 
@@ -435,14 +440,14 @@ static void unit_die(BU* t) {
         xpsum += t->ed->xp;
         draw_enemy_names(menu_unit >= 0 ? 0 : 1);
         if (t->ed->ai == AI_ZHALK) {
-            msg_wait("Zhalk falls! A burning blade clatters free!");
+            msg_wait("Zhalk falls!");
             G.everburn = 1;
             G.flags |= GF_ZHALK_DEAD;
             for (int i = 0; i < NU; i++)
                 if (U[i].side == 0 && G.pm[U[i].pi].cls == CLS_FIGHTER) {
                     U[i].atk = (u8)(U[i].atk + 4);
                     G.pm[U[i].pi].atk = (u8)(G.pm[U[i].pi].atk + 4);
-                    msg_wait("Lae'zel takes up the Everburn Blade!");
+                    msg_wait("Everburn Blade claimed!");
                 }
         }
     }
@@ -671,7 +676,7 @@ static int demo_turn(BU* u) {
     if (helm && u->pi == 0 && G_DEMO_BATTLE != 2) {
         BU* z = find_zhalk();
         if (!z || rounds <= 13) {         /* connect after a round or two of drama */
-            msg_wait("You seize the transponder nerves...");
+            msg_wait("You seize the nerves...");
             menu_unit = -1;
             return 1;
         }
@@ -786,7 +791,7 @@ static int player_turn(BU* u) {
                 break;
             }
             case K_NERVE:
-                msg_wait("You seize the transponder nerves...");
+                msg_wait("You seize the nerves...");
                 connected = 1;
                 done = 1;
                 break;
@@ -809,7 +814,7 @@ static void warp_cambion(void) {
     REG_BLDCNT = 0x00FF;
     REG_BLDY = 8; pump(3); REG_BLDY = 0; pump(3);
     REG_BLDCNT = 0;
-    msg_wait("A cambion warps in from the deck!");
+    msg_wait("A cambion warps in!");
     draw_enemy_names(1);
 }
 
@@ -849,13 +854,13 @@ static void ai_turn(BU* u) {
         case AI_ZHALK: {
             BU* f = find_flayer();
             if (f) {
-                msg_show("Zhalk hews at the mind flayer!");
+                msg_show("Zhalk hews the flayer!");
                 u->actf = 1;
                 for (int i = 0; i < 4; i++) { u->ox = (s16)(u->ox + 2); pump(1); }
                 apply_damage(f, 6 + rnd_range(5), 10);
                 pump(16);
                 settle(f);
-                if (!f->alive) msg_wait("The mind flayer collapses!");
+                if (!f->alive) msg_wait("The flayer collapses!");
                 for (int i = 0; i < 4; i++) { u->ox = (s16)(u->ox - 2); pump(1); }
                 u->actf = 0;
                 msg_hide();
@@ -868,7 +873,7 @@ static void ai_turn(BU* u) {
         case AI_FLAYER_ALLY: {
             BU* z = find_zhalk();
             if (z) {
-                msg_show("The flayer lashes at Zhalk!");
+                msg_show("Flayer lashes Zhalk!");
                 z->ox = 4;
                 apply_damage(z, 7 + rnd_range(5), 10);
                 pump(16);
@@ -985,7 +990,7 @@ retry:
             }
 
             if (timeout_flag) {
-                msg_wait("Too late! The nautiloid is falling!");
+                msg_wait("Too late! We're falling!");
                 fade_out(20);
                 G = snap;
                 goto retry;
@@ -1033,13 +1038,13 @@ retry:
                 }
                 if (f == &form_deck) {
                     G.potions++;
-                    msg_wait("Found a Potion in the wreckage!");
+                    msg_wait("Found a Potion!");
                 }
                 result = BR_WIN;
                 break;
             }
             if (!party_alive()) {
-                msg_wait("The party has fallen...");
+                msg_wait("The party has fallen.");
                 fade_out(20);
                 G = snap;
                 goto retry;

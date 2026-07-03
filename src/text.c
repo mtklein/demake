@@ -30,7 +30,7 @@ void frame(void) {
 
 void txt_put(int x, int y, const char* s, int pal) {
     vu16* p = TXT + y * 32 + x;
-    while (*s) *p++ = ME((u8)*s++ - 32, 0, 0, pal);
+    while (*s && x < 30) { *p++ = ME((u8)*s++ - 32, 0, 0, pal); x++; }
 }
 
 void txt_clear(int x, int y, int w, int h) {

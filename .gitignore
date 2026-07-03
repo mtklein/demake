@@ -1,3 +1,4 @@
 build/
 *.sav
 test/shots/
+test/*.script

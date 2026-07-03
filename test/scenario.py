@@ -92,6 +92,11 @@ def rogue_mutilate():
     setup(1, [0, 1, 0, 0, 2])             # mutilate Us, leave Shadowheart behind
     intro(); nursery(); surgery(); deck(); pods(); helm()
 
+@scn
+def ranger_full():
+    setup(2, [0, 0, 0, 0, 0])             # ranger, spare Us, save everyone, connect
+    intro(); nursery(); surgery(); deck(); pods(); helm()
+
 if __name__ == "__main__":
     SCN[sys.argv[1]]()
     print("\n".join(out))

@@ -262,14 +262,19 @@ def build_sprites():
         for fname in spec["frames"]:
             tiles += sprite_tiles(SF.FRAMES[fname], SF.LEG, 2, 2)
     for sname, spec in SB.SPRITES.items():
-        up = sname.upper()
         w, hgt = spec["w"], spec["h"]
+        try:                                    # resilient to mid-edit sprite files
+            frames = [sprite_tiles(SB.FRAMES[f], SB.LEG, w, hgt) for f in spec["frames"]]
+        except (KeyError, AssertionError) as e:
+            print(f"  skip {sname}: {e}")
+            continue
+        up = sname.upper()
         defs["OBJT_" + up] = len(tiles)
         defs["OBJS_" + up] = SIZEMAP[(w, hgt)]
         defs["OBJP_" + up] = spec["pal"]
         defs["OBJTPF_" + up] = w * hgt
-        for fname in spec["frames"]:
-            tiles += sprite_tiles(SB.FRAMES[fname], SB.LEG, w, hgt)
+        for ft in frames:
+            tiles += ft
     for idx, colors in SF.PALS.items():
         OBJ_PALS[idx] = pal16(colors)
     return tiles, defs

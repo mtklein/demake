@@ -155,7 +155,11 @@ const EnemyDef e_flayer = {
 };
 const EnemyDef e_us = {
     "Us", 21, 7, 3, 3, 28, 0, AI_US_ALLY,
+#ifdef OBJT_B_DEVOURER
+    OBJT_B_DEVOURER, OBJS_B_DEVOURER, 3, OBJTPF_B_DEVOURER, 32, 32,
+#else
     OBJT_US, 1, 3, 4, 16, 16,
+#endif
 };
 
 const Formation form_deck = {
