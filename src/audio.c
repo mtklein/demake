@@ -55,8 +55,8 @@ void music_stop(void) {
 }
 
 /* --- noise drum presets: kick, snare, hat, open hat --- */
-static const u16 drum_l[5] = { 0xF100, 0xE200, 0xB100, 0xB300, 0xA700 };
-static const u16 drum_h[5] = { 0x8063, 0x8033, 0x8019, 0x8019, 0x8021 };
+static const u16 drum_l[5] = { 0xF100, 0xE200, 0xB100, 0xB300, 0x8300 };
+static const u16 drum_h[5] = { 0x8063, 0x8033, 0x8019, 0x8019, 0x8019 };
 
 static void play_row(void) {
     const u8 n1 = song->ch[0][row], n2 = song->ch[1][row],
