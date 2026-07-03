@@ -769,4 +769,65 @@ def selune():
 
 SONGS['SELUNE'] = selune()
 
-ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE']
+
+# ------------------------------------------------------------ BOSSA (jukebox)
+# TOTAL_ROWS = 640
+# FORM: 0-127 A | 128-255 A' | 256-383 B (Jobim one-note, harmony walks) | 384-511 A'' | 512-639 C/turnaround+seam
+#   Harmony: | Cmaj7 | Cmaj7 | Dm7 | G7(9) | Em7 | A7(b9)->Dm7 | Dm7 G7 | Cmaj7 | (A, A')
+#   B walk under one note E5: Cmaj7 | Am7 | Fmaj7 | Dm7 | Em7 | A7 | Dm7 | G7(9)
+#   C: Cmaj7(lyd) | Cmaj7 | G#maj7(bVI) | G#maj7 | Em7 | A7(b9) | A#7(bVII7) | Dm7 G7 -> loops mid-phrase into bar1
+def bossa():
+    c0 = (
+        bars('E4 . . . G4 . . . A4 . . . . . D5 . . . . . C5 . . . . . B4 . . . . . C5 . . . A4 . . . . . . . . . F4 . . . . . G4 . . . A4 . . . . . . .') +
+        bars('G4 . . . . . E4 . . . . . . . B4 . . . . . C5 . . . A4 . . . G4 . F4 . . . . . A4 . . . D5 . . . . . . . C5 . . . . . E4 . . . . . . . D5 .') +
+        bars('. . C5 . . . B4 . . . G4 . . . . . E4 . . . . . G4 . A4 . . . . . C5 . . . . . A4 . . . F4 . . . . . E4 . . . . . D5 . . . . . B4 . . . . .') +
+        bars('G4 . . . . . A4 . B4 . . . . . . . . . C5 . . . A4 . . . G4 . . . F4 . . . . . A4 . . . D5 . . . . . E5 . . . . . . . . . . . . . . . E5 .') +
+        bars('E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . E5 . . . . . E5 . . .') +
+        bars('E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . E5 . . . . . E5 . . . E5 . . . . . D5 . . . . . . . C5 .') +
+        bars('. . . . B4 . . . G4 . . . . . A4 . . . . . G4 . . . E4 . . . . . D5 . . . . . F4 . . . A4 . . . . . . . G4 . . . . . D4 . . . . . . . B4 .') +
+        bars('. . . . G4 . . . E4 . . . . . . . . . C5 . . . A4 . . . G4 . . . F4 . . . . . A4 . . . D5 . . . . . . . C5 . . . . . E4 . . . . . . . D5 x') +
+        bars('. . . . E5 . . . D5 . . . . . C5 . . . . . C5 . . . A4 . . . . . G4 . . . . . C5 . . . D5 . . . . . . . . . . . C5 . . . . . A4 . . . . .') +
+        bars('G4 . . . . . B4 . . . . . . . C5 . . . . . A4 . . . G4 . . . . . F4 . . . . . A4 . . . G4 . . . . . . . . . . . A4 . . . D5 . . . . . E4 .')
+    )
+    c1 = (
+        bars('. . E3 . . . B3 . . . E3 . . . . . . . B3 . . . E3 . . . . . . . B3 . . . F3 . . . C4 . . . F3 . . . . . . . B3 . . . F3 . . . B3 . . . . .') +
+        bars('. . G3 . . . . . . . E3 . G3 . . . . . G3 . . . C4 . . . G3 . . . . . . . F3 . . . C4 . . . F3 . . . . . . . E3 . . . . . . . B3 . E3 . . .') +
+        bars('. . . . . . . . . . . . E3 . B3 . . . B3 . . . . . . . E3 . B3 . . . . . F3 . . . C4 . . . F3 . . . . . . . B3 . . . F3 . . . . . . . B3 .') +
+        bars('. . G3 . . . . . . . E3 . . . G3 . . . . . G3 . . . . . . . C4 . . . . . F3 . . . C4 . . . F3 . . . . . . . E3 . . . B3 . . . E3 . . . . .') +
+        bars('. . E3 . . . . . . . B3 . . . E3 . . . G3 . . . . . . . C4 . . . G3 . . . E3 . . . . . . . A3 . . . E3 . . . F3 . . . . . . . C4 . . . F3 .') +
+        bars('. . G3 . . . . . . . B3 . . . G3 . . . G3 . . . . . . . C4 . . . G3 . . . F3 . . . . . . . C4 . . . F3 . . . B3 . . . . . . . F3 . B3 . . .') +
+        bars('. . E3 . . . B3 . . . E3 . . . . . . . B3 . . . E3 . . . B3 . . . . . . . F3 . . . C4 . . . F3 . . . . . . . B3 . . . . . . . F3 . B3 . . .') +
+        bars('. . G3 . . . E3 . . . G3 . . . . . . . . . G3 . . . . . . . C4 . . . . . F3 . . . C4 . . . F3 . . . . . . . E3 . . . . . . . B3 . E3 . . .') +
+        bars('. . E3 . . . B3 . . . E3 . . . . . . . B3 . . . E3 . . . B3 . . . . . . . G3 . . . C4 . . . G3 . . . . . . . C4 . . . G3 . . . . . . . C4 .') +
+        bars('. . G3 . . . . . . . B3 . G3 . . . . . G3 . . . C4 . . . G3 . . . . . . . G#3 . . . C4 . . . G#3 . . . . . . . F3 . . . B3 . . . F3 . . . . .')
+    )
+    c2 = (
+        bars('C3 . . . . . . . G2 . . . . . . . C3 . . . . . . . G2 . . . . . C#3 . D3 . . . . . . . A2 . . . . . F#2 . G2 . . . . . . . D3 . . . . . . .') +
+        bars('E3 . . . . . . . B2 . . . . . . . A2 . . . . . . . E3 . . . . . C#3 . D3 . . . . . . . G2 . . . . . B2 . C3 . . . . . . . G2 . . . . . . .') +
+        bars('C3 . . . . . . . G2 . . . . . . . C3 . . . . . . . G2 . . . . . C#3 . D3 . . . . . . . A2 . . . . . F#2 . G2 . . . . . . . D3 . . . . . . .') +
+        bars('E3 . . . . . . . B2 . . . . . . . A2 . . . . . . . E3 . . . . . C#3 . D3 . . . . . . . G2 . . . . . B2 . C3 . . . . . . . G2 . . . . . . .') +
+        bars('C3 . . . . . . . G2 . . . . . . . A2 . . . . . . . E3 . . . . . . . F2 . . . . . . . C3 . . . . . . . D3 . . . . . . . A2 . . . . . . .') +
+        bars('E3 . . . . . . . B2 . . . . . . . A2 . . . . . . . E3 . . . . . C#3 . D3 . . . . . . . A2 . . . . . . . G2 . . . . . . . D3 . . . . . B2 .') +
+        bars('C3 . . . . . . . G2 . . . . . . . C3 . . . . . . . G2 . . . . . C#3 . D3 . . . . . . . A2 . . . . . F#2 . G2 . . . . . . . D3 . . . . . . .') +
+        bars('E3 . . . . . . . B2 . . . . . . . A2 . . . . . . . E3 . . . . . C#3 . D3 . . . . . . . G2 . . . . . B2 . C3 . . . . . . . G2 . . . . . A2 .') +
+        bars('C3 . . . . . . . G2 . . . . . A2 . C3 . . . . . . . G2 . . . . . A2 . G#2 . . . . . . . D#3 . . . . . . . G#2 . . . . . . . D#3 . . . . . F2 .') +
+        bars('E3 . . . . . . . B2 . . . . . . . A2 . . . . . . . E3 . . . . . . . A#2 . . . . . . . F3 . . . . . C#3 . D3 . . . . . . . G2 . . . . . B2 .')
+    )
+    c3 = (
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD] +
+        [1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,2,HOLD,2,HOLD,2,HOLD]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=7,
+                env1=envelope(11, 0, 0, 2), env2=envelope(11, 2, 0, 1), wavevol=0x2000)
+
+SONGS['BOSSA'] = bossa()
+
+ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE', 'BOSSA']

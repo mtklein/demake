@@ -31,6 +31,7 @@ static const char* const jb_names[SONG_COUNT] = {
     "Gaia",              /* SONG_GAIA    */
     "Tadpole Twist",     /* SONG_TADPOLE */
     "Under Selune",      /* SONG_SELUNE  */
+    "Baldur's Bossa",    /* SONG_BOSSA   */
 };
 
 /* Sound-test screen reached with SELECT from the title. */
