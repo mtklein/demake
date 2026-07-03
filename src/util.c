@@ -15,6 +15,12 @@ void gba_init(void) {
     REG_IE = IRQ_VBLANK;
     REG_IF = 0xFFFF;
     REG_IME = 1;
+    /* debug/feature flags live in fixed EWRAM: trust them only under the
+     * cookie (test harness pokes it; real hardware boots to garbage) */
+    if (G_FLAGS_MAGIC != G_FLAGS_COOKIE) {
+        for (vu8* p = (vu8*)0x0203FF00; p < (vu8*)0x0203FF38; p++) *p = 0;
+        G_FLAGS_MAGIC = G_FLAGS_COOKIE;
+    }
 }
 
 void vsync(void) {

@@ -165,9 +165,9 @@ def attack_init(a):
                                     AB[save_ab], save_dc)
     else:
         rider = "{ 0, 0, 0 }, 0, 0, 0"
-    return "{ \"%s\", %d, %s, %s, %s }" % (
+    return "{ \"%s\", %d, %s, %s, %s, %d }" % (
         a["name"], a["to_hit"], dice(a["dice"], a.get("plus", 0)),
-        DT[a["dmg_type"]], rider)
+        DT[a["dmg_type"]], rider, 1 if a.get("ranged") else 0)
 
 def gen_monsters(o):
     for _, src, key in MONSTER_MAP:

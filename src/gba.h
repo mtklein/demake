@@ -122,6 +122,10 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define G_DONE        (*(vu8*)0x0203FF06)   /* 1 = ending tally on screen */
 #define G_MANUAL_BAT  (*(vu8*)0x0203FF07)   /* 1 = interactive battle even in demo */
 #define G_BATTLE2     (*(vu8*)0x0203FF08)   /* 1 = 5e on-map encounters (pilot) */
+/* EWRAM is garbage at power-on: the flag block only counts when the magic
+ * cookie is present (set by the test runner's pokes or the title toggle). */
+#define G_FLAGS_MAGIC (*(vu32*)0x0203FF38)
+#define G_FLAGS_COOKIE 0xC0FFEE01u
 #define G_CHOICE_BUF ((vu8*)0x0203FF10)
 
 /* --- mGBA debug logging --- */

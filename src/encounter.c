@@ -337,10 +337,17 @@ static void maybe_opportunity(EC* a, EC* new_target) {
     a->engaged = -1;
 }
 
+static const R5MAttack* ai_ma;   /* AI-chosen monster attack for next strike */
+
 /* full melee/ranged weapon strike */
 static void strike(EC* a, EC* t) {
     const R5Weapon* w = a->side == 0 ? &r5_weapons[party5_weapon(a->pi)] : 0;
-    int melee = a->side == 0 ? !(w->props & WP_RANGED) : 1;
+    const R5MAttack* mona = 0;
+    if (a->side != 0) {
+        mona = ai_ma ? ai_ma : &r5_monsters[a->mon].attacks[0];
+        ai_ma = 0;
+    }
+    int melee = a->side == 0 ? !(w->props & WP_RANGED) : !mona->ranged;
     if (melee) {
         maybe_opportunity(a, t);
         if (a->c->hp <= 0) return;          /* OA dropped us */
@@ -354,9 +361,8 @@ static void strike(EC* a, EC* t) {
         bar_attack(w->name, &at);
         if (f & R5F_SNEAK && at.hit) bar_wait("Sneak attack!");
     } else {
-        const R5MAttack* ma = &r5_monsters[a->mon].attacks[0];
-        at = r5_monster_attack(&rng, a->c, ma, t->c, f);
-        bar_attack(ma->name, &at);
+        at = r5_monster_attack(&rng, a->c, mona, t->c, f);
+        bar_attack(mona->name, &at);
     }
     mgba_logf("atk %s->%s d20=%d tot=%d v%d %s dmg=%d rider=%d",
               a->c->name, t->c->name, at.d20.total, at.total, at.target_ac,
@@ -379,7 +385,7 @@ static void strike(EC* a, EC* t) {
 static void cast_attack_spell(EC* a, EC* t, int sp) {
     const R5Spell* s = &r5_spells[sp];
     R5MAttack ma = { s->name, (s8)party5_spell_atk(a->c), s->dice,
-                     s->dmg_type, { 0, 0, 0 }, 0, 0, 0 };
+                     s->dmg_type, { 0, 0, 0 }, 0, 0, 0, 1 };
     ec_face_toward(a, t);
     int f = atk_flags(a, t, 0);
     R5Attack at = r5_monster_attack(&rng, a->c, &ma, t->c, f);
@@ -473,6 +479,22 @@ static void cast_heal(EC* a, EC* t, int sp) {
 
 /* ------------------------------------------------------------------ turns */
 
+
+/* expected value of a monster attack vs a target, x100, defense-scaled */
+static int ai_ev(const R5MAttack* ma, const EC* t, int flags) {
+    int ev = r5_ev_attack_x100(ma->to_hit, t->c->ac, flags, ma->dmg);
+    u16 bit = (u16)(1 << ma->dmg_type);
+    if (t->c->immune & bit) ev = 0;
+    else if (t->c->resist & bit) ev /= 2;
+    else if (t->c->vulnerable & bit) ev *= 2;
+    if (ma->rider_dmg.n && !(t->c->immune & (u16)(1 << ma->rider_type))) {
+        /* rider: hit% x ~75% of dice EV (save-for-half average) */
+        int re = 2 * ma->rider_dmg.n * (ma->rider_dmg.sides + 1);   /* x4 */
+        ev += r5_hit_pct(ma->to_hit, t->c->ac, flags) * re * 3 / 16;
+    }
+    return ev;
+}
+
 static EC* nearest_foe(EC* a, int want_side) {
     EC* best = 0; int bd = 0x7FFF;
     for (int i = 0; i < nec; i++) {
@@ -488,9 +510,30 @@ static EC* nearest_foe(EC* a, int want_side) {
 }
 
 static void enemy_turn(EC* a) {
-    EC* t = nearest_foe(a, 0);
-    if (!t) return;
-    strike(a, t);
+    const R5Monster* m = &r5_monsters[a->mon];
+    EC* best_t = 0;
+    const R5MAttack* best_a = 0;
+    int best = -1;
+    for (int ai2 = 0; ai2 < m->n_attacks; ai2++) {
+        const R5MAttack* ma = &m->attacks[ai2];
+        for (int i = 0; i < nec; i++) {
+            EC* t = &ec[i];
+            if (t->side == 1 || t->c->hp <= 0) continue;
+            if (t->side == 0 && !conscious(t) && party_conscious()) continue;
+            if (t->hidden) continue;
+            int f = t->dodge ? R5F_DIS : 0;
+            int ev = ai_ev(ma, t, f);
+            int score = ev;
+            if (t->c->hp * 100 <= ev * 2) score += 150;      /* blood scent */
+            score += (int)(rnd_range(30));                   /* temperament */
+            if (score > best) { best = score; best_t = t; best_a = ma; }
+        }
+    }
+    if (!best_t) return;
+    mgba_logf("ai %s: %s -> %s ev=%d", a->c->name, best_a->name,
+              best_t->c->name, best);
+    ai_ma = best_a;
+    strike(a, best_t);
 }
 
 static void ally_turn(EC* a) {

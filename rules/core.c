@@ -151,6 +151,38 @@ R5Attack r5_monster_attack(R5RNG* r, const R5Creature* a, const R5MAttack* ma,
     return out;
 }
 
+/* ------------------------------------------------------- expectations */
+
+static int hit_pct_straight(int bonus, int ac) {
+    int need = ac - bonus;               /* die face required */
+    int count = need <= 2 ? 19 : need <= 20 ? 21 - need : 1;
+    return count * 5;                    /* nat 1 misses, nat 20 hits */
+}
+
+int r5_hit_pct(int bonus, int ac, int advflags) {
+    int p = hit_pct_straight(bonus, ac);
+    int adv = (advflags & R5F_ADV) != 0, dis = (advflags & R5F_DIS) != 0;
+    if (adv == dis) return p;
+    if (adv) return 100 - (100 - p) * (100 - p) / 100;
+    return p * p / 100;
+}
+
+int r5_crit_permille(int advflags) {
+    int adv = (advflags & R5F_ADV) != 0, dis = (advflags & R5F_DIS) != 0;
+    if (adv == dis) return 50;           /* 5%     */
+    return adv ? 98 : 2;                 /* 9.75% / 0.25%, rounded */
+}
+
+/* expected damage x100 for one swing: P(hit)*E[dice+mod] + P(crit)*E[dice] */
+int r5_ev_attack_x100(int bonus, int ac, int advflags, R5DiceSpec dmg) {
+    int e4_dice = 2 * dmg.n * (dmg.sides + 1);         /* E[dice] x4  */
+    int e4_full = e4_dice + 4 * dmg.mod;               /* + modifier  */
+    if (e4_full < 0) e4_full = 0;
+    int hit = r5_hit_pct(bonus, ac, advflags);
+    int crit = r5_crit_permille(advflags);
+    return hit * e4_full / 4 + crit * e4_dice / 40;
+}
+
 R5Save r5_save(R5RNG* r, const R5Creature* c, int ability, int dc, int flags) {
     R5Save s = { 0 };
     s.d20 = r5_d20(r, flags);

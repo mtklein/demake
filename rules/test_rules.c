@@ -335,7 +335,41 @@ static void test_bless(void) {
     }
 }
 
+/* closed-form expectations must match Monte Carlo within tolerance */
+static void test_expectations(void) {
+    R5RNG r; r5_seed(&r, 12);
+    static const struct { int bonus, ac, flags; R5DiceSpec d; } cases[] = {
+        { 5, 13, 0,        { 1, 4, 3 } },    /* imp sting     */
+        { 4, 16, 0,        { 2, 6, 3 } },    /* vs plate-ish  */
+        { 2, 11, R5F_ADV,  { 1, 8, 2 } },
+        { 7, 15, R5F_DIS,  { 2, 10, 4 } },
+        { 3, 25, 0,        { 1, 6, 0 } },    /* nat-20 only   */
+        { 9, 5,  0,        { 1, 4, 0 } },    /* nat-1 only miss */
+    };
+    for (unsigned ci = 0; ci < sizeof cases / sizeof cases[0]; ci++) {
+        R5MAttack ma = { "T", (int8_t)cases[ci].bonus, cases[ci].d, DT_SLASHING,
+                         { 0, 0, 0 }, 0, 0, 0, 0 };
+        R5Creature t = monster(cases[ci].ac, 30000);
+        long total = 0, hits = 0;
+        const int N = 60000;
+        for (int i = 0; i < N; i++) {
+            R5Attack at = r5_monster_attack(&r, 0, &ma, &t, cases[ci].flags);
+            if (at.hit) { hits++; total += at.damage; }
+        }
+        int sim_hit = (int)(hits * 100 / N);
+        int sim_ev = (int)(total * 100 / N);
+        int cf_hit = r5_hit_pct(cases[ci].bonus, cases[ci].ac, cases[ci].flags);
+        int cf_ev = r5_ev_attack_x100(cases[ci].bonus, cases[ci].ac,
+                                      cases[ci].flags, cases[ci].d);
+        int dh = sim_hit - cf_hit; if (dh < 0) dh = -dh;
+        int dev = sim_ev - cf_ev; if (dev < 0) dev = -dev;
+        CHECKI(dh <= 1, "case %u hit%% sim=%d cf=%d", ci, sim_hit, cf_hit);
+        CHECKI(dev <= 25 + cf_ev / 25, "case %u ev sim=%d cf=%d", ci, sim_ev, cf_ev);
+    }
+}
+
 int main(void) {
+    test_expectations();
     test_dice();
     test_advantage();
     test_mods();

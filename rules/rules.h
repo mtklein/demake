@@ -116,6 +116,7 @@ typedef struct {
     R5DiceSpec rider_dmg;            /* n==0 if none */
     uint8_t rider_type;
     uint8_t rider_save_ab, rider_dc; /* half on save */
+    uint8_t ranged;
 } R5MAttack;
 
 typedef struct {
@@ -185,6 +186,12 @@ R5Save r5_save(R5RNG*, const R5Creature*, int ability, int dc, int flags);
 int  r5_apply_damage(R5Creature*, int amount, uint8_t type);
 void r5_heal(R5Creature*, int amount);           /* wakes unconscious PCs */
 int  r5_conc_dc(int damage);                     /* max(10, dmg/2) */
+
+/* ---- closed-form expectations (for AI utility scoring) ----
+ * Integer math: probabilities in percent, damage expectations x100. */
+int r5_hit_pct(int bonus, int ac, int advflags);     /* nat 1/20 honored */
+int r5_crit_permille(int advflags);                  /* 50 / 98 / 2      */
+int r5_ev_attack_x100(int bonus, int ac, int advflags, R5DiceSpec dmg);
 
 /* ---------------------------------------------------------------- features */
 

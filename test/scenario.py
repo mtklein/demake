@@ -31,6 +31,9 @@ def setup(cls, choices, battle_mode=0):
     poke(IDLE, 0); poke(DONE, 0)
     for i, c in enumerate(choices):
         poke(CHOICE + i, c)
+    # magic cookie: gba_init wipes the flag block without it (hardware safety)
+    for i, b in enumerate((0x01, 0xEE, 0xFF, 0xC0)):
+        poke(0x0203FF38 + i, b)
 
 def intro():
     wait(160); shot("s_title")
