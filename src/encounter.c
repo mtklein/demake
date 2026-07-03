@@ -951,6 +951,11 @@ retry:
     rounds_left = helm_rounds;
     music(SONG_BATTLE);
 
+    /* translucent combat UI: BG0|BG1 alpha-blend over field + sprites
+     * (re-armed each retry; the wipe fade clears BLDCNT) */
+    REG_BLDCNT = 0x3C43;
+    REG_BLDALPHA = (u16)(13 | (7 << 8));
+
     /* stage popup digits after the obj tiles */
     memcpy16((vu16*)((u32)OBJ_TILES + OBJ_TILE_COUNT * 32),
              &ui_tiles[('0' - 32) * 16], 10 * 16);
@@ -1078,6 +1083,7 @@ victory:
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);
+    REG_BLDCNT = 0;
     G_FIELD_IDLE = 0;
     return ENC_WIN;
 
@@ -1089,6 +1095,7 @@ connected:
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);
+    REG_BLDCNT = 0;
     G_FIELD_IDLE = 0;
     return ENC_CONNECTED;
 

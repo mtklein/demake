@@ -152,13 +152,18 @@ void field_cam_override(int on, int cx, int cy) {
 }
 
 static void update_cam(void) {
-    if (cam_ov) { cam_x = cam_ovx; cam_y = cam_ovy; }
-    else { cam_x = ppx + 8 - 120; cam_y = ppy + 8 - 80; }
-    int maxx = fw * 16 - 240, maxy = fh * 16 - 160;
-    if (cam_x > maxx) cam_x = maxx;
-    if (cam_y > maxy) cam_y = maxy;
-    if (cam_x < 0) cam_x = 0;
-    if (cam_y < 0) cam_y = 0;
+    if (cam_ov) {
+        /* encounters may look past the room edge (void border) to keep
+         * every combatant clear of the text bars */
+        cam_x = cam_ovx; cam_y = cam_ovy;
+    } else {
+        cam_x = ppx + 8 - 120; cam_y = ppy + 8 - 80;
+        int maxx = fw * 16 - 240, maxy = fh * 16 - 160;
+        if (cam_x > maxx) cam_x = maxx;
+        if (cam_y > maxy) cam_y = maxy;
+        if (cam_x < 0) cam_x = 0;
+        if (cam_y < 0) cam_y = 0;
+    }
     if (shake_t > 0) {
         shake_t--;
         cam_x += (int)(rnd() & 3) - 1;

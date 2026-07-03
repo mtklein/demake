@@ -104,12 +104,12 @@ static void dlg_draw_portrait(void) {
                  &portrait_tiles[dlg_por * 36 * 16], 36 * 16);
         for (int r = 0; r < 6; r++)
             for (int c = 0; c < 6; c++)
-                WIN[(DLG_Y + r) * 32 + 1 + c] =
+                TXT[(DLG_Y + r) * 32 + 1 + c] =
                     ME(POR_VRAM_TILE + r * 6 + c, 0, 0, 5);
     }
     if (dlg_por < 0 && dlg_por_drawn >= 0) {
-        /* portrait removed: restore window chrome under it */
-        win_draw(0, DLG_Y, 30, DLG_H);
+        /* portrait removed: clear its text-layer cells */
+        txt_clear(1, DLG_Y, 6, 6);
     }
     dlg_por_drawn = dlg_por;
 #endif
@@ -120,7 +120,8 @@ void dlg_set_portrait(int id) {
     dlg_por = id;
     if (dlg_on) {
         dlg_draw_portrait();
-        txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+        txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
+              dlg_inset ? 21 : DLG_W, DLG_ROWS);
         cx = cy = 0;
     }
 }
@@ -133,7 +134,8 @@ void dlg_open(void) {
         dlg_draw_portrait();
         dlg_on = 1;
     }
-    txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+    txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
+              dlg_inset ? 21 : DLG_W, DLG_ROWS);
     cx = cy = 0;
 }
 
@@ -161,7 +163,8 @@ static void dlg_wait_a(int marker) {
 
 static void dlg_page(void) {
     dlg_wait_a(1);
-    txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+    txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
+              dlg_inset ? 21 : DLG_W, DLG_ROWS);
     cx = cy = 0;
 }
 
