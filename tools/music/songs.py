@@ -216,49 +216,39 @@ SONGS['EXPLORE'] = explore()
 #   A (0-63):    original drive (harm bar 6 raised an octave to stay in a 12th).
 #   B (64-119):  VI-VII-i riff sprint Bb-C-Dm, A(V), then Gm-A and a scale run.
 #   T (120-127): drum-fill turnaround on A7, chromatic bass C#2 -> D2 at loop.
+# TOTAL_ROWS = 256
+# FORM: 0=INTRO(bass octave-mantra + 4-on-floor establish; kit opens bar 2)
+#       32=A(robot hook x2 + vocoder off-beat stabs, full disco groove)
+#       96=A'(hook varied/brighter, register up, major-splash turns)
+#       160=BREAK/THE DROP(strip to bass+kick, "filter shut": closed hats only)
+#       192=BUILD(riser: lead pulses climb, ride shimmer opens, snare roll explodes)
 def battle():
-    lead = seq('D4','A4','D4','A4','F4','A4','D4','A4',
-               'C4','G4','C4','G4','E4','G4','C4','G4',
-               'D4','F4','A4','F4','D4','A4','F4','D4',
-               'E4','G4','B4','G4','E4','B4','G4','E4',
-               'D4','A4','D5','A4','F4','A4','D5','A4',
-               'C5','B4','A4','G4','F4','E4','D4','C4',
-               'A3','D4','F4','A4','D5','A4','F4','D4',
-               'E4','E4','C#4','C#4','D4','D4',HOLD,'A4') + bars(
-        '''A#4 F4  D4  F4   A#4 F4  D5 A#4 | C5 G4  E4  G4   C5  G4  E5 C5
-         | D5  A4  F4  A4   D5  A4  F5 D5  | E5 C#5 A4  C#5  E5  C#5 A4 E4
-         | G4  D4  A#3 D4   G4  D4  A#4 G4 | A4 E4  C#4 E4   A4  C#5 E5 C#5
-         | D5  C5  A#4 A4   G4  F4  E4  C#4| A4 .   x   x    A3  C#4 E4 G4''')
-    harm = seq('F3','A3','F3','A3','D3','F3','A3','F3',
-               'E3','G3','E3','G3','C3','E3','G3','E3',
-               'D3','F3','A3','F3','D3','A3','F3','D3',
-               'C3','E3','G3','E3','C3','G3','E3','C3',
-               'F3','A3','D4','A3','F3','A3','D4','A3',
-               'E4','D4','C4','B3','A3','G3','F3','E3',
-               'D3','F3','A3','D4','F4','D4','A3','F3',
-               'A3','A3','G#3','G#3','A3','A3','A3','A3') + bars(
-        '''D4  D4  A#3 D4   D4  D4  F4 D4  | E4 E4  C4  E4   E4  E4  G4 E4
-         | F4  F4  D4  F4   F4  F4  A4 F4  | A4 A4  E4  A4   A4  A4  E4 C#4
-         | A#3 A#3 G3  A#3  A#3 A#3 D4 A#3 | C#4 C#4 A3 C#4  C#4 E4  A4 E4
-         | F4  E4  D4  C#4  A#3 A3  G3 E3  | C#4 .  x   x    x   A3  C#4 E4''')
-    bass = seq('D2','D3','D2','D3','D2','D3','A2','A3',
-               'C2','C3','C2','C3','C2','C3','G2','G3',
-               'D2','D3','D2','D3','A2','A3','A2','A3',
-               'E2','E3','E2','E3','A2','A3','E2','E3',
-               'D2','D3','D2','D3','D2','D3','A2','A3',
-               'F2','F3','C2','C3','A2','A3','E2','E3',
-               'D2','A2','D3','A2','D2','A2','D3','A2',
-               'A2','A2','E2','E2','A2','A2','A2','A2') + bars(
-        '''A#2 . F2 . A#2 . B2  . | C3 . G2 . C3 . C#3 .
-         | D3  . A2 . D3  . E3  . | A2 . E2 . A2 . F#2 .
-         | G2  . D2 . G2  . G#2 . | A2 . E2 . A2 . C#3 .
-         | D3  . A2 . F2  . E2  . | A2 . E2 . A2 . C#2 .''')
-    beat = [0, 2, 1, 2, 0, 0, 1, 2]
-    drum = rep(beat, 8) + rep(beat, 6) \
-         + [0,1,0,1, 0,1,1,1] + [1,1,2,1, 1,1,1,3]      # build + fill turnaround
-    return dict(ch=[lead, harm, bass, drum], loop=0, speed=6,
-                env1=envelope(12, 0, 0, 2), env2=envelope(9, 0, 0, 1),
-                wavevol=0x2000)
+    c0 = (
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x A4 x A4 C5 x A4 E5 x D5 x C5 x A4 x G4 x A4 x C5 x E5 x D5 C5 A4 x G4 A4 x E4 x x') +
+        bars('A4 x A4 C5 x A4 E5 x D5 x C5 x A4 x G4 x A4 x C5 x E5 x D5 C5 A4 x G4 A4 x E4 x x A4 x E5 x A5 x G5 E5 D5 x C5 D5 x E5 x x A4 x C5 E5 x D5 x C5 A4 x A4 G4 x A4 x x') +
+        bars('A4 x E5 x A5 x G5 E5 D5 x C5 D5 x E5 x x A4 x C5 E5 x D5 x C5 A4 x A4 G4 x A4 x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +
+        bars('A4 x A4 x A4 x A4 x A4 x A4 x A4 A4 A4 A4 C5 x C5 x E5 x E5 x A5 x A5 A5 A5 A5 A5 A5 A4 x A4 C5 x A4 E5 x D5 x C5 x A4 x G4 x A4 x C5 x E5 x D5 C5 A4 x G4 x E4 x x x')
+    )
+    c1 = (
+        bars('x x x x x x x x x x x x x x x x x E4 x C4 x E4 x x x C4 x E4 x C4 x x x E4 x x x E4 x C4 x E4 x x x E4 x D4 x E4 x C4 x E4 x x x C4 x E4 x C4 x x') +
+        bars('x E4 x x x E4 x C4 x E4 x x x E4 x D4 x E4 x C4 x E4 x x x C4 x E4 x C4 x x x A4 x x x G4 x E4 x A4 x x x G4 x E4 x G4 x E4 x A4 x x x E4 x C4 x E4 x x') +
+        bars('x A4 x x x G4 x E4 x A4 x x x G4 x E4 x G4 x E4 x A4 x x x E4 x C4 x E4 x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +
+        bars('x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x E4 x x x E4 x C4 x E4 x x x E4 x D4 x E4 x C4 x E4 x x x C4 x E4 x E4 x x')
+    )
+    c2 = (
+        bars('A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3 A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3') +
+        bars('A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3 A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3') +
+        bars('A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3 A2 x A3 x A2 x A3 x A2 x A3 x A2 x A3 x A2 x A3 x A2 x A3 x A2 x A3 x A2 x A3 x') +
+        bars('A2 A3 A2 A3 A2 A3 A2 A3 A2 A3 A2 A3 A2 A3 A2 A3 C3 C4 C3 C4 E3 E4 E3 E4 A3 A4 A3 A4 A3 A4 A3 A4 A2 A3 x A2 A3 x A2 A3 x A2 A3 x A3 x A2 A3 G2 G3 x G2 G3 x G2 G3 x A2 A3 x A3 x A2 A3')
+    )
+    c3 = (
+        [0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2] +
+        [0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2] +
+        [0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2,0,2,2,2] +
+        [0,4,3,4,0,4,3,4,0,4,3,4,0,4,3,4,0,2,1,2,0,1,2,1,0,1,1,1,1,1,1,1,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,0,2,3,2,1,1,1,1]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=7,
+                env1=envelope(12, 0, 0, 1), env2=envelope(11, 2, 0, 2), wavevol=0x2000)
 
 SONGS['BATTLE'] = battle()
 
@@ -269,46 +259,47 @@ SONGS['BATTLE'] = battle()
 #                trade two-bar phrases; kick-run "tom" fill into the climb.
 #   C (96-111):  chromatic bass grind Bb->F, squares trade rising stabs.
 #   D (112-127): B7 peak in octaves, chromatic crash G-F#-F-E; V seam -> loop.
+# TOTAL_ROWS = 352
+# FORM (speed 5, 4 rows/beat; ch0=Zhalk sword 75% duty, ch1=mind-flayer 50% hollow,
+#       ch2=drop-tuned bass wave sounds 8vb -- pitches written are what you HEAR,
+#       ch3=noise 0kick 1snare 2hat 3crash 4ride; E tonic, E phrygian-dominant E F G# A B C D):
+#   @0   CHUG RIFF A   -- bars: 16, 16, 14 (7/8), 10 (5/8).  Odd pair sums to 24 so row 56 realigns.
+#                         Each odd bar ends on a unison STOP-HIT into an 'x' VOID.
 def boss():
-    lead = seq('E4','E4','B4','E4','G4','E4','B4','G4',
-               'E4','E4','C5','E4','B4','G4','E4','B3',
-               'E4','E4','B4','E4','A4','E4','C5','A4',
-               'F#4','F#4','D5','F#4','C5','A4','F#4','D4',
-               'E4','G4','B4','E5','D5','B4','G4','E4',
-               'C5','B4','A4','G4','F#4','E4','D#4','E4',
-               'B4','B4','A#4','B4','C5','B4','A4','G4',
-               'F#4','G4','A4','B4','E4','E4','E4','E4') + bars(
-        '''F4  F4 C5  F4 G#4 F4  C5 G#4 | C5  .   .   .   x   x   x  x
-         | G#4 G#4 D#5 G#4 F5 D#5 C5 G#4| D#5 .   .   .   x   x   x  x
-         | A#4 .  x   x  C5  .   x  x   | D5  .   x   x   D#5 .   x  x
-         | D#5 E5 F#5 E5 D#5 B4  A4 F#4 | G4  F#4 F4  E4  .   .   x  x''')
-    harm = seq('E3','B3','E3','B3','E3','B3','E3','B3',
-               'E3','B3','G3','B3','E3','G3','E3','G3',
-               'A3','E3','B3','E3','A3','E3','A3','E3',
-               'D3','A3','A3','A3','A3','F#3','D3','F#3',
-               'E3','B3','E3','B3','G3','B3','E3','B3',
-               'A3','G3','F#3','E3','D3','C3','B2','B2',
-               'B3','B3','A#3','B3','C4','B3','A3','G3',
-               'F#3','G3','A3','B3','E3','E3','E3','E3') + bars(
-        '''x   x  x   x  x   x   x  x    | F3  F3  G#3 F3  C4  G#3 F3 C3
-         | x   x  x   x  x   x   x  x    | G#3 G#3 C4  G#3 D#4 C4 G#3 D#3
-         | x   x  F4  .  x   x   G4 .    | x   x   A4  .   x   x   B4 .
-         | D#4 E4 F#4 E4 D#4 B3  A3 F#3  | G3  F#3 F3  E3  .   .   x  x''')
-    bass = []
-    for root in ['E2','E2','A2','F#2','E2','C2','B2','E2']:
-        bass += rep([n(root), n(root) + 12], 4)
-    bass += rep([n('F2'), n('F3')], 6) + seq('F2','F3','G2','G2') \
-          + rep([n('G#2'), n('G#3')], 6) + seq('G#2','G#3','A2','A2') \
-          + bars('''A#2 A#2 B2 B2 C3 C3 C#3 C#3 | D3 D3 D#3 D#3 E3 E3 F3 F3
-                  | B2 B3 B2 B3 B2 B3 A2 G2     | E2 .  G2 .   A2 .  B2 .''')
-    pound = [0, 0, 1, 0, 0, 1, 0, 3]
-    drum = rep(pound, 8) \
-         + rep(pound, 3) + [0,0,1,0, 0,0,0,0] \
-         + [0,1,0,1, 0,1,0,1] + [0,1,0,1, 0,1,1,1] \
-         + pound + [0,0,1,1, 0,1,1,3]
-    return dict(ch=[lead, harm, bass, drum], loop=0, speed=5,
-                env1=envelope(13, 0, 0, 3), env2=envelope(10, 0, 0, 2),
-                wavevol=0x2000)
+    c0 = (
+        bars('E3 E3 E3 G#3 E3 E3 E3 F3 E3 E3 G#3 E3 E3 F3 E3 E3 E3 E3 E3 E3 G#3 E3 A3 E3 C4 E3 D4 E3 B3 G#3 F3 E3 E3 E3 E3 G#3 E3 E3 G#4 x x x E3 E3 G#3 F3 E3 E3 G#3 F3 E3 x x x x x E3 E3 G#3 E3 E3 F3 E3 E3') +
+        bars('E3 G#3 E3 E3 F3 E3 G#3 E3 E3 E3 E3 G#3 A3 B3 C4 D4 E4 E3 D4 C4 B3 A3 G#3 F3 E3 E3 E3 F3 E3 E3 G#4 x x x E3 G#3 B3 G#3 E3 E3 G#3 F3 E4 x x x x x E4 F4 G#4 A4 B4 C5 D5 C5 B4 A4 G#4 A4 B4 C5 B4 A4') +
+        bars('G#4 G#4 A4 A4 B4 B4 A4 A4 G#4 G#4 F4 F4 G#4 A4 B4 C5 D5 E5 D5 C5 B4 A4 G#4 F4 E4 F4 G#4 A4 B4 C5 D5 E5 E5 E5 D5 D5 C5 C5 B4 B4 A4 G#4 F4 E4 D4 C4 B3 G#3 x x x x x x x x x x x x x x x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x E3 . . . x x x x E3 . . . G#3 . F3 E3') +
+        bars('E3 . . . x x x x G#3 . . . . . F3 E3 E3 . . . x x E3 E3 G#3 . A3 B3 C4 B3 A3 G#3 G4 G4 A#4 A#4 C5 C5 D5 D5 A#4 A#4 C5 D5 D#5 D5 C5 A#4 D#5 D5 C5 A#4 G4 A#4 C5 D5 D#5 D5 C5 A#4 G4 G4 A#4 C5') +
+        bars('D5 C5 B4 A4 G#4 F4 E4 G#4 B4 E5 E5 E5 E5 D5 C5 B4 E4 x x x E4 x x x G#4 x B4 x E5 . x x')
+    )
+    c1 = (
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x B4 . . . C5 . B4 . G#4 . . . A4 . . .') +
+        bars('G4 . F4 . E4 . . . F4 . G4 . B4 . . . C5 . . . B4 . A4 . G#4 . . . E4 . . . F4 . G4 . F4 . E4 . E4 . . . . . . . x x x x x x x x x x x x x x x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x')
+    )
+    c2 = (
+        bars('E2 E2 E2 G#2 E2 E2 E2 F2 E2 E2 G#2 E2 E2 F2 E2 E2 E2 E2 E2 E2 G#2 E2 A2 E2 C3 E2 D3 E2 B2 G#2 F2 E2 E2 E2 E2 G#2 E2 E2 G#3 x x x E2 E2 G#2 F2 E2 E2 G#2 F2 E2 x x x x x E2 E2 G#2 E2 E2 F2 E2 E2') +
+        bars('E2 G#2 E2 E2 F2 E2 G#2 E2 E2 E2 E2 G#2 A2 B2 C3 D3 E3 E2 D3 C3 B2 A2 G#2 F2 E2 E2 E2 F2 E2 E2 G#3 x x x E2 G#2 B2 G#2 E2 E2 G#2 F2 E3 x x x x x E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2') +
+        bars('E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 . . . . . . . . . . . . . . .') +
+        bars('C2 . . . . . . . . . . . . . . . A2 . . . . . . . . . . . . . . . B2 . . . . . . . B2 . . . . . . . E2 . . . x x x x E2 . . . G#2 . F2 E2') +
+        bars('E2 . . . x x x x G#2 . . . . . F2 E2 E2 . . . x x E2 E2 G#2 . A2 B2 C3 B2 A2 G#2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2 G2') +
+        bars('E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 E2 x x x E2 x x x G#2 x B2 x E2 . x x')
+    )
+    c3 = (
+        [3,0,2,0,1,0,0,2,0,0,2,0,1,0,0,2,0,0,2,0,1,0,0,2,0,2,0,2,1,0,0,0,3,0,2,0,1,0,3,REST,REST,REST,0,0,1,0,0,0,1,0,3,REST,REST,REST,REST,REST,3,0,2,0,1,0,0,2] +
+        [0,0,2,0,1,0,2,0,0,0,2,0,1,0,0,0,0,0,0,0,1,0,0,0,3,0,2,0,1,0,3,REST,REST,REST,0,0,1,1,0,0,1,0,3,REST,REST,REST,REST,REST,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1] +
+        [0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,1,3,4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST] +
+        [4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST,4,REST,REST,REST,REST,REST,REST,REST,3,REST,REST,REST,REST,REST,REST,REST,1,REST,REST,REST,REST,REST,REST,REST] +
+        [3,REST,REST,REST,REST,REST,REST,REST,1,REST,REST,REST,REST,REST,REST,REST,3,REST,REST,REST,REST,REST,0,0,1,REST,0,0,1,0,1,0,0,1,0,1,1,1,1,1,0,1,0,1,1,1,1,3,0,1,0,1,0,1,0,1,0,1,0,1,1,1,1,3] +
+        [0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,3,1,1,1,1,1,1,1,3,0,REST,0,REST,3,REST,REST,REST]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=5,
+                env1=envelope(13, 0, 0, 3), env2=envelope(10, 0, 0, 2), wavevol=0x2000)
 
 SONGS['BOSS'] = boss()
 
