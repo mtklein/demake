@@ -113,6 +113,15 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define IWRAM_CODE __attribute__((section(".iwram"), long_call))
 #define EWRAM_BSS  __attribute__((section(".ewram_bss")))
 
+/* demo/attract flag: runner pokes this so say() dialogs auto-advance,
+ * and choose() consumes answers from a poked buffer for deterministic runs. */
+#define G_DEMO (*(vu8*)0x0203FF00)
+#define G_DEMO_BATTLE (*(vu8*)0x0203FF02)   /* 0 auto-fight+nerve@helm, 2 kill-all */
+#define G_DEMO_CLASS  (*(vu8*)0x0203FF03)   /* class to auto-pick in demo */
+#define G_FIELD_IDLE  (*(vu8*)0x0203FF05)   /* 1 = field_run looping (input ok) */
+#define G_DONE        (*(vu8*)0x0203FF06)   /* 1 = ending tally on screen */
+#define G_CHOICE_BUF ((vu8*)0x0203FF10)
+
 /* --- mGBA debug logging --- */
 #define MGBA_LOG_ENABLE (*(vu16*)0x4FFF780)
 #define MGBA_LOG_FLAGS  (*(vu16*)0x4FFF700)

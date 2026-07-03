@@ -107,32 +107,51 @@ void party_heal_full(void) {
 
 /* ------------------------------------------------ enemies ------ */
 
+/* Each enemy uses its own battle sprite once the art exists; otherwise it
+ * falls back to the imp sprite (the #ifdef picks whichever define is present). */
 const EnemyDef e_imp = {
     "Imp", 6, 5, 2, 5, 26, 40, AI_IMP,
     OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
 };
-
-/* battle sprites for these land shortly; tiles referenced via defines that
- * exist once the art file fills in. Until then they reuse the imp sprite. */
 const EnemyDef e_boar = {
     "Hellsboar", 9, 7, 3, 2, 22, 45, AI_BOAR,
+#ifdef OBJT_B_BOAR
+    OBJT_B_BOAR, OBJS_B_BOAR, OBJP_B_BOAR, OBJTPF_B_BOAR, 32, 16,
+#else
     OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
+#endif
 };
 const EnemyDef e_thrall = {
     "Thrall", 8, 6, 2, 2, 24, 60, AI_THRALL,
+#ifdef OBJT_B_THRALL
+    OBJT_B_THRALL, OBJS_B_THRALL, OBJP_B_THRALL, OBJTPF_B_THRALL, 16, 32,
+#else
     OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
+#endif
 };
 const EnemyDef e_cambion = {
     "Cambion", 40, 10, 6, 6, 30, 150, AI_CAMBION,
+#ifdef OBJT_B_CAMBION
+    OBJT_B_CAMBION, OBJS_B_CAMBION, OBJP_B_CAMBION, OBJTPF_B_CAMBION, 32, 32,
+#else
     OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
+#endif
 };
 const EnemyDef e_zhalk = {
     "Cmdr Zhalk", 150, 13, 7, 6, 32, 300, AI_ZHALK,
+#ifdef OBJT_B_ZHALK
+    OBJT_B_ZHALK, OBJS_B_ZHALK, OBJP_B_ZHALK, OBJTPF_B_ZHALK, 32, 64,
+#else
     OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
+#endif
 };
 const EnemyDef e_flayer = {
     "Mindflayer", 85, 11, 5, 10, 33, 0, AI_FLAYER_ALLY,
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
+#ifdef OBJT_B_FLAYER
+    OBJT_B_FLAYER, OBJS_B_FLAYER, OBJP_B_FLAYER, OBJTPF_B_FLAYER, 32, 32,
+#else
+    OBJT_FLAYERF, 1, 5, 2, 16, 16,
+#endif
 };
 const EnemyDef e_us = {
     "Us", 21, 7, 3, 3, 28, 0, AI_US_ALLY,

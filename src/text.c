@@ -17,7 +17,16 @@
 #define W_BLACK (TILE_WIN + 14)
 #define GLYPH_MORE 95
 
-void frame(void) { vsync(); oam_flush(); key_poll(); }
+static int drift_on;
+static u32 drift_t;
+void sky_autodrift(int on) { drift_on = on; }
+
+void frame(void) {
+    vsync();
+    oam_flush();
+    key_poll();
+    if (drift_on) { drift_t++; REG_BG3HOFS = (u16)(drift_t >> 3); }
+}
 
 void txt_put(int x, int y, const char* s, int pal) {
     vu16* p = TXT + y * 32 + x;
@@ -73,6 +82,7 @@ void win_clear(int x, int y, int w, int h) {
 static int dlg_on, cx, cy;
 
 void dlg_open(void) {
+    G_FIELD_IDLE = 0;
     if (!dlg_on) { win_draw(0, DLG_Y, 30, DLG_H); dlg_on = 1; }
     txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
     cx = cy = 0;
@@ -88,11 +98,11 @@ static void dlg_wait_a(int marker) {
     for (;;) {
         frame();
         if (key_hit() & KEY_A) break;
-        if (marker) {  /* blink */
-            t++;
+        t++;
+        if (G_DEMO && t >= 40) break;   /* attract mode: auto-advance */
+        if (marker)
             TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] =
                 (t & 16) ? 0 : ME(GLYPH_MORE, 0, 0, 0);
-        }
     }
     TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] = 0;
 }
@@ -113,6 +123,7 @@ static void dlg_putc(char c, int pal) {
     if (cx >= DLG_W) dlg_newline();
     TXT[(DLG_TY + cy) * 32 + DLG_TX + cx] = ME((u8)c - 32, 0, 0, pal);
     cx++;
+    if (G_DEMO) return;                             /* instant text in attract mode */
     if (!(key_state() & (KEY_A | KEY_B))) frame();  /* typewriter; hold A/B = fast */
 }
 
@@ -152,7 +163,22 @@ int choose(int n, const char* const* opts) {
     win_draw(x, y, w, h);
     for (int i = 0; i < n; i++) txt_put(x + 3, y + 1 + i, opts[i], 0);
 
+    static int demo_idx;
     int sel = 0;
+    if (G_DEMO) {
+        int pick = G_CHOICE_BUF[demo_idx++];
+        if (pick >= n) pick = n - 1;
+        for (int i = 0; i < 24; i++) {   /* animate to the pick for the recording */
+            if (i == 12) sel = pick;
+            obj_set(OBJ_CURSOR, x * 8 - 6, (y + 1 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame();
+        }
+        sfx_play(SFX_CONFIRM);
+        obj_hide(OBJ_CURSOR);
+        win_clear(x, y, w, h);
+        mgba_logf("choose->%d", pick);
+        return pick;
+    }
     for (;;) {
         obj_set(OBJ_CURSOR, x * 8 - 6, (y + 1 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
         frame();
@@ -163,5 +189,6 @@ int choose(int n, const char* const* opts) {
     }
     obj_hide(OBJ_CURSOR);
     win_clear(x, y, w, h);
+    mgba_logf("choose->%d", sel);
     return sel;
 }

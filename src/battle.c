@@ -266,9 +266,11 @@ static void pump(int n) {
 
 static void msg_wait(const char* s) {
     msg_show(s);
+    int t = 0;
     for (;;) {
         pump(1);
         if (key_hit() & KEY_A) break;
+        if (G_DEMO && ++t >= 30) break;
     }
     msg_hide();
 }
@@ -659,8 +661,37 @@ static void do_skill(BU* a, int sk, BU* t) {
     }
 }
 
+/* demo auto-play: returns 1 if the transponder was connected */
+static int demo_turn(BU* u) {
+    menu_unit = (int)(u - U);
+    draw_status();
+    pump(10);
+    /* at the helm, TAV connects the nerves unless we're in kill-all mode */
+    if (helm && u->pi == 0 && G_DEMO_BATTLE != 2) {
+        BU* z = find_zhalk();
+        if (!z || rounds <= 13) {         /* connect after a round or two of drama */
+            msg_wait("You seize the transponder nerves...");
+            menu_unit = -1;
+            return 1;
+        }
+    }
+    BU* t = 0;
+    if (G_DEMO_BATTLE == 2) t = find_zhalk();
+    if (!t) t = rand_enemy();
+    if (t) {
+        u8 c = G.pm[u->pi].cls;
+        if (c == CLS_WIZARD) do_skill(u, SK_FIREBOLT, t);      /* cantrip, no MP */
+        else if (c == CLS_CLERIC && u->mp >= 4 && rnd_range(2)) {
+            u->mp = (s16)(u->mp - 4); do_skill(u, SK_GBOLT, t);
+        } else act_melee(u, t, 100, 0);
+    }
+    menu_unit = -1;
+    return 0;
+}
+
 /* returns 1 if the transponder was connected */
 static int player_turn(BU* u) {
+    if (G_DEMO) return demo_turn(u);
     menu_unit = (int)(u - U);
     draw_enemy_names(0);
     win_draw(0, 15, 8, 5);
@@ -875,8 +906,10 @@ static void battle_transition_in(void) {
 int battle_run(const Formation* f) {
     Game snap = G;
     int result = -1;
+    G_FIELD_IDLE = 0;
 
 retry:
+    mgba_logf("battle start n=%d flags=%x", f->n, f->flags);
     NU = 0;
     menu_unit = -1;
     helm = (f->flags & BF_HELM) ? 1 : 0;
@@ -1016,5 +1049,6 @@ retry:
     for (int i = 0; i < 128; i++) obj_hide(i);
     memset16(SCREENBLOCK(30), 0, 1024);
     memset16(SCREENBLOCK(31), 0, 1024);
+    mgba_logf("battle result=%d", result);
     return result;
 }

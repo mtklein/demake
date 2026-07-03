@@ -3,8 +3,9 @@
 #include "gba.h"
 #include "audio.h"
 
-/* util.c */
+/* util.c / text.c */
 void frame(void);          /* vsync + oam flush + key poll */
+void sky_autodrift(int on);
 
 /* video.c */
 void vid_init_ui(void);

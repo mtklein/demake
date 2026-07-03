@@ -1,0 +1,72 @@
+poke 0203ff00 01
+poke 0203ff02 00
+poke 0203ff03 00
+poke 0203ff05 00
+poke 0203ff06 00
+poke 0203ff10 00
+poke 0203ff11 00
+poke 0203ff12 00
+poke 0203ff13 00
+poke 0203ff14 00
+wait 160
+shot test/shots/s_title.ppm
+wait 420
+shot test/shots/s_class.ppm
+until 0203ff05 01 9000
+shot test/shots/s_nursery.ppm
+hold RIGHT 32
+wait 12
+hold DOWN 24
+wait 12
+until 0203ff05 01 9000
+shot test/shots/s_surgery_in.ppm
+hold DOWN 3
+wait 8
+hold A 3
+wait 8
+until 0203ff05 01 9000
+shot test/shots/s_surgery.ppm
+hold LEFT 16
+wait 12
+hold DOWN 56
+wait 12
+hold RIGHT 16
+wait 12
+hold DOWN 8
+wait 12
+until 0203ff05 01 9000
+shot test/shots/s_deck_in.ppm
+hold DOWN 8
+wait 12
+until 0203ff05 01 9000
+shot test/shots/s_deckdone.ppm
+hold DOWN 64
+wait 12
+until 0203ff05 01 9000
+shot test/shots/s_pods_in.ppm
+hold RIGHT 8
+wait 12
+hold DOWN 32
+wait 12
+hold RIGHT 24
+wait 12
+until 0203ff05 01 9000
+hold LEFT 56
+wait 12
+hold UP 3
+wait 8
+hold A 3
+wait 8
+until 0203ff05 01 9000
+shot test/shots/s_pods.ppm
+hold RIGHT 24
+wait 12
+hold DOWN 40
+wait 12
+until 0203ff05 01 9000
+shot test/shots/s_helm_in.ppm
+hold UP 40
+wait 12
+shot test/shots/s_helm.ppm
+until 0203ff06 01 12000
+shot test/shots/s_tally.ppm

@@ -97,6 +97,21 @@ int main(int argc, char** argv) {
             for (int i = 0; i < n; i++)
                 printf(" %02x", core->busRead8(core, addr + (unsigned)i));
             printf("\n");
+        } else if (!strcmp(cmd, "poke")) {
+            unsigned addr = 0, val = 0;
+            sscanf(line, "%*s %x %x", &addr, &val);
+            core->busWrite8(core, addr, (uint8_t)val);
+            printf("[poke] %08x <- %02x\n", addr, val);
+        } else if (!strcmp(cmd, "until")) {
+            /* until ADDR VAL MAXFRAMES: run until byte==val or timeout */
+            unsigned addr = 0, val = 0, maxf = 3000;
+            sscanf(line, "%*s %x %x %d", &addr, &val, (int*)&maxf);
+            unsigned ran = 0;
+            while (ran < maxf && core->busRead8(core, addr) != (uint8_t)val) {
+                core->runFrame(core); frame++; ran++;
+            }
+            printf("[until] %08x==%02x after %u frames%s\n", addr, val, ran,
+                   (core->busRead8(core, addr) == (uint8_t)val) ? "" : " (TIMEOUT)");
         } else if (!strcmp(cmd, "msg")) {
             printf("[msg] %s\n", line + 4);
         } else {

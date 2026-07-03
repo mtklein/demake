@@ -26,6 +26,7 @@ void field_draw(void);
 void field_wait(int frames);
 void field_walk_npc(int idx, int dir);
 void field_face_npc(int idx, int dir);
+void field_shake(int frames);
 int  field_player_mx(void);
 int  field_player_my(void);
 int  field_face(void);

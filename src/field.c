@@ -124,6 +124,9 @@ static void draw_walker(int obj, int px, int py, int objt, int pal,
     obj_flip(obj, hf, 0);
 }
 
+static int shake_t;
+void field_shake(int frames) { shake_t = frames; }
+
 static void update_cam(void) {
     cam_x = ppx + 8 - 120; cam_y = ppy + 8 - 80;
     int maxx = fw * 16 - 240, maxy = fh * 16 - 160;
@@ -131,6 +134,11 @@ static void update_cam(void) {
     if (cam_y > maxy) cam_y = maxy;
     if (cam_x < 0) cam_x = 0;
     if (cam_y < 0) cam_y = 0;
+    if (shake_t > 0) {
+        shake_t--;
+        cam_x += (int)(rnd() & 3) - 1;
+        cam_y += (int)(rnd() & 3) - 2;
+    }
     REG_BG2HOFS = (u16)cam_x;
     REG_BG2VOFS = (u16)cam_y;
     REG_BG3HOFS = (u16)((cam_x >> 2) + (int)(ticks >> 4));
@@ -175,6 +183,7 @@ void field_run(void) {
     int tdx = 0, tdy = 0;
     while (!exit_req) {
         frame();
+        G_FIELD_IDLE = 1;
         if (!pmoving) {
             u16 held = key_state();
             int dir = -1;
