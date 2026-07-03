@@ -27,6 +27,7 @@ static const char* const jb_names[SONG_COUNT] = {
     "Commander Zhalk",   /* SONG_BOSS    */
     "Victory",           /* SONG_VICTORY */
     "The Long Fall",     /* SONG_CRASH   */
+    "Kind of Azure",     /* SONG_AZURE   */
 };
 
 /* Sound-test screen reached with SELECT from the title. */

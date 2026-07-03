@@ -55,8 +55,8 @@ void music_stop(void) {
 }
 
 /* --- noise drum presets: kick, snare, hat, open hat --- */
-static const u16 drum_l[4] = { 0xF100, 0xE200, 0xB100, 0xB300 };
-static const u16 drum_h[4] = { 0x8063, 0x8033, 0x8019, 0x8019 };
+static const u16 drum_l[5] = { 0xF100, 0xE200, 0xB100, 0xB300, 0xA700 };
+static const u16 drum_h[5] = { 0x8063, 0x8033, 0x8019, 0x8019, 0x8021 };
 
 static void play_row(void) {
     const u8 n1 = song->ch[0][row], n2 = song->ch[1][row],
@@ -80,7 +80,7 @@ static void play_row(void) {
         REG_SOUND3CNT_H = 0;
     }
     if (!sfx_noi) {
-        if (n4 <= 3) { REG_SOUND4CNT_L = drum_l[n4]; REG_SOUND4CNT_H = drum_h[n4]; }
+        if (n4 <= 4) { REG_SOUND4CNT_L = drum_l[n4]; REG_SOUND4CNT_H = drum_h[n4]; }
         else if (n4 == EV_CUT) { REG_SOUND4CNT_L = 0x0800; REG_SOUND4CNT_H = 0x8000; }
     }
 }

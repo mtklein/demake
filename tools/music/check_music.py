@@ -4,7 +4,7 @@
 Hard checks (exit 1 on failure):
   - every song has exactly 4 channels of equal length
   - ch0/ch1 values in 0..61; ch2 (wave) note values <= 47 (engine adds +12);
-    ch3 (noise) values in {0,1,2,3, HOLD, REST}
+    ch3 (noise) values in {0,1,2,3,4, HOLD, REST}
   - loop < rows, or 0xFFFF (play once); VICTORY and CRASH must be play-once
   - strong-beat (row%4==0) square-vs-square both-attack dissonance <= 5%
   - voice crossing (ch1 sounding above ch0) <= 2% of rows where both sound
@@ -20,7 +20,7 @@ from songs import SONGS, ORDER, HOLD, REST
 
 PC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 CONSONANT = {0, 3, 4, 5, 7, 8, 9}          # interval classes mod 12
-DRUM = {0: 'K', 1: 'S', 2: 'h', 3: 'O', HOLD: '.', REST: 'x'}
+DRUM = {0: 'K', 1: 'S', 2: 'h', 3: 'O', 4: 'R', HOLD: '.', REST: 'x'}
 
 # Form maps: (start_row, label). Kept here so songs.py stays engine-schema only.
 FORMS = {
@@ -47,6 +47,11 @@ FORMS = {
                 (112, 'D  B7 peak + chromatic crash-fill -> loop')],
     'VICTORY': [(0, 'fanfare; ch1 countervoice F4->E4 sus resolve, G-A-B-C climb')],
     'CRASH':   [(0, 'chromatic plunge; ch1 shadows m6 below from row 8, resolves A2->D2')],
+    'AZURE':   [(0, 'INTRO drums alone, bass enters bar 2 (swing, 3 rows/beat)'),
+                (24, 'HEAD 32-bar AABA: bass call, quartal horn stabs; B up to Eb dorian'),
+                (408, 'TRUMPET chorus: harmon-thin motifs over walking 4s; sax tacet'),
+                (792, 'SAX chorus: enclosure lines, double-time flare in B; tpt tacet'),
+                (1176, 'OUT: A with hits, then settling tag -> seam breathes to head @24')],
 }
 
 def nname(v):
@@ -78,7 +83,7 @@ def check_song(name, s):
         if bad: errs.append('ch%d out-of-range values: %s' % (i, bad[:4]))
     bad = [(r, v) for r, v in enumerate(ch[2]) if v <= 59 and v > 47]
     if bad: errs.append('ch2 wave notes > 47 (clamp): %s' % [(r, nname(v)) for r, v in bad[:6]])
-    bad = [(r, v) for r, v in enumerate(ch[3]) if v not in (0, 1, 2, 3, HOLD, REST)]
+    bad = [(r, v) for r, v in enumerate(ch[3]) if v not in (0, 1, 2, 3, 4, HOLD, REST)]
     if bad: errs.append('ch3 non-drum values: %s' % bad[:6])
     loop = s['loop']
     if loop != 0xFFFF and not (0 <= loop < rows):

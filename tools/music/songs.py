@@ -1,6 +1,6 @@
 # Original chiptunes in the FF4 idiom. Note data compiled to C by mkassets.
 # Encoding per row: a note index (0..59, C2..B6), HOLD=60 (sustain), REST=61 (cut).
-# Drum channel rows: 0 kick, 1 snare, 2 hat, 3 open-hat, HOLD/REST as above.
+# Drum channel rows: 0 kick, 1 snare, 2 hat, 3 open-hat, 4 ride, HOLD/REST as above.
 
 HOLD, REST = 60, 61
 _S = {'C':0,'C#':1,'D':2,'D#':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'A':9,'A#':10,'B':11}
@@ -373,4 +373,164 @@ def crash():
 
 SONGS['CRASH'] = crash()
 
-ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH']
+
+# ------------------------------------------------------------ AZURE (jukebox)
+# "Kind of Azure" -- modal jazz cut the Kind of Blue way: the leader sketched a
+# 32-bar AABA (A = D dorian, B a half-step up in Eb dorian), notated only the
+# quartal answer-stabs, and four session players tracked their parts without
+# hearing each other. Swing grid: 3 rows/beat at speed 9 (~133 BPM); swung
+# eighths land on beat-rows 0 and 2. Form: 2-bar drum/bass intro, head,
+# trumpet chorus (sax tacet), sax chorus (tpt tacet), 16-bar out; loop -> 24.
+def azure():
+    tpt = (
+        # INTRO
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 1-2
+        # HEAD
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 3-6
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 7-10
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 11-14
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 15-18
+        bars('x x x x x x x x x x x x x x x x x x x x x D#4 . F4 x x x x x x x x x x x x x x x x x x x x x D#4 . F4') +  # bars 19-22
+        bars('x x x x x x x x x x x x x x x x x x x x x D#4 . F4 x x x x x x x x x x x x x x x x x x x x x D#4 . F4') +  # bars 23-26
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 27-30
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 31-34
+        # SOLO_TPT
+        bars('x x x x D4 . F4 . . E4 . . . . . x x x x x x x x x x x x C4 . D4 . . . A3 . . . . . . . . x x x x x x') +  # bars 35-38
+        bars('x x x x x x x x x x x x x x x C#4 D4 . . . . F4 . . . . . E4 . . . . . x x x x x x x x x x x x x x x') +  # bars 39-42
+        bars('x x x x x x x x x x x x x x x G4 . B4 . . . A4 . . . . . . . . x x x x x x x x x x x x x x x x x x') +  # bars 43-46
+        bars('x C5 . . . . A4 . . G4 . . . . . E4 . . . . . . . . . . . x x x x x x x x x x x x x x x x x x x x x') +  # bars 47-50
+        bars('x x x x D#4 . F#4 . . F4 . . . . . x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 51-54
+        bars('x x x x x x G#4 A#4 C5 D#5 . . . . . . . . . . . . . . . . . x x x x x x x x x x x x x x x x x x x x x') +  # bars 55-58
+        bars('x x x E4 . C4 . . . D4 . . . . . . . . x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 59-62
+        bars('x x x x F4 . D4 . . E4 . . . . . . . . . . . . . . . . . . . . x x x x x x x x x x x x x x x x x x') +  # bars 63-66
+        # SOLO_SAX
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 67-70
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 71-74
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 75-78
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 79-82
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 83-86
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 87-90
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 91-94
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 95-98
+        # OUT
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 99-102
+        bars('x x x x x x x x x x x x x x x x x x x x x D4 . E4 x x x x x x x x x x x x x x x x x x x x x D4 . E4') +  # bars 103-106
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x E4 . . . . . . . . . . . . . . . . . . . . . .') +  # bars 107-110
+        bars('. . . . . . . . . . . . . . . . . . x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x')    # bars 111-114
+    )
+    sax = (
+        # INTRO
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 1-2
+        # HEAD
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 3-6
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 7-10
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 11-14
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 15-18
+        bars('x x x x x x x x x x x x x x x x x x x x x A#3 . C4 x x x x x x x x x x x x x x x x x x x x x A#3 . C4') +  # bars 19-22
+        bars('x x x x x x x x x x x x x x x x x x x x x A#3 . C4 x x x x x x x x x x x x x x x x x x x x x A#3 . C4') +  # bars 23-26
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 27-30
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 31-34
+        # SOLO_TPT
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 35-38
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 39-42
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 43-46
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 47-50
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 51-54
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 55-58
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 59-62
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x') +  # bars 63-66
+        # SOLO_SAX
+        bars('x x x A3 . C4 D4 . C4 A3 . G3 A3 . . . . . x x x x x x x x D4 C4 . A3 G3 G#3 A3 C4 . D4 E4 . D4 . . . x x x x x x') +  # bars 67-70
+        bars('F3 . G3 A3 . C4 D4 . E4 D#4 . C#4 D4 . . . . . x x x x x x x x x C4 . D4 F4 . D4 C4 . A3 G3 . A3 . . . x x x x x x') +  # bars 71-74
+        bars('x x D4 E4 . F4 G4 . A4 . . G4 F4 . E4 D4 . C4 A3 G#3 G3 A3 . C4 D4 . . . . x x x x G3 . A3 C4 . D4 E4 . F4 G4 G#4 A4 B4 . A4') +  # bars 75-78
+        bars('G4 . F4 E4 . D4 C4 . A3 . . x x x x x x F3 G3 . A3 C4 . D4 E4 . F4 G4 . A4 A#4 . G#4 A4 . . x x x x x x x x x C4 . C#4') +  # bars 79-82
+        bars('D#4 . . . . C#4 A#3 . G#3 F3 . G#3 A#3 . . . . . x x x x x C#4 D#4 F4 F#4 G#4 A#4 G#4 F#4 F4 D#4 C#4 C4 A#3 C4 C#4 D#4 C#4 C4 A#3 G#3 F3 F#3 G#3 A#3 C4') +  # bars 83-86
+        bars('C#4 . . . . . . . x x x x x x x A#3 . G#3 F#3 . F3 D#3 . . . . . . . x x x x x x x x x x x x x x x x x x x') +  # bars 87-90
+        bars('C#4 D4 . . . F4 D4 . C4 A3 . . . . x x x x x x x x x x x x C#4 D4 . . F4 E4 D4 C4 . A3 G3 . A3 . . . x x x x x x') +  # bars 91-94
+        bars('x x x x x x D3 . F3 G3 . G#3 A3 . C4 D4 . C4 A3 . . G3 . . A3 . . . . . . . . . . . . . . . . . . . . . . .') +  # bars 95-98
+        # OUT
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 99-102
+        bars('x x x x x x x x x x x x x x x x x x x x x A3 . B3 x x x x x x x x x x x x x x x x x x x x x A3 . B3') +  # bars 103-106
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x D3 . . . . . . . . . . . . . . . . . . . . . . .') +  # bars 107-110
+        bars('. . . . . . . . . . . . x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x')    # bars 111-114
+    )
+    bass = (
+        # INTRO
+        bars('x x x x x x x x x x x x D3 . . A2 . . B2 . . C#3 . .') +  # bars 1-2
+        # HEAD
+        bars('D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . E3 . . C3 . . A2 . .') +  # bars 3-6
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . C3 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . .') +  # bars 7-10
+        bars('D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . E3 . . C3 . . A2 . .') +  # bars 11-14
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . D3 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . D3') +  # bars 15-18
+        bars('D#3 . . A#2 . . C3 . . D3 . . D#3 . . C#3 . . C3 . . A#2 . . D#3 . . A#2 . . C3 . . D3 . . D#3 . . F3 . . C#3 . . A#2 . .') +  # bars 19-22
+        bars('F#3 . . F3 . . D#3 . . D3 . . D#3 . . C#3 . . C3 . . A#2 . . D#3 . . A#2 . . C3 . . D3 . . D#3 . . C#3 . . C3 . . A#2 . C#3') +  # bars 23-26
+        bars('D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . E3 . . C3 . . A2 . .') +  # bars 27-30
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . C3 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . C#3') +  # bars 31-34
+        # SOLO_TPT
+        bars('D3 . . C3 . . B2 . . A2 . . G2 . . F2 . . E2 . . G2 . . A2 . . B2 . . C3 . . C#3 . . D3 . . E3 . . F3 . . G3 . .') +  # bars 35-38
+        bars('F3 . . E3 . . D3 . . C3 . . A2 . . G2 . . F2 . . E2 . . F2 . . G2 . . A2 . . B2 . . C3 . . D3 . . E3 . . C#3 . .') +  # bars 39-42
+        bars('D3 . . E3 . . D3 . . C3 . . B2 . . A2 . . G2 . . F2 . . E2 . . F2 . . G2 . . G#2 . . A2 . . B2 . . C3 . . C#3 . .') +  # bars 43-46
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . D3 . . E3 . . C3 . . B2 . . A2 . . G2 . . E2 . . A2 . . B2 . . C3 . . D3 . .') +  # bars 47-50
+        bars('D#3 . . C#3 . . C3 . . A#2 . . G#2 . . F#2 . . F2 . . G#2 . . A#2 . . C3 . . C#3 . . D3 . . D#3 . . F3 . . F#3 . . D#3 . .') +  # bars 51-54
+        bars('F#3 . . F3 . . D#3 . . C#3 . . C3 . . A#2 . . G#2 . . F#2 . . F2 . . F#2 . . G#2 . . A#2 . . C3 . . C#3 . . D#3 . . C#3 . .') +  # bars 55-58
+        bars('D3 . . A2 . . B2 . . C3 . . D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . D3 . . C3 . . B2 . . A2 . . G2 . . F2 . .') +  # bars 59-62
+        bars('E2 . . F2 . . G2 . . A2 . . B2 . . C3 . . C#3 . . D3 . . E3 . . F3 . . E3 . . D3 . . C3 . . B2 . . A2 . . C#3 . .') +  # bars 63-66
+        # SOLO_SAX
+        bars('D3 . . C#3 . . D3 . . E3 . . F3 . . G3 . . F3 . . D3 . . C3 . . B2 . . A2 . . G2 . . E2 . . F2 . . G2 . . G#2 . .') +  # bars 67-70
+        bars('A2 . . B2 . . C3 . . C#3 . . D3 . . C3 . . B2 . . A2 . . G2 . . A2 . . B2 . . C3 . . D3 . . E3 . . F3 . . E3 . .') +  # bars 71-74
+        bars('F3 . . E3 . . D3 . . C3 . . B2 . . A2 . . G2 . . F2 . . E2 . . F2 . . G2 . . A2 . . B2 . . C3 . . C#3 . . D3 . .') +  # bars 75-78
+        bars('F3 . . G3 . . F3 . . E3 . . D3 . . C3 . . B2 . . A2 . . G2 . . F2 . . E2 . . G2 . . A2 . . B2 . . C#3 . . D3 . .') +  # bars 79-82
+        bars('D#3 . . F3 . . F#3 . . F3 . . D#3 . . C#3 . . C3 . . A#2 . . G#2 . . F#2 . . F2 . . F#2 . . G#2 . . A#2 . . C3 . . C#3 . .') +  # bars 83-86
+        bars('D#3 . . F3 . . D#3 . . C#3 . . C3 . . A#2 . . G#2 . . F#2 . . F2 . . F#2 . . G#2 . . A#2 . . C3 . . A#2 . . C3 . . C#3 . .') +  # bars 87-90
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . D3 . . C3 . . B2 . . C3 . . D3 . . E3 . . F3 . . D3 . . B2 . . G2 . .') +  # bars 91-94
+        bars('A2 . . G2 . . F2 . . E2 . . F2 . . G2 . . A2 . . B2 . . C3 . . C#3 . . D3 . . E3 . . F3 . . E3 . . D3 . . C#3 . .') +  # bars 95-98
+        # OUT
+        bars('D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . E3 . . C3 . . A2 . .') +  # bars 99-102
+        bars('D3 . . E3 . . F3 . . G3 . . F3 . . E3 . . C3 . . A2 . . D3 . . A2 . . B2 . . C#3 . . D3 . . C3 . . B2 . . A2 . .') +  # bars 103-106
+        bars('B2 . . A2 . . G2 . . F2 . . G2 . . F2 . . E2 . . F2 . . G2 . . A2 . . G2 . . F2 . . E2 . . F2 . . G2 . . G#2 . .') +  # bars 107-110
+        bars('A2 . . . . . F2 . . . . . G2 . . . . . E2 . . . . . F2 . . . . . E2 . . . . . D2 . . . . . D2 . . . . .')    # bars 111-114
+    )
+    drums = (
+        # INTRO
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,3,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4] +  # bars 1-2
+        # HEAD
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 3-6
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,1,1,1,1,HOLD,1] +  # bars 7-10
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 11-14
+        [4,HOLD,HOLD,2,4,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,1,1,1,4,HOLD,HOLD,1,1,1] +  # bars 15-18
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 19-22
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,4,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,1,1,HOLD,1,1,1,1,1,1,1] +  # bars 23-26
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 27-30
+        [4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4,1,1,HOLD,1,1,HOLD,1,1,HOLD,1,1,1] +  # bars 31-34
+        # SOLO_TPT
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 35-38
+        [4,HOLD,1,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,1,1,1,0,HOLD,1,1,HOLD,0] +  # bars 39-42
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 43-46
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,0,4,HOLD,HOLD,2,HOLD,4,1,HOLD,1,1,1,1] +  # bars 47-50
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4] +  # bars 51-54
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,1,2,HOLD,4,4,HOLD,1,1,1,HOLD,1,1,HOLD,1,1,1] +  # bars 55-58
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 59-62
+        [4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,4,2,1,4,4,HOLD,HOLD,1,1,1,3,HOLD,REST,1,1,1] +  # bars 63-66
+        # SOLO_SAX
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4] +  # bars 67-70
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,4,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,1,HOLD,1,1,1,1,0,HOLD,1] +  # bars 71-74
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,1,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 75-78
+        [4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,0,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,1,1,HOLD,1,1,1] +  # bars 79-82
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,0,2,HOLD,4] +  # bars 83-86
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,2,HOLD,4,4,1,HOLD,2,HOLD,4,1,1,1,HOLD,1,1,HOLD,1,1,1,1,1] +  # bars 87-90
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,2,HOLD,4,4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4] +  # bars 91-94
+        [4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,0,2,1,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,0,HOLD,1,1,1,HOLD,0,HOLD,1,1,1,1] +  # bars 95-98
+        # OUT
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,1,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4] +  # bars 99-102
+        [4,HOLD,HOLD,4,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,1,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,1,1,1,HOLD] +  # bars 103-106
+        [3,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,4,4,HOLD,HOLD,2,HOLD,HOLD,4,HOLD,HOLD,2,HOLD,HOLD,4,HOLD,HOLD,2,HOLD,HOLD] +  # bars 107-110
+        [4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD,4,HOLD,HOLD]    # bars 111-114
+    )
+    return dict(ch=[tpt, sax, bass, drums], loop=24, speed=9,
+                env1=envelope(12, 6, 0, 1),      # harmon-thin 25% duty, slow bloom-fade
+                env2=envelope(13, 7, 0, 2),      # tenor 50% duty, fuller
+                wavevol=0x2000)
+
+SONGS['AZURE'] = azure()
+
+ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE']
