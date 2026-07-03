@@ -688,6 +688,7 @@ void ev_npc(int idx) {
 /* ------------------------------------------------------------ ending */
 
 static void crash_sequence(int flayer_did_it) {
+    G_DONE = 2;                 /* harness: finale cutscene reached */
     /* battle already faded out; show narration over black */
     memset16(SCREENBLOCK(30), 0, 1024);
     memset16(SCREENBLOCK(31), 0, 1024);
@@ -708,7 +709,7 @@ static void crash_sequence(int flayer_did_it) {
     /* white-out */
     music(SONG_CRASH);
     field_shake(40);
-    REG_BLDCNT = 0x00BF;    /* brighten everything */
+    REG_BLDCNT = 0x00BC;    /* brighten the world; text stays readable */
     for (int i = 0; i <= 24; i++) {
         REG_BLDY = (u16)(i * 16 / 24);
         vsync(); vsync();
@@ -724,6 +725,7 @@ static void crash_sequence(int flayer_did_it) {
     field_load(map_beach, MAP_BEACH_W, MAP_BEACH_H);
     field_spawn(8, 3, 0);
     field_draw();
+    music(SONG_PRELUDE);
     fade_in(40);
     field_wait(70);
     say("Gulls. Surf. The smell of your own scorched hair.");

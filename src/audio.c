@@ -126,7 +126,7 @@ void audio_tick(void) {
         row_timer = song->speed;
         play_row();
         if (++row >= song->rows) {
-            if (song->loop == 0xFFFF) song = 0;
+            if (song->loop == 0xFFFF) music_stop();  /* key off: no held tail */
             else row = song->loop;
         }
     }
