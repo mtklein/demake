@@ -30,9 +30,11 @@ DRUM = {0: 'K', 1: 'S', 2: 'h', 3: 'O', 4: 'R', HOLD: '.', REST: 'x'}
 ECHO_SONGS = {'TADPOLE'}
 
 FORMS = {
-    'PRELUDE': [(0, 'A  arps C-C6-Am-Am (C maj)'), (64, "A' arps F-F-G-G, melody enters, ch1 echoes"),
-                (128, 'B  lift bVI-bVII (Ab-Bb), soaring melody'),
-                (192, 'C  home stretch F-Dm-G-G7, V7 seam -> loop')],
+    'PRELUDE': [(0, 'A  arps C-C6-Am-Am (C maj)'),
+                (64, "A' F-F-G-G: melody + countermelody DUET enters"),
+                (128, 'B  lift bVI-bVII (Ab-Bb), soaring melody, weaving counter'),
+                (192, 'C  home stretch F-Dm-G-G7'),
+                (256, 'TAG C arrival, sus C5->B4 leading-tone cadence -> loop')],
     'EXPLORE': [(0, 'A  Am dread, sparse melody + dyads'),
                 (64, "A' counter-melody pass; converge on B/G2 (V of C) @120"),
                 (128, 'B  C-major hope, ext: motif in major @152; G7 -> iv-V'),

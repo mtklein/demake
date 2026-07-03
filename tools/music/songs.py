@@ -48,55 +48,43 @@ def envelope(vol=12, step=0, up=0, duty=2):
 # Rising harp arpeggios, FF "Prelude" idiom — 256 rows, 16 bars of 16.
 # Form: A (C C6 Am Am) | A' (F F G G, melody enters, ch1 echoes an octave down)
 #     | B lift to bVI-bVII (Ab Ab Bb Bb, soaring line) | C home F Dm G G7 -> loop.
+# TOTAL_ROWS = 288
+# FORM: 0=A(arps C-C6-Am-Am) | 64=A'(F-F-G-G, melody+countermelody DUET enters)
+#       128=B(bVI-bVII lift Ab-Bb, soaring melody + weaving counter)
+#       192=C(home stretch F-Dm-G-G7) | 256=TAG(C arrival, sus C5->B4 leading-tone cadence -> loop row 0)
+# Grid: speed 9, 16 rows/bar, 2 rows/note. ch0 sq1(50%) melody; ch1 sq2(25%) countermelody
+#       (always below ch0); ch2 wave arpeggio bed (sounds 8vb); ch3 noise SILENT.
 def prelude():
-    wave = []
-    arps = [('C3','E3','G3','C4','E4','G4','C5','E4'),      # C
-            ('C3','E3','G3','C4','E4','G4','A4','E4'),      # C6
-            ('A2','C3','E3','A3','C4','E4','A4','C4'),      # Am
-            ('A2','C3','E3','A3','C4','E4','A4','C4'),
-            ('F2','A2','C3','F3','A3','C4','F4','A3'),      # F
-            ('F2','A2','C3','F3','A3','C4','F4','A3'),
-            ('G2','B2','D3','G3','B3','D4','G4','D4'),      # G
-            ('G2','B2','D3','G3','B3','D4','G4','B4'),      #   ...climbing
-            ('G#2','C3','D#3','G#3','C4','D#4','G#4','D#4'),# Ab  (bVI lift)
-            ('G#2','C3','D#3','G#3','C4','D#4','C5','G#4'),
-            ('A#2','D3','F3','A#3','D4','F4','A#4','F4'),   # Bb  (bVII)
-            ('A#2','D3','F3','A#3','D4','F4','D5','A#4'),
-            ('F2','A2','C3','F3','A3','C4','F4','A4'),      # F   (home stretch)
-            ('D3','F3','A3','D4','F4','A4','F4','D4'),      # Dm
-            ('G2','B2','D3','G3','B3','D4','G4','B4'),      # G
-            ('G2','B2','D3','F3','G3','B3','D4','F4')]      # G7 -> loop (V7-I seam)
-    for a in arps:
-        for note in a: wave += [n(note), HOLD]
-    RB = 'x . . . . . . . . . . . . . . .'                  # silent bar
-    mel = bars(RB + '|' + RB + '|' + RB + '|' + RB +        # A: arps alone
-        '''| A5 . . .  G5 . F5 .  A5 . . .  . . x .
-           | x . . .   . . . .    . . . .   . . . .
-           | B5 . . .  A5 . G5 .  B5 . . .  . . x .
-           | x . . .   . . . .    . . . .   . . . .
-           | C6 . . .  . . . .    . . . .   . . . .
-           | A#5 . . . G#5 . . .  D#5 . . . . . x .
-           | D6 . . .  C6 . A#5 . F5 . . .  . . . .
-           | x . . .   . . . .    . . . .   . . . .
-           | C6 . . .  A5 . G5 .  F5 . . .  . . x .
-           | F5 . G5 . A5 . . .   D5 . . .  . . x .
-           | B5 . . .  D6 . . .   G5 . . .  . . . .
-           | G5 . F5 . D5 . B4 .  D5 . . .  . . . .''')
-    harm = bars(RB + '|' + RB + '|' + RB + '|' + RB + '|' + RB +
-        '''| A4 . . .  G4 . F4 .  A4 . . .  . . x .
-           | x . . .   . . . .    . . . .   . . . .
-           | B4 . . .  A4 . G4 .  B4 . . .  . . x .
-           | D#5 . . . . . . .    . . . .   . . . .
-           | D#5 . . . C5 . . .   G#4 . . . . . x .
-           | A#4 . . . . . . .    . . . .   . . . .
-           | F5 . D5 . A#4 . F4 . A#4 . . . . . x .
-           | A4 . . .  . . . .    . . . .   . . . .
-           | F4 . . .  . . . .    F4 . . .  . . x .
-           | G4 . . .  . . . .    . . . .   . . . .
-           | D4 . . .  . . . .    B3 . . .  . . . .''')
-    return dict(ch=[mel, harm, wave, [REST] * 256], loop=0, speed=9,
-                env1=envelope(11, 2, 0, 2), env2=envelope(8, 2, 0, 1),
-                wavevol=0x2000)
+    c0 = (
+        bars('x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . .') +
+        bars('A5 . . . G5 . F5 . A5 . . . . . x . x . . . . . . . . . . . . . . . B5 . . . A5 . G5 . B5 . . . . . x . x . . . . . . . . . . . . . . .') +
+        bars('C6 . . . . . . . . . . . . . . . A#5 . . . G#5 . . . D#5 . . . . . x . D6 . . . C6 . A#5 . F5 . . . . . . . x . . . . . . . . . . . . . . .') +
+        bars('C6 . . . A5 . G5 . F5 . . . . . x . F5 . G5 . A5 . . . D5 . . . . . x . B5 . . . D6 . . . G5 . . . . . . . G5 . F5 . D5 . B4 . D5 . . . . . . .') +
+        bars('C6 . . . . . . . G5 . . . E5 . . . E5 . . . . . . . D5 . . . . . . .')
+    )
+    c1 = (
+        bars('x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . . x . . . . . . . . . . . . . . .') +
+        bars('F4 . . . G4 . A4 . C5 . . . . . x . A4 . C5 . A4 . F4 . G4 . . . . . x . D4 . . . E4 . F#4 . G4 . . . . . x . G4 . F#4 . E4 . D4 . B3 . . . . . x .') +
+        bars('D#4 . F4 . G4 . G#4 . C5 . . . . . . . D#5 . . . C5 . . . G4 . . . . . x . F4 . . . E4 . . . A#3 . . . . . x . F5 . D5 . A#4 . F4 . A#4 . . . . . x .') +
+        bars('A4 . . . C5 . . . D5 . C5 . . . x . D4 . F4 . A4 . . . F4 . . . . . x . D4 . G4 . B4 . . . B4 . . . . . . . B3 . A3 . G3 . F3 . G3 . . . . . . .') +
+        bars('E4 . F4 . G4 . . . G4 . . . C5 . . . C5 . . . B4 . . . G3 . . . . . . .')
+    )
+    c2 = (
+        bars('C3 . E3 . G3 . C4 . E4 . G4 . C5 . E4 . C3 . E3 . G3 . C4 . E4 . G4 . A4 . E4 . A2 . C3 . E3 . A3 . C4 . E4 . A4 . C4 . A2 . C3 . E3 . A3 . C4 . E4 . A4 . C4 .') +
+        bars('F2 . A2 . C3 . F3 . A3 . C4 . F4 . A3 . F2 . A2 . C3 . F3 . A3 . C4 . F4 . A3 . G2 . B2 . D3 . G3 . B3 . D4 . G4 . D4 . G2 . B2 . D3 . G3 . B3 . D4 . G4 . B4 .') +
+        bars('G#2 . C3 . D#3 . G#3 . C4 . D#4 . G#4 . D#4 . G#2 . C3 . D#3 . G#3 . C4 . D#4 . C5 . G#4 . A#2 . D3 . F3 . A#3 . D4 . F4 . A#4 . F4 . A#2 . D3 . F3 . A#3 . D4 . F4 . D5 . A#4 .') +
+        bars('F2 . A2 . C3 . F3 . A3 . C4 . F4 . A4 . D3 . F3 . A3 . D4 . F4 . A4 . F4 . D4 . G2 . B2 . D3 . G3 . B3 . D4 . G4 . B4 . G2 . B2 . D3 . F3 . G3 . B3 . D4 . F4 .') +
+        bars('C3 . E3 . G3 . C4 . E4 . G4 . C5 . E4 . G2 . B2 . D3 . F3 . G3 . B3 . D4 . F4 .')
+    )
+    c3 = (
+        [REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST] +
+        [REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST] +
+        [REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST] +
+        [REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST] +
+        [REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST,REST]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=9,
+                env1=envelope(11, 2, 0, 2), env2=envelope(8, 2, 0, 1), wavevol=0x2000)
 
 SONGS['PRELUDE'] = prelude()
 
