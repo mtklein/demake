@@ -207,7 +207,7 @@ SPR_LEG = {".": 0, "W": 1, "g": 2, "d": 3, "b": 4}
 
 # Polyhedral dice, 16x16: f face, o outline, s shade. Tinted per damage
 # type by OBJ palette; rolled values overdraw as digit sprites.
-DICE_LEG = {".": 0, "f": 1, "o": 2, "s": 3}
+DICE_LEG = {".": 0, "f": 4, "o": 5, "s": 6}
 DICE = {
     "d4": [
         "................",
@@ -412,14 +412,20 @@ def build_sprites():
 
 # Digit/dice palettes: [transparent, face/digit, outline/shadow, face shade].
 # Damage types tint both the popup numbers and the dice sprites.
-OBJ_PALS[8] = pal16([(0, 0, 0), (10, 29, 12), (2, 7, 3), (6, 18, 8)])       # heal
-OBJ_PALS[9] = pal16([(0, 0, 0), (31, 28, 8), (8, 6, 1), (24, 20, 4)])       # radiant/gold
-OBJ_PALS[10] = pal16([(0, 0, 0), (30, 30, 31), (3, 3, 4), (20, 20, 23)])    # physical/white
-OBJ_PALS[11] = pal16([(0, 0, 0), (31, 12, 5), (6, 1, 0), (22, 6, 2)])       # fire
-OBJ_PALS[12] = pal16([(0, 0, 0), (13, 27, 8), (2, 6, 1), (8, 18, 5)])       # poison
-OBJ_PALS[13] = pal16([(0, 0, 0), (20, 12, 31), (4, 2, 8), (13, 7, 22)])     # force
-OBJ_PALS[14] = pal16([(0, 0, 0), (30, 13, 26), (7, 2, 6), (21, 8, 18)])     # psychic
-OBJ_PALS[15] = pal16([(0, 0, 0), (13, 22, 31), (2, 5, 8), (8, 15, 23)])     # cold/lightning
+def dmgpal(vivid):
+    r, g, b = vivid
+    face = (r * 5 // 9, g * 5 // 9, b * 5 // 9)          # darkened for contrast
+    shade = (r * 3 // 9, g * 3 // 9, b * 3 // 9)
+    return pal16([(0, 0, 0), vivid, (3, 3, 4), (0, 0, 0), face, (2, 2, 3), shade])
+
+OBJ_PALS[8] = dmgpal((10, 29, 12))    # heal
+OBJ_PALS[9] = dmgpal((31, 28, 8))     # radiant/gold
+OBJ_PALS[10] = dmgpal((30, 30, 31))   # physical: grey die, white numbers
+OBJ_PALS[11] = dmgpal((31, 12, 5))    # fire
+OBJ_PALS[12] = dmgpal((13, 27, 8))    # poison
+OBJ_PALS[13] = dmgpal((20, 12, 31))   # force
+OBJ_PALS[14] = dmgpal((30, 13, 26))   # psychic
+OBJ_PALS[15] = dmgpal((13, 22, 31))   # cold/lightning
 
 def sky_tiles():
     """8 simple Avernus sky tiles: 2 variants x 4 gradient bands, BG pal 4."""
