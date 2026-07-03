@@ -683,6 +683,8 @@ SONGS['TADPOLE'] = tadpole()
 
 
 # ------------------------------------------------------------ SELUNE (jukebox)
+# ch0 is a wordless square-wave "voice"; a lyric fitted to this exact line
+# (one syllable per attack) lives in docs/under_selune.md.
 # TOTAL_ROWS = 1088
 # FORM: 0 INTRO / 128 VERSE1 / 256 PRECHORUS / 320 CHORUS / 448 TURN / 512 VERSE2 / 640 PRECHORUS / 704 CHORUS / 832 FINAL_CHORUS_D / 960 OUTRO
 def selune():
