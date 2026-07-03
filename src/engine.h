@@ -21,7 +21,9 @@ void win_clear(int x, int y, int w, int h);
 void dlg_open(void);
 void dlg_close(void);
 void dlg_print(const char* s, int pal);
+void dlg_set_portrait(int id);   /* POR_* from assets.h, -1 = none */
 void say(const char* s);
+void say_p(int portrait, const char* s);
 void say_keep(const char* s);
 int  choose(int n, const char* const* opts);
 

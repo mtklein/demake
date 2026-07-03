@@ -90,16 +90,58 @@ void win_clear(int x, int y, int w, int h) {
 #define DLG_ROWS 4
 
 static int dlg_on, cx, cy;
+static int dlg_por = -1, dlg_por_drawn = -1;   /* active portrait id */
+static int dlg_inset;                          /* text x-inset for portrait */
+
+/* portrait tiles staged in CB0 right after the UI tiles */
+#define POR_VRAM_TILE UI_TILE_COUNT
+
+static void dlg_draw_portrait(void) {
+#if PORTRAIT_COUNT > 0
+    if (dlg_por >= 0 && dlg_por != dlg_por_drawn) {
+        extern const u16 portrait_tiles[];
+        memcpy16((vu16*)((u32)CHARBLOCK(0) + POR_VRAM_TILE * 32),
+                 &portrait_tiles[dlg_por * 36 * 16], 36 * 16);
+        for (int r = 0; r < 6; r++)
+            for (int c = 0; c < 6; c++)
+                WIN[(DLG_Y + r) * 32 + 1 + c] =
+                    ME(POR_VRAM_TILE + r * 6 + c, 0, 0, 5);
+    }
+    if (dlg_por < 0 && dlg_por_drawn >= 0) {
+        /* portrait removed: restore window chrome under it */
+        win_draw(0, DLG_Y, 30, DLG_H);
+    }
+    dlg_por_drawn = dlg_por;
+#endif
+    dlg_inset = (dlg_por >= 0) ? 6 : 0;
+}
+
+void dlg_set_portrait(int id) {
+    dlg_por = id;
+    if (dlg_on) {
+        dlg_draw_portrait();
+        txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+        cx = cy = 0;
+    }
+}
 
 void dlg_open(void) {
     G_FIELD_IDLE = 0;
-    if (!dlg_on) { win_draw(0, DLG_Y, 30, DLG_H); dlg_on = 1; }
+    if (!dlg_on) {
+        win_draw(0, DLG_Y, 30, DLG_H);
+        dlg_por_drawn = -1;
+        dlg_draw_portrait();
+        dlg_on = 1;
+    }
     txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
     cx = cy = 0;
 }
 
 void dlg_close(void) {
     if (dlg_on) { win_clear(0, DLG_Y, 30, DLG_H); dlg_on = 0; }
+    dlg_por = -1;
+    dlg_por_drawn = -1;
+    dlg_inset = 0;
 }
 
 static void dlg_wait_a(int marker) {
@@ -130,8 +172,8 @@ static void dlg_newline(void) {
 
 static void dlg_putc(char c, int pal) {
     if (c == '\n') { dlg_newline(); return; }
-    if (cx >= DLG_W) dlg_newline();
-    TXT[(DLG_TY + cy) * 32 + DLG_TX + cx] = ME((u8)c - 32, 0, 0, pal);
+    if (cx >= DLG_W - dlg_inset) dlg_newline();
+    TXT[(DLG_TY + cy) * 32 + DLG_TX + dlg_inset + cx] = ME((u8)c - 32, 0, 0, pal);
     cx++;
     if (G_DEMO) return;                             /* instant text in attract mode */
     if (!(key_state() & (KEY_A | KEY_B))) frame();  /* typewriter; hold A/B = fast */
@@ -144,13 +186,21 @@ void dlg_print(const char* s, int pal) {
         if (*s == ' ') {                     /* wrap check at word start */
             int wl = 0;
             while (s[1 + wl] && s[1 + wl] != ' ' && s[1 + wl] != '\n') wl++;
-            if (cx + 1 + wl > DLG_W) { dlg_newline(); s++; continue; }
+            if (cx + 1 + wl > DLG_W - dlg_inset) { dlg_newline(); s++; continue; }
         }
         dlg_putc(*s++, pal);
     }
 }
 
 void say(const char* s) {
+    if (dlg_por >= 0) dlg_set_portrait(-1);
+    dlg_open();
+    dlg_print(s, 0);
+    dlg_wait_a(1);
+}
+
+void say_p(int portrait, const char* s) {
+    dlg_set_portrait(portrait);
     dlg_open();
     dlg_print(s, 0);
     dlg_wait_a(1);

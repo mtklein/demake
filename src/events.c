@@ -8,6 +8,29 @@
 #include "events.h"
 #include "screens.h"
 
+/* Speaker lines upgrade to portraits automatically as each portrait lands
+ * in tools/art/portraits.py (missing art falls back to plain say). */
+#ifdef POR_LAEZEL
+#define SAY_LZ(t) say_p(POR_LAEZEL, t)
+#else
+#define SAY_LZ(t) say(t)
+#endif
+#ifdef POR_SHADOW
+#define SAY_SH(t) say_p(POR_SHADOW, t)
+#else
+#define SAY_SH(t) say(t)
+#endif
+#ifdef POR_US
+#define SAY_US(t) say_p(POR_US, t)
+#else
+#define SAY_US(t) say(t)
+#endif
+#ifdef POR_ZHALK
+#define SAY_ZH(t) say_p(POR_ZHALK, t)
+#else
+#define SAY_ZH(t) say(t)
+#endif
+
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
 static int n_imp[3] = { -1, -1, -1 };
@@ -126,10 +149,10 @@ static void door_to(int next, int sx, int sy) {
             case RM_HELM:
                 say("The helm. Through the great viewport, all of Avernus burns.");
                 say("A cambion commander duels a mind flayer across the deck, blade against tentacle.");
-                say("ZHALK: \"Take this ship, or Zariel will have your head!\"");
+                SAY_ZH("ZHALK: \"Take this ship, or Zariel will have your head!\"");
                 say("A cold voice floods your mind: \"Thrall. The transponder. CONNECT THE NERVES.\"");
                 if (G.flags & GF_LAEZEL)
-                    say("LAE'ZEL: \"The ghaik wants the ship grounded. For once, we agree. To the transponder!\"");
+                    SAY_LZ("LAE'ZEL: \"The ghaik wants the ship grounded. For once, we agree. To the transponder!\"");
                 dlg_close();
                 break;
         }
@@ -226,7 +249,7 @@ static void us_extraction(void) {
         say("Us no longer trusts you. Us follows no one.");
         G.flags |= GF_US_MUTILATED;
     } else {
-        say("US: \"Us. Yes. US.\"");
+        SAY_US("US: \"Us. Yes. US.\"");
         n_us = field_add_npc(9, 3, OBJT_US, 3, 0, NPC_2FRAME);
     }
     dlg_close();
@@ -262,7 +285,7 @@ static void surgery_interact(int mx, int my, int m) {
 static void deck_fight(void) {
     field_face_npc(n_lz, 0);
     say("The githyanki warrior snaps around, blade up -- then stops, eyes narrowing.");
-    say("LAE'ZEL: \"Tsk'va! You are no thrall. Vlaakith blesses me this day.\"");
+    SAY_LZ("LAE'ZEL: \"Tsk'va! You are no thrall. Vlaakith blesses me this day.\"");
 
     const char* opts[3];
     int n = 0;
@@ -272,13 +295,13 @@ static void deck_fight(void) {
     say_keep("She sizes you up.");
     int c = choose(n, opts);
     if (isclass(CLS_BARD) && c == 1)
-        say("LAE'ZEL: \"...Chk. Flatter me when we are not on a burning ship.\"");
+        SAY_LZ("LAE'ZEL: \"...Chk. Flatter me when we are not on a burning ship.\"");
     else if (c == n - 1)
-        say("LAE'ZEL: \"Bold. Stupid, but bold. I shall permit it.\"");
+        SAY_LZ("LAE'ZEL: \"Bold. Stupid, but bold. I shall permit it.\"");
     else
-        say("LAE'ZEL: \"Together we might survive.\"");
+        SAY_LZ("LAE'ZEL: \"Together we might survive.\"");
 
-    say("LAE'ZEL: \"First -- ghaik vermin come. Draw steel!\"");
+    SAY_LZ("LAE'ZEL: \"First -- ghaik vermin come. Draw steel!\"");
     dlg_close();
     party_add_laezel();
     field_remove_npc(n_lz);
@@ -291,8 +314,8 @@ static void deck_fight(void) {
     if (r == BR_WIN) {
         G.flags |= GF_DECK_FOUGHT;
         reload_after_battle(field_player_mx(), field_player_my());
-        say("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
-        if (us_with_us()) say("US: \"Us helped. Us HELPED!\"");
+        SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
+        if (us_with_us()) SAY_US("US: \"Us helped. Us HELPED!\"");
         dlg_close();
     } else {
         /* fled: re-set the ambush */
@@ -325,7 +348,7 @@ static void sh_pod(void) {
         return;
     }
     say("A woman pounds on the glass from inside, half-drowned in green fluid.");
-    say("SHADOWHEART: \"Get me OUT of this thing!\"");
+    SAY_SH("SHADOWHEART: \"Get me OUT of this thing!\"");
     if (G.flags & GF_RUNE)
         say("The rune in your pack pulses toward the console nearby.");
     else
@@ -345,18 +368,18 @@ static void open_sh_pod(void) {
     n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
     field_wait(20);
     say("The pod bursts in a gush of fluid. A dark-haired woman spills out, gasping, clutching a wound that isn't there.");
-    say("SHADOWHEART: \"At last. I thought I was going to die in that blasted tube.\"");
+    SAY_SH("SHADOWHEART: \"At last. I thought I was going to die in that blasted tube.\"");
     say_keep("She straightens, wary.");
     static const char* const opts[] = { "Join me. Safer together.", "Try to keep up.", "We go separate ways." };
     int c = choose(3, opts);
     if (c == 2) {
-        say("SHADOWHEART: \"Fine. I'll take my chances. ...Probably.\"");
+        SAY_SH("SHADOWHEART: \"Fine. I'll take my chances. ...Probably.\"");
         sh_waiting = 1;
         dlg_close();
         return;
     }
-    if (c == 1) say("SHADOWHEART: \"Ha. Just watch me.\"");
-    else say("SHADOWHEART: \"Agreed. Whatever those things intend for us -- we'll fare better together.\"");
+    if (c == 1) SAY_SH("SHADOWHEART: \"Ha. Just watch me.\"");
+    else SAY_SH("SHADOWHEART: \"Agreed. Whatever those things intend for us -- we'll fare better together.\"");
     say("Shadowheart joins the party! (She carries a Scroll of Revivify.)");
     party_add_shadowheart();
     field_remove_npc(n_sh);
@@ -544,13 +567,13 @@ void ev_step(int mx, int my) {
 void ev_npc(int idx) {
     if (idx == n_us) {
         static int said;
-        if (!said) { said = 1; say("US: \"We are us. We are needed to navigate -- needed to LEAVE this realm.\""); }
-        else say("US: \"Us follows. Us fights. Us is very brave.\"");
+        if (!said) { said = 1; SAY_US("US: \"We are us. We are needed to navigate -- needed to LEAVE this realm.\""); }
+        else SAY_US("US: \"Us follows. Us fights. Us is very brave.\"");
         dlg_close();
         return;
     }
     if (idx == n_sh && sh_waiting) {
-        say("SHADOWHEART: \"...Alright. I've reconsidered. Together?\"");
+        SAY_SH("SHADOWHEART: \"...Alright. I've reconsidered. Together?\"");
         say_keep("She waits.");
         static const char* const o[] = { "Welcome aboard.", "Still no." };
         if (choose(2, o) == 0) {
@@ -559,12 +582,12 @@ void ev_npc(int idx) {
             field_remove_npc(n_sh);
             n_sh = -1;
             sh_waiting = 0;
-        } else say("SHADOWHEART: \"Charming to the last.\"");
+        } else SAY_SH("SHADOWHEART: \"Charming to the last.\"");
         dlg_close();
         return;
     }
     if (idx == n_lz) {
-        say("LAE'ZEL: \"Speak quickly, or draw steel.\"");
+        SAY_LZ("LAE'ZEL: \"Speak quickly, or draw steel.\"");
         dlg_close();
         return;
     }
