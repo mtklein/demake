@@ -139,6 +139,68 @@ static void status_draw(void) {
     }
 }
 
+/* damage-type tint for popup numbers and dice sprites */
+static const u8 dmg_pal_tab[DT_COUNT] = {
+    [DT_SLASHING] = 10, [DT_PIERCING] = 10, [DT_BLUDGEONING] = 10,
+    [DT_FIRE] = 11, [DT_COLD] = 15, [DT_POISON] = 12, [DT_PSYCHIC] = 14,
+    [DT_RADIANT] = 9, [DT_NECROTIC] = 12, [DT_LIGHTNING] = 15,
+    [DT_THUNDER] = 15, [DT_ACID] = 12, [DT_FORCE] = 13,
+};
+#define DPAL(t) dmg_pal_tab[(t) < DT_COUNT ? (t) : 0]
+
+/* ------------------------------------------------------- the dice tray
+ * Every rolled die appears as its polyhedron with the value overdrawn,
+ * tinted by damage type, in a row under the message bar. */
+#define OBJ_DICE 56
+static int tray_n;
+
+static int die_objt(int sides) {
+    switch (sides) {
+        case 4: return OBJT_DIE_D4;
+        case 6: return OBJT_DIE_D6;
+        case 8: return OBJT_DIE_D8;
+        case 10: return OBJT_DIE_D10;
+        case 12: return OBJT_DIE_D12;
+        default: return OBJT_DIE_D20;
+    }
+}
+
+static void tray_push(int sides, int value, int pal) {
+    if (tray_n >= 8) return;
+    int x = 6 + tray_n * 20, y = 26;
+    int base = OBJ_DICE + tray_n * 3;
+    /* digits take the LOWER OAM slots so they render above the die face */
+    obj_set(base + 2, x, y, 1, die_objt(sides), pal, 0);
+    if (value >= 10) {
+        obj_set(base, x + 1, y + 4, 0, OBJ_TILE_COUNT + value / 10, 10, 0);
+        obj_set(base + 1, x + 8, y + 4, 0, OBJ_TILE_COUNT + value % 10, 10, 0);
+    } else {
+        obj_set(base, x + 4, y + 4, 0, OBJ_TILE_COUNT + value, 10, 0);
+        obj_hide(base + 1);
+    }
+    tray_n++;
+}
+
+static void tray_dice(const R5Dice* d, int pal) {
+    for (int i = 0; i < d->n; i++) tray_push(d->sides, d->rolls[i], pal);
+}
+
+static void tray_clear(void) {
+    for (int i = 0; i < 8 * 3; i++) obj_hide(OBJ_DICE + i);
+    tray_n = 0;
+}
+
+/* everything an attack rolled, laid out: d20(s), bless, damage, rider */
+static void tray_attack(const R5Attack* at) {
+    tray_clear();
+    tray_dice(&at->d20, at->crit ? 9 : 10);
+    if (at->bless.n) tray_dice(&at->bless, 9);
+    if (at->hit) {
+        tray_dice(&at->dmg, DPAL(at->dmg_type));
+        if (at->rider_dmg.n) tray_dice(&at->rider_dmg, DPAL(at->rider_type));
+    }
+}
+
 /* ---------------------------------------------------------------- popups */
 
 #define OBJ_PU 40
@@ -281,7 +343,7 @@ static void deal(EC* t, int amount, u8 type, int scr_pop) {
     }
     if (t->c->resist & (u16)(1 << type)) bar("Resisted...");
     int lost = r5_apply_damage(t->c, amount, type);
-    if (scr_pop) popup(ec_sx(t) + 8, ec_sy(t), lost, 10);
+    if (scr_pop) popup(ec_sx(t) + 8, ec_sy(t), lost, DPAL(type));
     if (was_sleeping && t->c->hp > 0) {
         t->c->conds &= (u16)~C_UNCONSCIOUS;
         bar_wait("It jolts awake!");
@@ -359,12 +421,12 @@ static void maybe_opportunity(EC* a, EC* new_target) {
     if (old->side == 0) {
         at = r5_weapon_attack(&rng, old->c, a->c,
                               &r5_weapons[party5_weapon(old->pi)], 0);
-        bar_attack("OA:", &at);
     } else {
         const R5MAttack* ma = &r5_monsters[old->mon].attacks[0];
         at = r5_monster_attack(&rng, old->c, ma, a->c, 0);
-        bar_attack("OA:", &at);
     }
+    tray_attack(&at);
+    bar_attack("OA:", &at);
     if (at.hit) { hit_react(a); deal(a, at.damage, at.dmg_type, 1); bar_damage(&at); }
     a->engaged = -1;
 }
@@ -388,14 +450,17 @@ static void strike(EC* a, EC* t) {
 
     int f = atk_flags(a, t, melee);
     R5Attack at;
+    const char* verb;
     if (a->side == 0) {
         at = r5_weapon_attack(&rng, a->c, t->c, w, f);
-        bar_attack(w->name, &at);
-        if (f & R5F_SNEAK && at.hit) bar_wait("Sneak attack!");
+        verb = w->name;
     } else {
         at = r5_monster_attack(&rng, a->c, mona, t->c, f);
-        bar_attack(mona->name, &at);
+        verb = mona->name;
     }
+    tray_attack(&at);
+    bar_attack(verb, &at);
+    if (a->side == 0 && (f & R5F_SNEAK) && at.hit) bar_wait("Sneak attack!");
     mgba_logf("atk %s->%s d20=%d tot=%d v%d %s dmg=%d rider=%d",
               a->c->name, t->c->name, at.d20.total, at.total, at.target_ac,
               at.crit ? "CRIT" : at.hit ? "hit" : "miss",
@@ -415,6 +480,7 @@ static void strike(EC* a, EC* t) {
     }
     post_attack(a, t, &at);
     if (melee) dash_home(a);
+    tray_clear();
 }
 
 /* ------------------------------------------------------------------ spells */
@@ -426,6 +492,7 @@ static void cast_attack_spell(EC* a, EC* t, int sp) {
     ec_face_toward(a, t);
     int f = atk_flags(a, t, 0);
     R5Attack at = r5_monster_attack(&rng, a->c, &ma, t->c, f);
+    tray_attack(&at);
     bar_attack(s->name, &at);
     mgba_logf("spell %s d20=%d tot=%d v%d %s dmg=%d", s->name, at.d20.total,
               at.total, at.target_ac, at.hit ? "hit" : "miss", at.damage);
@@ -436,6 +503,7 @@ static void cast_attack_spell(EC* a, EC* t, int sp) {
         if (sp == R5S_GUIDING_BOLT) { t->gbolt = 1; bar_wait("Light clings to it!"); }
     }
     post_attack(a, t, &at);
+    tray_clear();
 }
 
 static void cast_save_spell(EC* a, EC* t, int sp) {
@@ -443,6 +511,8 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
     int dc = party5_spell_dc(a->c);
     ec_face_toward(a, t);
     R5Save sv = r5_save(&rng, t->c, s->save_ab, dc, 0);
+    tray_clear();
+    tray_dice(&sv.d20, 10);
     char m[48]; char* d = m;
     d = put_str(d, "save "); d = put_num(d, sv.d20.total);
     d = put_str(d, " v DC "); d = put_num(d, sv.dc);
@@ -451,9 +521,11 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
     bar_wait(m);
     mgba_logf("save-spell %s d20=%d tot=%d dc=%d %s", s->name, sv.d20.total,
               sv.total, sv.dc, sv.success ? "save" : "fail");
-    int dmg = r5_roll(&rng, s->dice.n, s->dice.sides, s->dice.mod).total;
+    R5Dice dd = r5_roll(&rng, s->dice.n, s->dice.sides, s->dice.mod);
+    int dmg = dd.total;
     if (sv.success) dmg = s->save_half ? dmg / 2 : 0;
     if (dmg > 0) {
+        tray_dice(&dd, DPAL(s->dmg_type));
         hit_react(t);
         deal(t, dmg, s->dmg_type, 1);
     }
@@ -461,6 +533,7 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
         t->mock = 1;
         bar_wait("It reels, stung!");
     }
+    tray_clear();
 }
 
 static void cast_missiles(EC* a) {
@@ -472,16 +545,21 @@ static void cast_missiles(EC* a) {
                 (!t || ec[i].c->hp < t->c->hp)) t = &ec[i];
         if (!t) return;
         R5Dice d = r5_roll(&rng, 1, 4, 1);
+        tray_clear();
+        tray_dice(&d, DPAL(DT_FORCE));
         bar("Magic Missile!");
         hit_react(t);
         deal(t, d.total, DT_FORCE, 1);
         mgba_logf("missile %d -> %s", d.total, t->c->name);
     }
+    tray_clear();
 }
 
 static void cast_sleep(EC* a) {
     (void)a;  /* area spell: no single target */
     R5Dice pool = r5_roll(&rng, 5, 8, 0);
+    tray_clear();
+    tray_dice(&pool, 14);
     mgba_logf("sleep pool=%d", pool.total);
     char m[48]; char* d = m;
     d = put_str(d, "Sleep! 5d8 = "); d = put_num(d, pool.total); *d = 0;
@@ -500,18 +578,22 @@ static void cast_sleep(EC* a) {
         e = put_str(e, t->c->name); e = put_str(e, " falls asleep!"); *e = 0;
         bar_wait(b);
     }
+    tray_clear();
 }
 
 static void cast_heal(EC* a, EC* t, int sp) {
     const R5Spell* s = &r5_spells[sp];
     int mod = s->add_mod ? r5_mod(a->c->ab[party5_cast_ab(a->c->cls)]) : 0;
     R5Dice d = r5_roll(&rng, s->dice.n, s->dice.sides, s->dice.mod + mod);
+    tray_clear();
+    tray_dice(&d, 8);
     sfx_play(SFX_HEAL);
     int wake = t->c->hp <= 0;
     r5_heal(t->c, d.total);
     popup(ec_sx(t) + 8, ec_sy(t), d.total, 8);
     if (wake) bar_wait("Back on their feet!");
     mgba_logf("heal %s +%d -> %d", t->c->name, d.total, t->c->hp);
+    tray_clear();
 }
 
 /* ------------------------------------------------------------------ turns */
@@ -676,6 +758,8 @@ static int tactic_turn(EC* a, int tac) {
     if (cls == CLS_FIGHTER && r5_can_second_wind(c) &&
         (tac == TAC_ALLOUT ? c->hp * 4 < c->hpmax : c->hp * 2 < c->hpmax)) {
         R5Dice d = r5_second_wind(&rng, c);
+        tray_clear();
+        tray_dice(&d, 8);
         bar_wait("Second Wind!");
         popup(ec_sx(a) + 8, ec_sy(a), d.total, 8);
     }
@@ -828,6 +912,8 @@ static int pc_turn(EC* a) {
                 break;
             case 4: {
                 R5Dice d = r5_second_wind(&rng, c);
+                tray_clear();
+                tray_dice(&d, 8);
                 bar_wait("Second Wind!");
                 popup(ec_sx(a) + 8, ec_sy(a), d.total, 8);
                 bonus = 1;
@@ -1029,6 +1115,7 @@ retry:
             }
             a->dodge = 0;                   /* dodge lasts until your turn */
             a->reacted = 0;
+            tray_clear();
             mgba_logf("turn r%d %s side%d hp=%d", round_no, a->c->name,
                       a->side, a->c->hp);
             {
