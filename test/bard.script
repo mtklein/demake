@@ -66,6 +66,10 @@ wait 12
 until 0203ff05 01 9000
 shot test/shots/s_helm_in.ppm
 hold UP 40
+wait 2400
+shot test/shots/doc_crash.ppm
+wait 260
+shot test/shots/doc_beach.ppm
 wait 12
 shot test/shots/s_helm.ppm
 until 0203ff06 01 12000

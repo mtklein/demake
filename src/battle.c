@@ -151,7 +151,10 @@ static void draw_status(void) {
     }
 }
 
+static int en_wide = 1;   /* current enemy-name window width mode */
+
 static void draw_enemy_names(int wide) {
+    en_wide = wide;
     int w = wide ? 16 : 8;
     const char* names[4]; int counts[4], nn = 0;
     for (int i = 0; i < NU; i++) {
@@ -438,7 +441,7 @@ static void unit_die(BU* t) {
     obj_hide(obj);
     if (t->side == 1) {
         xpsum += t->ed->xp;
-        draw_enemy_names(menu_unit >= 0 ? 0 : 1);
+        draw_enemy_names(en_wide);   /* match the window currently drawn */
         if (t->ed->ai == AI_ZHALK) {
             msg_wait("Zhalk falls!");
             G.everburn = 1;
