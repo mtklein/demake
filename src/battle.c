@@ -700,7 +700,7 @@ static int demo_turn(BU* u) {
 
 /* returns 1 if the transponder was connected */
 static int player_turn(BU* u) {
-    if (G_DEMO) return demo_turn(u);
+    if (G_DEMO && !G_MANUAL_BAT) return demo_turn(u);
     menu_unit = (int)(u - U);
     draw_enemy_names(0);
     win_draw(0, 15, 8, 5);
