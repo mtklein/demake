@@ -77,11 +77,19 @@ void field_spawn(int mx, int my, int face) {
 }
 
 int field_add_npc(int mx, int my, int objt, int pal, int face, int flags) {
-    Npc* n = &npcs[nnpc];
+    /* reuse GONE slots so respawn-heavy flows (encounter retries) don't leak */
+    int i;
+    for (i = 0; i < nnpc; i++)
+        if (npcs[i].flags & NPC_GONE) break;
+    if (i == nnpc) {
+        if (nnpc >= FMAX_NPC) { mgba_log("npc overflow!"); return -1; }
+        nnpc++;
+    }
+    Npc* n = &npcs[i];
     n->x = (s16)(mx * 16); n->y = (s16)(my * 16);
     n->objt = (u16)objt; n->pal = (u8)pal; n->face = (u8)face;
-    n->flags = (u8)flags; n->id = (u8)nnpc;
-    return nnpc++;
+    n->flags = (u8)flags; n->id = (u8)i;
+    return i;
 }
 
 void field_remove_npc(int idx) { npcs[idx].flags |= NPC_GONE; }
@@ -137,8 +145,15 @@ static void draw_walker(int obj, int px, int py, int objt, int pal,
 static int shake_t;
 void field_shake(int frames) { shake_t = frames; }
 
+/* encounters steer the camera to frame the whole fight */
+static int cam_ov, cam_ovx, cam_ovy;
+void field_cam_override(int on, int cx, int cy) {
+    cam_ov = on; cam_ovx = cx; cam_ovy = cy;
+}
+
 static void update_cam(void) {
-    cam_x = ppx + 8 - 120; cam_y = ppy + 8 - 80;
+    if (cam_ov) { cam_x = cam_ovx; cam_y = cam_ovy; }
+    else { cam_x = ppx + 8 - 120; cam_y = ppy + 8 - 80; }
     int maxx = fw * 16 - 240, maxy = fh * 16 - 160;
     if (cam_x > maxx) cam_x = maxx;
     if (cam_y > maxy) cam_y = maxy;

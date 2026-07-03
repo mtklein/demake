@@ -3,7 +3,6 @@
 #include "engine.h"
 #include "field.h"
 #include "game.h"
-#include "battle.h"
 #include "events.h"
 
 void game_title(void);

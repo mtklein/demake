@@ -4,7 +4,6 @@
 #include "engine.h"
 #include "field.h"
 #include "game.h"
-#include "battle.h"
 #include "events.h"
 #include "screens.h"
 #include "encounter.h"
@@ -161,12 +160,6 @@ static void door_to(int next, int sx, int sy) {
     }
 }
 
-static void reload_after_battle(int sx, int sy) {
-    room_enter(cur_room, sx, sy, 0);
-    field_draw();
-    fade_in(14);
-}
-
 /* ------------------------------------------------------------ nursery */
 
 static void nursery_interact(int mx, int my, int m) {
@@ -309,41 +302,23 @@ static void deck_fight(void) {
     party5_refresh_all();
     field_remove_npc(n_lz);
 
-    if (G_BATTLE2) {
-        /* Battle 2.0 pilot: fight the imps right here on the deck */
-        EncSpawn deck5[3];
-        for (int i = 0; i < 3; i++) {
-            deck5[i].mon = R5M_LESSER_IMP;
-            deck5[i].npc = (s8)n_imp[i];
-            deck5[i].xp = 40;
-        }
-        encounter_run(deck5, 3, us_with_us() ? ENCF_ALLY_US : 0);
-        G.flags |= GF_DECK_FOUGHT;
-        music(SONG_EXPLORE);
-        SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
-        if (us_with_us()) SAY_US("US: \"Us watched. Us approves!\"");
-        dlg_close();
-        return;
+    EncSpawn deck5[4];
+    int nd = 0;
+    for (int i = 0; i < 3; i++) {
+        deck5[nd].mon = R5M_LESSER_IMP; deck5[nd].npc = (s8)n_imp[i];
+        deck5[nd].xp = 40; deck5[nd].side = 1; nd++;
     }
-
-    field_remove_npc(n_imp[0]);
-    field_remove_npc(n_imp[1]);
-    field_remove_npc(n_imp[2]);
-    field_wait(10);
-
-    int r = battle_run(&form_deck);
-    if (r == BR_WIN) {
-        G.flags |= GF_DECK_FOUGHT;
-        reload_after_battle(field_player_mx(), field_player_my());
-        SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
-        if (us_with_us()) SAY_US("US: \"Us helped. Us HELPED!\"");
-        dlg_close();
-    } else {
-        /* fled: re-set the ambush */
-        reload_after_battle(10, 7);
-        say("You fall back. The imps shriek and circle overhead.");
-        dlg_close();
+    if (us_with_us() && n_us >= 0) {
+        deck5[nd].mon = R5M_DEVOURER; deck5[nd].npc = (s8)n_us;
+        deck5[nd].xp = 0; deck5[nd].side = 2; nd++;
     }
+    encounter_run(deck5, nd, 0);
+    G.flags |= GF_DECK_FOUGHT;
+    music(SONG_EXPLORE);
+    SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
+    if (us_with_us()) SAY_US("US: \"Us helped. Us HELPED!\"");
+    dlg_close();
+
 }
 
 static void deck_interact(int mx, int my, int m) {
@@ -455,9 +430,16 @@ static void victims_console(void) {
     }
     say("The victims' eyes snap open -- white, furious, EMPTY. They tear free of the wires!");
     dlg_close();
-    int r = battle_run(&form_thralls);
-    (void)r;
-    reload_after_battle(10, 5);
+    {
+        int t0 = field_add_npc(9, 4, OBJT_SHADOW, 5, 0, 0);
+        int t1 = field_add_npc(11, 4, OBJT_SHADOW, 5, 0, 0);
+        EncSpawn th[2] = {
+            { R5M_THRALL, (s8)t0, 60, 1 },
+            { R5M_THRALL, (s8)t1, 60, 1 },
+        };
+        encounter_run(th, 2, 0);
+    }
+    music(SONG_EXPLORE);
     say("The thralls lie still. Freedom of a kind, you suppose.");
     dlg_close();
 }
@@ -514,12 +496,20 @@ static void helm_battle(void) {
     if (G.nparty == 1)
         say("You are alone, and the helm is very large. This may sting.");
     dlg_close();
-    if (n_zh >= 0) field_remove_npc(n_zh);
-    if (n_fl >= 0) field_remove_npc(n_fl);
-    n_zh = n_fl = -1;
-
-    int r = battle_run(&form_helm);
-    if (r == BR_CONNECTED) crash_sequence(0);
+    /* Zhalk and the flayer ARE the combatants; vermin join them */
+    int i0 = field_add_npc(5, 4, OBJT_IMPF, 4, 0, NPC_2FRAME);
+    int i1 = field_add_npc(9, 4, OBJT_IMPF, 4, 0, NPC_2FRAME);
+    EncSpawn hs[6];
+    int nh = 0;
+    hs[nh].mon = R5M_ZHALK; hs[nh].npc = (s8)n_zh; hs[nh].xp = 300; hs[nh].side = 1; nh++;
+    hs[nh].mon = R5M_LESSER_IMP; hs[nh].npc = (s8)i0; hs[nh].xp = 40; hs[nh].side = 1; nh++;
+    hs[nh].mon = R5M_LESSER_IMP; hs[nh].npc = (s8)i1; hs[nh].xp = 40; hs[nh].side = 1; nh++;
+    hs[nh].mon = R5M_FLAYER; hs[nh].npc = (s8)n_fl; hs[nh].xp = 0; hs[nh].side = 2; nh++;
+    if (us_with_us() && n_us >= 0) {
+        hs[nh].mon = R5M_DEVOURER; hs[nh].npc = (s8)n_us; hs[nh].xp = 0; hs[nh].side = 2; nh++;
+    }
+    int r = encounter_run(hs, nh, 15);
+    if (r == ENC_CONNECTED) crash_sequence(0);
     else crash_sequence(1);
 }
 

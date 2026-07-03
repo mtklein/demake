@@ -23,7 +23,7 @@
 #define ME(t, h, v, p) ((u16)((t) | ((h) << 10) | ((v) << 11) | ((p) << 12)))
 #define TXT ((vu16*)SCREENBLOCK(30))
 
-#define MAXEC 8
+#define MAXEC 12
 typedef struct {
     R5Creature* c;
     R5Creature store;            /* backing for non-party combatants */
@@ -40,7 +40,8 @@ typedef struct {
 } EC;
 
 static EC ec[MAXEC];
-static int nec, round_no;
+static int nec, round_no, rounds_left;
+static int warp_npc[2], nwarp;
 static R5RNG rng;
 static int party_npc[3];         /* temp npcs for the party sprites */
 
@@ -48,10 +49,11 @@ static int party_npc[3];         /* temp npcs for the party sprites */
 
 static void rnd_show(void) {
     win_draw(26, 0, 4, 3);
+    int v = rounds_left > 0 ? rounds_left : round_no;
     char b[3] = { ' ', ' ', 0 };
-    if (round_no >= 10) { b[0] = (char)('0' + round_no / 10); b[1] = (char)('0' + round_no % 10); }
-    else b[1] = (char)('0' + round_no);
-    txt_put(27, 1, b, 0);
+    if (v >= 10) { b[0] = (char)('0' + v / 10); b[1] = (char)('0' + v % 10); }
+    else b[1] = (char)('0' + (v < 0 ? 0 : v));
+    txt_put(27, 1, b, (rounds_left > 0 && rounds_left <= 3) ? 1 : 0);
 }
 
 static void bar(const char* s) {
@@ -66,6 +68,7 @@ static void bar(const char* s) {
 }
 
 static void pump(int n);
+static void add_mon(int mon, int npc, int side, u16 xp);
 
 static void bar_wait(const char* s) {
     bar(s);
@@ -91,7 +94,7 @@ static char* put_str(char* d, const char* s) {
 
 /* "14+5=19 v13 HIT!" / "3+5=8 v13 miss" / "20! CRIT" */
 static void bar_attack(const char* verb, const R5Attack* a) {
-    char m[26]; char* d = m;
+    char m[48]; char* d = m;
     d = put_str(d, verb); *d++ = ' ';
     d = put_num(d, a->d20.total);
     if (a->bonus >= 0) *d++ = '+';
@@ -104,7 +107,7 @@ static void bar_attack(const char* verb, const R5Attack* a) {
 }
 
 static void bar_damage(const R5Attack* a) {
-    char m[26]; char* d = m;
+    char m[48]; char* d = m;
     d = put_str(d, "dmg ");
     d = put_num(d, a->dmg.n); *d++ = 'd'; d = put_num(d, a->dmg.sides);
     if (a->dmg.mod) { *d++ = '+'; d = put_num(d, a->dmg.mod); }
@@ -198,6 +201,28 @@ static void dash_home(EC* a) {
     }
 }
 
+/* pan the camera so every combatant sits in the band clear of the text
+ * bars (y 24..120 on screen); smooth CT-style glide */
+static void frame_camera(void) {
+    int x0 = 0x7FFF, y0 = 0x7FFF, x1 = -0x7FFF, y1 = -0x7FFF;
+    for (int i = 0; i < nec; i++) {
+        if (ec[i].side != 0 && ec[i].c->hp <= 0) continue;
+        int x = ec_x(&ec[i]), y = ec_y(&ec[i]);
+        if (x < x0) x0 = x;
+        if (y < y0) y0 = y;
+        if (x + 16 > x1) x1 = x + 16;
+        if (y + 16 > y1) y1 = y + 16;
+    }
+    if (x0 > x1) return;
+    int tx = (x0 + x1) / 2 - 120;
+    int ty = (y0 + y1) / 2 - 72;          /* center of the 24..120 band */
+    int sx = field_cam_x(), sy = field_cam_y();
+    for (int i = 1; i <= 20; i++) {
+        field_cam_override(1, sx + (tx - sx) * i / 20, sy + (ty - sy) * i / 20);
+        pump(1);
+    }
+}
+
 static void hit_react(EC* t) {
     sfx_play(SFX_HIT);
     sfx_noise(6);
@@ -240,7 +265,7 @@ static void break_conc(EC* e, const char* why) {
     if (spell == R5S_HUNTERS_MARK)
         for (int i = 0; i < nec; i++)
             if (ec[i].marked_by == (s8)(e - ec)) ec[i].marked_by = -1;
-    char m[26]; char* d = m;
+    char m[48]; char* d = m;
     d = put_str(d, r5_spells[spell].name);
     d = put_str(d, why);
     *d = 0;
@@ -275,6 +300,13 @@ static void deal(EC* t, int amount, u8 type, int scr_pop) {
                 pump(4);
             }
             if (t->npc >= 0) npcs[t->npc].flags |= NPC_GONE;
+            if (t->mon == R5M_ZHALK) {
+                bar_wait("Zhalk falls!");
+                G.everburn = 1;
+                G.flags |= GF_ZHALK_DEAD;
+                bar_wait("Everburn Blade claimed!");
+                mgba_log("zhalk dead, everburn claimed");
+            }
         } else {
             bar_wait("They crumple to the deck!");
         }
@@ -374,6 +406,11 @@ static void strike(EC* a, EC* t) {
         bar_damage(&at);
         if (at.rider_dmg.n && t->c->hp > 0 && at.rider_damage > 0)
             deal(t, at.rider_damage, at.rider_type, 1);
+        if (a->side == 0 && G.everburn && G.pm[a->pi].cls == CLS_FIGHTER &&
+            t->c->hp > 0) {
+            R5Dice fd = r5_roll(&rng, 1, 4, 0);   /* the blade burns */
+            deal(t, fd.total, DT_FIRE, 1);
+        }
         if (melee && t->c->hp > 0) { a->engaged = (s8)(t - ec); t->engaged = (s8)(a - ec); }
     }
     post_attack(a, t, &at);
@@ -406,7 +443,7 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
     int dc = party5_spell_dc(a->c);
     ec_face_toward(a, t);
     R5Save sv = r5_save(&rng, t->c, s->save_ab, dc, 0);
-    char m[26]; char* d = m;
+    char m[48]; char* d = m;
     d = put_str(d, "save "); d = put_num(d, sv.d20.total);
     d = put_str(d, " v DC "); d = put_num(d, sv.dc);
     d = put_str(d, sv.success ? " ok" : " FAIL");
@@ -446,7 +483,7 @@ static void cast_sleep(EC* a) {
     (void)a;  /* area spell: no single target */
     R5Dice pool = r5_roll(&rng, 5, 8, 0);
     mgba_logf("sleep pool=%d", pool.total);
-    char m[26]; char* d = m;
+    char m[48]; char* d = m;
     d = put_str(d, "Sleep! 5d8 = "); d = put_num(d, pool.total); *d = 0;
     bar_wait(m);
     int left = pool.total;
@@ -459,7 +496,7 @@ static void cast_sleep(EC* a) {
         if (!t || t->c->hp > left) break;
         left -= t->c->hp;
         t->c->conds |= C_UNCONSCIOUS;
-        char b[26]; char* e = b;
+        char b[48]; char* e = b;
         e = put_str(e, t->c->name); e = put_str(e, " falls asleep!"); *e = 0;
         bar_wait(b);
     }
@@ -509,7 +546,27 @@ static EC* nearest_foe(EC* a, int want_side) {
     return best;
 }
 
+static void warp_cambion(void) {
+    if (nwarp >= 2 || nec >= MAXEC) return;
+    int npc = field_add_npc(14, 3, OBJT_ZHALKF, 6, 2, 0);
+    if (npc < 0) return;
+    warp_npc[nwarp++] = npc;
+    add_mon(R5M_CAMBION, npc, 1, 150);
+    bar_wait("A cambion warps in!");
+    mgba_log("cambion warps in");
+    frame_camera();
+}
+
 static void enemy_turn(EC* a) {
+    /* Zhalk's obsession: the mind flayer, while it stands */
+    if (a->mon == R5M_ZHALK) {
+        for (int i = 0; i < nec; i++)
+            if (ec[i].side == 2 && ec[i].mon == R5M_FLAYER && conscious(&ec[i])) {
+                ai_ma = &r5_monsters[R5M_ZHALK].attacks[0];
+                strike(a, &ec[i]);
+                return;
+            }
+    }
     const R5Monster* m = &r5_monsters[a->mon];
     EC* best_t = 0;
     const R5MAttack* best_a = 0;
@@ -537,6 +594,14 @@ static void enemy_turn(EC* a) {
 }
 
 static void ally_turn(EC* a) {
+    if (a->mon == R5M_FLAYER) {
+        for (int i = 0; i < nec; i++)
+            if (ec[i].side == 1 && ec[i].mon == R5M_ZHALK && ec[i].c->hp > 0) {
+                ai_ma = &r5_monsters[R5M_FLAYER].attacks[0];
+                strike(a, &ec[i]);
+                return;
+            }
+    }
     EC* t = nearest_foe(a, 1);
     if (!t) return;
     strike(a, t);
@@ -588,13 +653,28 @@ static EC* pick5(int side, int allow_downed) {
     }
 }
 
-/* demo auto-play so headless runs exercise the full economy */
-static void demo_pc_turn(EC* a) {
+/* DQ-style tactics: one auto-player, five temperaments. Returns 1 when the
+ * hero connects the transponder (helm objective). Demo mode = Wisely. */
+static int tactic_turn(EC* a, int tac) {
     R5Creature* c = a->c;
     int cls = G.pm[a->pi].cls;
+    int use_slots = (tac != TAC_NOSLOTS);
     EC* foe = nearest_foe(a, 1);
-    /* bonus action first where it matters */
-    if (cls == CLS_FIGHTER && r5_can_second_wind(c) && c->hp * 2 < c->hpmax) {
+
+    /* helm objective: the hero goes for the nerves (demo kill-mode excepted) */
+    if (rounds_left > 0 && a->pi == 0 && G_DEMO && G_DEMO_BATTLE != 2 &&
+        round_no >= 2) {
+        bar_wait("You seize the nerves...");
+        return 1;
+    }
+    if (G_DEMO && G_DEMO_BATTLE == 2)
+        for (int i = 0; i < nec; i++)
+            if (ec[i].side == 1 && ec[i].mon == R5M_ZHALK && ec[i].c->hp > 0)
+                foe = &ec[i];
+
+    /* ---- bonus actions ---- */
+    if (cls == CLS_FIGHTER && r5_can_second_wind(c) &&
+        (tac == TAC_ALLOUT ? c->hp * 4 < c->hpmax : c->hp * 2 < c->hpmax)) {
         R5Dice d = r5_second_wind(&rng, c);
         bar_wait("Second Wind!");
         popup(ec_sx(a) + 8, ec_sy(a), d.total, 8);
@@ -603,35 +683,58 @@ static void demo_pc_turn(EC* a) {
         a->hidden = 1;
         bar_wait("Hides in the chaos!");
     }
-    if (cls == CLS_RANGER && foe && !c->concentrating && c->slots[0] &&
-        r5_spend_slot(c, 1)) {
+    if (cls == CLS_RANGER && use_slots && tac != TAC_HEALER && foe &&
+        !c->concentrating && c->slots[0] && r5_spend_slot(c, 1)) {
         c->concentrating = R5S_HUNTERS_MARK + 1;
         foe->marked_by = (s8)(a - ec);
         bar_wait("Hunter's Mark!");
     }
-    /* heal a downed friend before attacking */
-    if ((cls == CLS_BARD || cls == CLS_CLERIC)) {
-        for (int i = 0; i < nec; i++)
-            if (ec[i].side == 0 && ec[i].c->hp <= 0 && c->slots[0] &&
-                r5_spend_slot(c, 1)) {
-                cast_heal(a, &ec[i], cls == CLS_BARD ? R5S_HEALING_WORD : R5S_CURE_WOUNDS);
-                if (cls == CLS_CLERIC) return;   /* cure wounds was the action */
-                break;
-            }
+    if (cls == CLS_BARD && use_slots && tac != TAC_ALLOUT && c->slots[0]) {
+        /* healing word (bonus): Healer patches wounds, others save the downed */
+        EC* best = 0;
+        for (int i = 0; i < nec; i++) {
+            if (ec[i].side != 0) continue;
+            R5Creature* pc = ec[i].c;
+            int hurt = tac == TAC_HEALER ? pc->hp * 4 < pc->hpmax * 3
+                                         : pc->hp <= 0;
+            if (hurt && (!best || pc->hp < best->c->hp)) best = &ec[i];
+        }
+        if (best && r5_spend_slot(c, 1))
+            cast_heal(a, best, R5S_HEALING_WORD);
     }
-    if (!foe) return;
+
+    /* ---- action ---- */
+    if (cls == CLS_CLERIC && use_slots && tac != TAC_ALLOUT) {
+        EC* best = 0;
+        for (int i = 0; i < nec; i++) {
+            if (ec[i].side != 0) continue;
+            R5Creature* pc = ec[i].c;
+            int hurt = tac == TAC_HEALER ? pc->hp * 4 < pc->hpmax * 3
+                                         : pc->hp <= 0;
+            if (hurt && (!best || pc->hp < best->c->hp)) best = &ec[i];
+        }
+        if (best && r5_spend_slot(c, 1)) {
+            cast_heal(a, best, R5S_CURE_WOUNDS);
+            return 0;
+        }
+    }
+    if (!foe) return 0;
     switch (cls) {
         case CLS_WIZARD: {
             int fire_ok = !(foe->c->immune & (1 << DT_FIRE));
-            if (side_up(1) >= 3 && c->slots[0] && r5_spend_slot(c, 1)) cast_sleep(a);
-            else if (!fire_ok && c->slots[0] && r5_spend_slot(c, 1)) cast_missiles(a);
+            int spend = use_slots && c->slots[0];
+            if (spend && tac != TAC_HEALER && side_up(1) >= 3 &&
+                r5_spend_slot(c, 1)) cast_sleep(a);
+            else if (spend && (tac == TAC_ALLOUT || !fire_ok) &&
+                     r5_spend_slot(c, 1)) cast_missiles(a);
             else if (fire_ok) cast_attack_spell(a, foe, R5S_FIRE_BOLT);
             else strike(a, foe);
             break;
         }
         case CLS_BARD: cast_save_spell(a, foe, R5S_VICIOUS_MOCKERY); break;
         case CLS_CLERIC:
-            if (c->slots[0] && r5_spend_slot(c, 1)) cast_attack_spell(a, foe, R5S_GUIDING_BOLT);
+            if (use_slots && c->slots[0] && r5_spend_slot(c, 1))
+                cast_attack_spell(a, foe, R5S_GUIDING_BOLT);
             else strike(a, foe);
             break;
         default: strike(a, foe); break;
@@ -641,16 +744,18 @@ static void demo_pc_turn(EC* a) {
         bar_wait("Action Surge!");
         strike(a, foe);
     }
+    return 0;
 }
 
-static void pc_turn(EC* a) {
-    if (G_DEMO && !G_MANUAL_BAT) { demo_pc_turn(a); return; }
+static int pc_turn(EC* a) {
+    int tac = (G_DEMO && !G_MANUAL_BAT) ? TAC_WISELY : G.tactics[a->pi];
+    if (tac != TAC_ORDERS) return tactic_turn(a, tac);
 
     R5Creature* c = a->c;
     int cls = G.pm[a->pi].cls;
     int action = 0, bonus = 0;
     for (;;) {
-        const char* items[8]; u8 code[8]; int n = 0;
+        const char* items[12]; u8 code[12]; int n = 0;
         if (!action) {
             items[n] = "Attack"; code[n++] = 0;
             if (cls == CLS_BARD) { items[n] = "V.Mockery"; code[n++] = 10 + R5S_VICIOUS_MOCKERY; }
@@ -674,6 +779,10 @@ static void pc_turn(EC* a) {
             if (cls == CLS_BARD && c->slots[0]) { items[n] = "Heal.Word"; code[n++] = 10 + R5S_HEALING_WORD; }
             if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
         }
+        if (rounds_left > 0 && a->pi == 0 && round_no >= 2) {
+            items[n] = "Nerve!"; code[n++] = 8;
+        }
+        items[n] = "Tactics"; code[n++] = 9;
         items[n] = "End Turn"; code[n++] = 7;
 
         int sel = menu5(items, n, 0);
@@ -736,6 +845,23 @@ static void pc_turn(EC* a) {
                 bonus = 1;
                 break;
             }
+            case 8:
+                bar_wait("You seize the nerves...");
+                return 1;
+            case 9: {
+                const char* mnames[3];
+                for (int i = 0; i < G.nparty; i++) mnames[i] = G.pm[i].name;
+                int mi = menu5(mnames, G.nparty, 1);
+                if (mi < 0) break;
+                static const char* const tnames[TAC_COUNT] = {
+                    "Orders", "Wisely", "All Out", "Healer", "No Slots"
+                };
+                int tv = menu5(tnames, TAC_COUNT, 1);
+                if (tv < 0) break;
+                G.tactics[mi] = (u8)tv;
+                bar_wait("Tactics set.");
+                break;
+            }
             default: {
                 int sp = cd - 10;
                 const R5Spell* s = &r5_spells[sp];
@@ -763,6 +889,7 @@ static void pc_turn(EC* a) {
         if (action && bonus) break;
         if (side_up(1) == 0) break;
     }
+    return 0;
 }
 
 /* ------------------------------------------------------------------ setup */
@@ -804,7 +931,7 @@ static void add_mon(int mon, int npc, int side, u16 xp) {
     e->xp = xp;
 }
 
-int encounter_run(const EncSpawn* es, int n, int flags) {
+int encounter_run(const EncSpawn* es, int n, int helm_rounds) {
     Game gsnap = G;
     R5Creature p5snap[3];
     for (int i = 0; i < 3; i++) p5snap[i] = party5[i];
@@ -817,13 +944,23 @@ int encounter_run(const EncSpawn* es, int n, int flags) {
     r5_seed(&rng, rnd());
 
 retry:
+    for (int i = 0; i < nwarp; i++) field_remove_npc(warp_npc[i]);
+    nwarp = 0;
     nec = 0;
     round_no = 1;
+    rounds_left = helm_rounds;
     music(SONG_BATTLE);
 
     /* stage popup digits after the obj tiles */
     memcpy16((vu16*)((u32)OBJ_TILES + OBJ_TILE_COUNT * 32),
              &ui_tiles[('0' - 32) * 16], 10 * 16);
+
+    /* restore spawn sprites first (retry may have marked them GONE) */
+    for (int i = 0; i < n; i++) {
+        npcs[es[i].npc].flags &= (u8)~NPC_GONE;
+        npcs[es[i].npc].x = enemy_home[i][0];
+        npcs[es[i].npc].y = enemy_home[i][1];
+    }
 
     /* party materializes beside Tav */
     int px = field_player_x(), py = field_player_y();
@@ -852,13 +989,9 @@ retry:
         ec[i].hy = npcs[party_npc[i]].y;
     }
 
-    for (int i = 0; i < n; i++) {
-        npcs[es[i].npc].flags &= (u8)~NPC_GONE;
-        npcs[es[i].npc].x = enemy_home[i][0];
-        npcs[es[i].npc].y = enemy_home[i][1];
-        add_mon(es[i].mon, es[i].npc, 1, es[i].xp);
-    }
-    (void)flags;
+    for (int i = 0; i < n; i++)
+        add_mon(es[i].mon, es[i].npc, es[i].side, es[i].xp);
+    frame_camera();
 
     /* --- initiative, rolled in the open --- */
     bar_wait("Roll initiative!");
@@ -891,15 +1024,17 @@ retry:
             }
             a->dodge = 0;                   /* dodge lasts until your turn */
             a->reacted = 0;
+            mgba_logf("turn r%d %s side%d hp=%d", round_no, a->c->name,
+                      a->side, a->c->hp);
             {
-                char m[26]; char* d = m;
+                char m[48]; char* d = m;
                 d = put_str(d, a->c->name);
                 d = put_str(d, "'s turn");
                 *d = 0;
                 bar(m);
                 pump(G_DEMO ? 10 : 20);
             }
-            if (a->side == 0) pc_turn(a);
+            if (a->side == 0) { if (pc_turn(a)) goto connected; }
             else if (a->side == 1) enemy_turn(a);
             else ally_turn(a);
 
@@ -907,7 +1042,15 @@ retry:
             if (!party_conscious()) goto wipe;
         }
         round_no++;
-        rnd_show();
+        if (rounds_left > 0) {
+            rounds_left--;
+            rnd_show();
+            if (rounds_left == 9 || rounds_left == 5) warp_cambion();
+            if (rounds_left == 0) {
+                bar_wait("Too late! We're falling!");
+                goto wipe;
+            }
+        } else rnd_show();
     }
 
 victory:
@@ -917,7 +1060,7 @@ victory:
             if (ec[i].side == 1) xp += ec[i].xp;
         music(SONG_VICTORY);
         bar_wait("Victory!");
-        char m[26]; char* d = m;
+        char m[48]; char* d = m;
         d = put_str(d, "Received "); d = put_num(d, xp); d = put_str(d, " XP!");
         *d = 0;
         bar_wait(m);
@@ -931,18 +1074,32 @@ victory:
     /* party folds back into Tav */
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
     field_hide_player(0);
+    field_cam_override(0, 0, 0);
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);
     G_FIELD_IDLE = 0;
     return ENC_WIN;
 
+connected:
+    mgba_log("enc result=CONNECTED");
+    for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
+    field_hide_player(0);
+    field_cam_override(0, 0, 0);
+    win_clear(0, 0, 30, 3);
+    win_clear(26, 0, 4, 3);
+    win_clear(0, 15, 30, 5);
+    G_FIELD_IDLE = 0;
+    return ENC_CONNECTED;
+
 wipe:
+    mgba_log("enc wipe -> retry");
     bar_wait("The party has fallen.");
     fade_out(20);
     G = gsnap;
     for (int i = 0; i < 3; i++) party5[i] = p5snap[i];
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
+    field_cam_override(0, 0, 0);
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);

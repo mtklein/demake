@@ -34,6 +34,7 @@ int  field_player_y(void);
 int  field_face(void);
 int  field_cam_x(void);
 int  field_cam_y(void);
+void field_cam_override(int on, int cx, int cy);
 void field_hide_player(int on);
 
 /* provided by events.c (game content) */

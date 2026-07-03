@@ -12,11 +12,14 @@ typedef struct {
     u16 xp;
 } PMember;
 
+enum { TAC_ORDERS, TAC_WISELY, TAC_ALLOUT, TAC_HEALER, TAC_NOSLOTS, TAC_COUNT };
+
 typedef struct {
     PMember pm[3];
     u8 nparty;
     u8 potions, revivify;
     u8 everburn;
+    u8 tactics[3];       /* DQ-style per-member battle AI (TAC_*) */
     u16 flags;
 } Game;
 extern Game G;

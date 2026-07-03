@@ -1,6 +1,5 @@
 #include "gba.h"
 #include "game.h"
-#include "battle.h"
 #include "assets.h"
 
 Game G;
@@ -42,6 +41,8 @@ static void strcpy8(char* d, const char* s) {
     d[i] = 0;
 }
 
+void party5_refresh(int i);   /* party5.c: keep the 5e twin in step */
+
 void party_init(int cls, const char* name) {
     G.nparty = 1;
     G.potions = 2;
@@ -53,6 +54,8 @@ void party_init(int cls, const char* name) {
     p->cls = (u8)cls; p->level = 1; p->xp = 0;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
+    G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
+    party5_refresh(0);
 }
 
 void party_add_laezel(void) {
@@ -62,6 +65,7 @@ void party_add_laezel(void) {
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.flags |= GF_LAEZEL;
+    party5_refresh(G.nparty - 1);
 }
 
 void party_add_shadowheart(void) {
@@ -72,6 +76,7 @@ void party_add_shadowheart(void) {
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.revivify += 1;
     G.flags |= GF_SH_FREED;
+    party5_refresh(G.nparty - 1);
 }
 
 int party_give_xp(u16 xp, char* names) {
@@ -107,71 +112,3 @@ void party_heal_full(void) {
     void party5_heal_full(void);
     party5_heal_full();
 }
-
-/* ------------------------------------------------ enemies ------ */
-
-/* Each enemy uses its own battle sprite once the art exists; otherwise it
- * falls back to the imp sprite (the #ifdef picks whichever define is present). */
-const EnemyDef e_imp = {
-    "Imp", 6, 5, 2, 5, 26, 40, AI_IMP,
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
-};
-const EnemyDef e_boar = {
-    "Hellsboar", 9, 7, 3, 2, 22, 45, AI_BOAR,
-#ifdef OBJT_B_BOAR
-    OBJT_B_BOAR, OBJS_B_BOAR, OBJP_B_BOAR, OBJTPF_B_BOAR, 32, 16,
-#else
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
-#endif
-};
-const EnemyDef e_thrall = {
-    "Thrall", 8, 6, 2, 2, 24, 60, AI_THRALL,
-#ifdef OBJT_B_THRALL
-    OBJT_B_THRALL, OBJS_B_THRALL, OBJP_B_THRALL, OBJTPF_B_THRALL, 16, 32,
-#else
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
-#endif
-};
-const EnemyDef e_cambion = {
-    "Cambion", 40, 10, 6, 6, 30, 150, AI_CAMBION,
-#ifdef OBJT_B_CAMBION
-    OBJT_B_CAMBION, OBJS_B_CAMBION, OBJP_B_CAMBION, OBJTPF_B_CAMBION, 32, 32,
-#else
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
-#endif
-};
-const EnemyDef e_zhalk = {
-    "Cmdr Zhalk", 150, 13, 7, 6, 32, 300, AI_ZHALK,
-#ifdef OBJT_B_ZHALK
-    OBJT_B_ZHALK, OBJS_B_ZHALK, OBJP_B_ZHALK, OBJTPF_B_ZHALK, 32, 64,
-#else
-    OBJT_B_IMP, OBJS_B_IMP, OBJP_B_IMP, OBJTPF_B_IMP, 16, 16,
-#endif
-};
-const EnemyDef e_flayer = {
-    "Mindflayer", 85, 11, 5, 10, 33, 0, AI_FLAYER_ALLY,
-#ifdef OBJT_B_FLAYER
-    OBJT_B_FLAYER, OBJS_B_FLAYER, OBJP_B_FLAYER, OBJTPF_B_FLAYER, 32, 32,
-#else
-    OBJT_FLAYERF, 1, 5, 2, 16, 16,
-#endif
-};
-const EnemyDef e_us = {
-    "Us", 21, 7, 3, 3, 28, 0, AI_US_ALLY,
-#ifdef OBJT_B_DEVOURER
-    OBJT_B_DEVOURER, OBJS_B_DEVOURER, 3, OBJTPF_B_DEVOURER, 32, 32,
-#else
-    OBJT_US, 1, 3, 4, 16, 16,
-#endif
-};
-
-const Formation form_deck = {
-    { &e_imp, &e_imp, &e_imp }, { 30, 14, 34 }, { 52, 76, 100 }, 3, BF_ALLY_US,
-};
-const Formation form_thralls = {
-    { &e_thrall, &e_thrall }, { 28, 20 }, { 60, 92 }, 2, 0,
-};
-const Formation form_helm = {
-    { &e_zhalk, &e_imp, &e_imp, &e_boar }, { 16, 56, 60, 52 }, { 36, 44, 116, 78 }, 4,
-    BF_HELM | BF_ALLY_US | BF_ALLY_FLAYER | BF_NO_FLEE,
-};

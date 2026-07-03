@@ -81,15 +81,15 @@ void game_title(void) {
         REG_BG3HOFS = (u16)(t >> 3);
         if (t & 32) txt_put(SCR_TITLE_START_X, SCR_TITLE_START_Y, "PRESS START", 0);
         else txt_clear(SCR_TITLE_START_X, SCR_TITLE_START_Y, SCR_TITLE_START_W, 1);
-        txt_put_n(7, 18, G_BATTLE2 ? "L: 5E BATTLES ON" : "L: 5E BATTLES off",
-                  G_BATTLE2 ? 1 : 2, 17);
+        txt_put_n(6, 18, G_DEMO ? "L: ATTRACT MODE ON" : "L: ATTRACT MODE off",
+                  G_DEMO ? 1 : 2, 18);
 #ifdef OBJT_NAUT
         obj_set(OBJ_PLAYER, 104, 10 + ((t >> 5) & 3), 2, OBJT_NAUT, OBJP_NAUT, 2);
 #endif
         u16 k = key_hit();
         if (k & (KEY_START | KEY_A)) break;
         if (k & KEY_SELECT) { jukebox(); t = 0; }
-        if (k & KEY_L) { G_BATTLE2 ^= 1; sfx_play(SFX_CONFIRM); }
+        if (k & KEY_L) { G_DEMO ^= 1; sfx_play(SFX_CONFIRM); }
         if (G_DEMO && t >= 90) break;
     }
     sfx_play(SFX_CONFIRM);

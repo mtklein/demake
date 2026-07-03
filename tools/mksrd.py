@@ -155,6 +155,7 @@ MONSTER_MAP = [  # (enum, source dict, key) in rules.h R5M_ order
     ("R5M_ZHALK", "ovr", "commander zhalk"),
     ("R5M_LESSER_IMP", "ovr", "lesser imp"),
     ("R5M_LESSER_BOAR", "ovr", "lesser hellsboar"),
+    ("R5M_THRALL", "ovr", "awakened thrall"),
 ]
 
 def attack_init(a):

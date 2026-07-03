@@ -1,9 +1,11 @@
 # Nautiloid — a GBA demake
 
 A Game Boy Advance homebrew retelling of the opening mission of *Baldur's Gate 3*
-("Escape the Nautiloid"), rebuilt in the style of *Final Fantasy IV*: tile-scrolling
-exploration, an ATB side-view battle system, blue-gradient menus, and a PSG chiptune
-score — all running on a real 240×160 GBA in about 15 minutes of play.
+("Escape the Nautiloid"): 16-bit-style tile exploration with FF4-Advance menus and
+portraits, and **real D&D 5e SRD combat fought right on the map**, Chrono-Trigger
+style — visible initiative rolls, actions and bonus actions, opportunity attacks,
+and every d20 shown as it lands. A PSG chiptune score, all on a real 240×160 GBA
+in about 15 minutes of play.
 
 Everything here is **built from scratch**: no game engine, no devkitPro, no libgba,
 no ripped assets. The toolchain is a stock `arm-none-eabi-gcc`; the sprites, tiles,
@@ -32,10 +34,13 @@ hardware (a flashcart / EverDrive).
 | D-pad | Walk | Move cursor |
 | A | Talk / examine / confirm | Confirm |
 | B | — | Cancel / back |
-| L+R (hold) | — | Flee (non-boss fights) |
 | Start | Advance title, dismiss the ending | — |
+| Select (title) | Jukebox | — |
+| L (title) | Attract mode: the game plays itself | — |
 
-Hold **A** or **B** to fast-forward dialogue text.
+Hold **A** or **B** to fast-forward dialogue text. In battle, the **Tactics**
+command sets DQ-style AI per member — Orders, Wisely, All Out, Healer, No
+Slots — so companions can fight themselves while you drive the hero.
 
 ## The mission
 
@@ -59,12 +64,13 @@ Faithful beats from the BG3 prologue, condensed into an FF4 dungeon:
 Your choices — who you freed, who you saved, whether you took the blade — are
 tallied over the wreckage on the Ravaged Beach.
 
-Each class brings its own battle kit: bardic mockery and healing words, rogue
-sneak-attacks and theft, ranger's mark and ensnaring strike, wizard fire bolt /
-magic missile / sleep. Lae'zel is a fighter (Action Surge), Shadowheart a cleric
-(Cure, Guiding Bolt, Bless). Difficulty is tuned for real resource pressure —
-potions and revivify scrolls matter, and you *can* lose. Defeat offers an instant
-retry, so there are no saves to manage.
+Combat is SRD 5e for real: d20 + modifiers vs AC with the roll on screen,
+advantage/disadvantage, crits that double dice, spell slots, concentration,
+and class features at their real levels — Second Wind at fighter 1, Action
+Surge at 2, sneak attack from Hide, Sleep as an HP-pool with auto-crits on
+sleepers. Fights happen where you stand: initiative pops over every head, the
+camera frames the brawl, melee dashes in, and enemies pick targets by expected
+value (imps hunt your squishiest). Defeat offers an instant retry.
 
 ## How it's built
 
@@ -77,12 +83,19 @@ src/            bare-metal GBA C + the game
   oam.c         sprite (OBJ) manager
   audio.c/.h    PSG tracker + SFX driver, ticked from VBlank
   field.c       tilemap rooms, grid walking, camera, NPCs, event triggers
-  battle.c      ATB side-view battle system
+  encounter.c   5e battles on the field map: initiative, action economy,
+                dice display, opportunity attacks, DQ-style party tactics
+  party5.c      5e character sheets for the party (SRD standard array)
   game.c        title, prologue crawl, class select, name entry
   events.c      the story: rooms, dialogue, cutscenes, the finale
   data.c        party stats, class kits, enemy definitions
+rules/          pure C 5e SRD combat core -- dual-target: compiled into the
+                ROM and natively for `make test-rules` (240k+ property checks,
+                closed-form expectations validated against Monte Carlo)
 tools/          Python asset pipeline (no binary art in the repo)
   mkassets.py   compiles art/music sources -> build/gen/assets.{c,h}
+  mksrd.py      generates C tables from extracted SRD 5.1/5.2.1 data
+  srd/          SRD data (CC-BY-4.0), homebrew monster overrides, invariants
   art/          tiles, field & battle sprites, room maps (ASCII pixel art)
   music/        original FF4-idiom chiptunes as note data
   fixrom.py     writes the Nintendo logo + header checksum (gbafix equivalent)
@@ -103,6 +116,17 @@ guessing frame counts. `test/scenario.py` encodes several branching paths
 (different classes, sparing vs. mutilating Us, saving vs. abandoning Shadowheart,
 connecting the transponder vs. killing Zhalk) that are run and screenshot-checked
 end to end.
+
+## Debug flags (CodeBreaker cheats)
+
+The engine's demo flags live at fixed EWRAM addresses; mGBA's cheat interface
+(Tools → Cheats, CodeBreaker format) can set them:
+
+| Code | Effect |
+|---|---|
+| `3203FF00 0001` | Attract mode (same as L on the title) |
+| `3203FF07 0001` | With attract on: dialogue auto-advances, battles stay manual |
+| `3203FF02 0002` | Attract mode goes for the Zhalk kill at the helm |
 
 ## Credits
 

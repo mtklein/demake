@@ -1,5 +1,10 @@
 # Battle 2.0 — Chrono-Trigger presentation, real 5e rules
 
+> **Status: SHIPPED.** The cutover is complete — every encounter (deck imps,
+> awakened thralls, the helm finale with countdown, warping cambions, and the
+> Zhalk/flayer duel) runs on encounter.c + rules/; the FF4 battle system is
+> deleted. This doc is kept as the design rationale.
+
 The FF4 battle system (separate scene, ATB, abstract numbers) gets replaced by
 encounters fought **in place on the field map** with **SRD 5e mechanics** and
 **visible dice**. This is one combined effort because both halves gut
