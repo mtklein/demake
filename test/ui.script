@@ -1,0 +1,13 @@
+wait 130
+shot test/shots/say1.ppm
+hold A 2
+wait 90
+shot test/shots/say2.ppm
+hold A 2
+wait 80
+shot test/shots/choice.ppm
+hold DOWN 2
+wait 5
+hold A 2
+wait 60
+shot test/shots/final.ppm

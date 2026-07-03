@@ -1,0 +1,167 @@
+/* FF4-style text and window engine. Text on BG0 (SB30), chrome on BG1 (SB31). */
+#include "gba.h"
+#include "assets.h"
+#include "engine.h"
+
+#define TXT ((vu16*)SCREENBLOCK(30))
+#define WIN ((vu16*)SCREENBLOCK(31))
+#define ME(t, h, v, p) ((u16)((t) | ((h) << 10) | ((v) << 11) | ((p) << 12)))
+
+/* window tile block offsets (see tools/mkassets.py window_tiles) */
+#define W_CT (TILE_WIN + 0)
+#define W_CB (TILE_WIN + 1)
+#define W_ET (TILE_WIN + 2)
+#define W_EB (TILE_WIN + 3)
+#define W_EL(s) (TILE_WIN + 4 + (s))
+#define W_IN(s) (TILE_WIN + 9 + (s))
+#define W_BLACK (TILE_WIN + 14)
+#define GLYPH_MORE 95
+
+void frame(void) { vsync(); oam_flush(); key_poll(); }
+
+void txt_put(int x, int y, const char* s, int pal) {
+    vu16* p = TXT + y * 32 + x;
+    while (*s) *p++ = ME((u8)*s++ - 32, 0, 0, pal);
+}
+
+void txt_clear(int x, int y, int w, int h) {
+    for (int j = 0; j < h; j++)
+        memset16(TXT + (y + j) * 32 + x, 0, (u32)w);
+}
+
+static int win_shade(int row, int h) {   /* gradient index 0..4 for interior row */
+    if (h <= 3) return 2;
+    int s = (row - 1) * 4 / (h - 3);
+    return s > 4 ? 4 : s;
+}
+
+void win_draw(int x, int y, int w, int h) {
+    for (int j = 0; j < h; j++) {
+        vu16* p = WIN + (y + j) * 32 + x;
+        if (j == 0) {
+            p[0] = ME(W_CT, 0, 0, 0);
+            for (int i = 1; i < w - 1; i++) p[i] = ME(W_ET, 0, 0, 0);
+            p[w - 1] = ME(W_CT, 1, 0, 0);
+        } else if (j == h - 1) {
+            p[0] = ME(W_CB, 0, 0, 0);
+            for (int i = 1; i < w - 1; i++) p[i] = ME(W_EB, 0, 0, 0);
+            p[w - 1] = ME(W_CB, 1, 0, 0);
+        } else {
+            int s = win_shade(j, h);
+            p[0] = ME(W_EL(s), 0, 0, 0);
+            for (int i = 1; i < w - 1; i++) p[i] = ME(W_IN(s), 0, 0, 0);
+            p[w - 1] = ME(W_EL(s), 1, 0, 0);
+        }
+    }
+}
+
+void win_clear(int x, int y, int w, int h) {
+    for (int j = 0; j < h; j++)
+        memset16(WIN + (y + j) * 32 + x, 0, (u32)w);
+    txt_clear(x, y, w, h);
+}
+
+/* ---- dialogue box: rows 0..5, text area (2,1)..(27,4) ---- */
+
+#define DLG_Y 0
+#define DLG_H 6
+#define DLG_TX 2
+#define DLG_TY 1
+#define DLG_W 26
+#define DLG_ROWS 4
+
+static int dlg_on, cx, cy;
+
+void dlg_open(void) {
+    if (!dlg_on) { win_draw(0, DLG_Y, 30, DLG_H); dlg_on = 1; }
+    txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+    cx = cy = 0;
+}
+
+void dlg_close(void) {
+    if (dlg_on) { win_clear(0, DLG_Y, 30, DLG_H); dlg_on = 0; }
+}
+
+static void dlg_wait_a(int marker) {
+    if (marker) TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] = ME(GLYPH_MORE, 0, 0, 0);
+    int t = 0;
+    for (;;) {
+        frame();
+        if (key_hit() & KEY_A) break;
+        if (marker) {  /* blink */
+            t++;
+            TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] =
+                (t & 16) ? 0 : ME(GLYPH_MORE, 0, 0, 0);
+        }
+    }
+    TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] = 0;
+}
+
+static void dlg_page(void) {
+    dlg_wait_a(1);
+    txt_clear(DLG_TX, DLG_TY, DLG_W, DLG_ROWS);
+    cx = cy = 0;
+}
+
+static void dlg_newline(void) {
+    cx = 0;
+    if (++cy >= DLG_ROWS) dlg_page();
+}
+
+static void dlg_putc(char c, int pal) {
+    if (c == '\n') { dlg_newline(); return; }
+    if (cx >= DLG_W) dlg_newline();
+    TXT[(DLG_TY + cy) * 32 + DLG_TX + cx] = ME((u8)c - 32, 0, 0, pal);
+    cx++;
+    if (!(key_state() & (KEY_A | KEY_B))) frame();  /* typewriter; hold A/B = fast */
+}
+
+/* print with word wrap; blocks until done */
+void dlg_print(const char* s, int pal) {
+    if (!dlg_on) dlg_open();
+    while (*s) {
+        if (*s == ' ') {                     /* wrap check at word start */
+            int wl = 0;
+            while (s[1 + wl] && s[1 + wl] != ' ' && s[1 + wl] != '\n') wl++;
+            if (cx + 1 + wl > DLG_W) { dlg_newline(); s++; continue; }
+        }
+        dlg_putc(*s++, pal);
+    }
+}
+
+void say(const char* s) {
+    dlg_open();
+    dlg_print(s, 0);
+    dlg_wait_a(1);
+}
+
+/* say without clearing afterward; caller chains a choice */
+void say_keep(const char* s) {
+    dlg_open();
+    dlg_print(s, 0);
+}
+
+int choose(int n, const char* const* opts) {
+    int wmax = 0;
+    for (int i = 0; i < n; i++) {
+        int l = 0; while (opts[i][l]) l++;
+        if (l > wmax) wmax = l;
+    }
+    int w = wmax + 4, h = n + 2;
+    int x = 29 - w, y = DLG_Y + DLG_H;
+    win_draw(x, y, w, h);
+    for (int i = 0; i < n; i++) txt_put(x + 3, y + 1 + i, opts[i], 0);
+
+    int sel = 0;
+    for (;;) {
+        obj_set(OBJ_CURSOR, x * 8 - 6, (y + 1 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+        frame();
+        u16 k = key_hit();
+        if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); }
+        if (k & KEY_DOWN && sel < n - 1) { sel++; sfx_play(SFX_CURSOR); }
+        if (k & KEY_A) { sfx_play(SFX_CONFIRM); break; }
+    }
+    obj_hide(OBJ_CURSOR);
+    win_clear(x, y, w, h);
+    return sel;
+}
