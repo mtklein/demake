@@ -17,6 +17,51 @@ static void sky_full(void) {
     REG_BG3CNT = BGCNT_CB(2) | BGCNT_SB(28) | BGCNT_SIZE(0) | BGCNT_PRIO(3);
 }
 
+static const char* const jb_names[SONG_COUNT] = {
+    "Prelude",           /* SONG_PRELUDE */
+    "Fleshy Halls",      /* SONG_EXPLORE */
+    "Draw Steel!",       /* SONG_BATTLE  */
+    "Commander Zhalk",   /* SONG_BOSS    */
+    "Victory",           /* SONG_VICTORY */
+    "The Long Fall",     /* SONG_CRASH   */
+};
+
+/* Sound-test screen reached with SELECT from the title. */
+static void jukebox(void) {
+    obj_hide(OBJ_PLAYER);
+    win_clear(7, 5, 16, 5);
+    txt_clear(0, 0, 30, 20);
+    win_draw(4, 2, 22, 15);
+    txt_put(10, 3, "-- JUKEBOX --", 1);
+    txt_put(6, 13, "A:PLAY  B:BACK", 2);
+
+    int sel = 0, playing = 0;
+    u32 t = 0;
+    for (;;) {
+        for (int i = 0; i < SONG_COUNT; i++)
+            /* the currently-playing track is drawn in yellow */
+            txt_put(10, 5 + i, jb_names[i], (i == playing) ? 1 : 0);
+        obj_set(OBJ_CURSOR, 9 * 8 - 6, (5 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+        frame();
+        REG_BG3HOFS = (u16)((++t) >> 3);
+        u16 k = key_hit();
+        if (k & KEY_UP)   { sel = (sel + SONG_COUNT - 1) % SONG_COUNT; sfx_play(SFX_CURSOR); }
+        if (k & KEY_DOWN) { sel = (sel + 1) % SONG_COUNT; sfx_play(SFX_CURSOR); }
+        if (k & KEY_A)    { music(sel); playing = sel; sfx_play(SFX_CONFIRM); }
+        if (k & (KEY_B | KEY_SELECT)) { sfx_play(SFX_CANCEL); break; }
+    }
+    obj_hide(OBJ_CURSOR);
+    win_clear(4, 2, 22, 15);
+    txt_clear(0, 0, 30, 20);
+
+    /* restore the title */
+    win_draw(7, 5, 16, 5);
+    txt_put(10, 6, "N A U T I L O I D", 1);
+    txt_put(9, 8, "a BG3 demake of the", 2);
+    txt_put(9, 9, "mind flayer prologue", 2);
+    music(SONG_PRELUDE);
+}
+
 void game_title(void) {
     memset16(SCREENBLOCK(30), 0, 1024);
     memset16(SCREENBLOCK(31), 0, 1024);
@@ -42,10 +87,13 @@ void game_title(void) {
         REG_BG3HOFS = (u16)(t >> 3);
         if (t & 32) txt_put(11, 14, "PRESS START", 0);
         else txt_clear(11, 14, 11, 1);
+        txt_put(8, 17, "SELECT: JUKEBOX", 2);
 #ifdef OBJT_NAUT
         obj_set(OBJ_PLAYER, 104, 10 + ((t >> 5) & 3), 2, OBJT_NAUT, OBJP_NAUT, 2);
 #endif
-        if (key_hit() & (KEY_START | KEY_A)) break;
+        u16 k = key_hit();
+        if (k & (KEY_START | KEY_A)) break;
+        if (k & KEY_SELECT) { jukebox(); t = 0; }
         if (G_DEMO && t >= 90) break;
     }
     sfx_play(SFX_CONFIRM);
