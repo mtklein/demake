@@ -87,10 +87,10 @@ void game_crawl(void) {
 
 static const char* const cls_names[4] = { "Bard", "Rogue", "Ranger", "Wizard" };
 static const char* const cls_blurb[4] = {
-    "Vicious wit. Mends wounds,\nmocks devils to death.",
-    "Strikes from shadow for\ntriple damage. Steals.",
-    "Hunter's mark and snares.\nSteady, brutal focus.",
-    "Fire bolt, magic missile,\nsleep. Fragile. Brilliant.",
+    "Mocks foes,\nmends allies.\nA cutting\nwit.",
+    "Strikes from\nshadow for\ntriple\ndamage.",
+    "Marks prey,\nsets snares.\nSteady and\nbrutal.",
+    "Fire bolt,\nmissiles,\nsleep.\nBrilliant.",
 };
 
 int game_class_select(void) {

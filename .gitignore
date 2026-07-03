@@ -2,3 +2,5 @@ build/
 *.sav
 test/shots/
 test/*.script
+__pycache__/
+*.pyc
