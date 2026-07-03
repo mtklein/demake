@@ -3,6 +3,7 @@
 #include "assets.h"
 #include "engine.h"
 #include "field.h"
+#include "game.h"
 
 static const u8* fmeta;
 static int fw, fh;
@@ -92,6 +93,14 @@ int field_add_npc(int mx, int my, int objt, int pal, int face, int flags) {
     return i;
 }
 
+void field_npc_patrol(int idx, int radius_px) {
+    npcs[idx].flags |= NPC_PATROL;
+    npcs[idx].hx = npcs[idx].x;
+    npcs[idx].hy = npcs[idx].y;
+    npcs[idx].aggro_r = (u8)radius_px;
+    npcs[idx].chasing = 0;
+}
+
 void field_remove_npc(int idx) { npcs[idx].flags |= NPC_GONE; }
 void field_exit(void) { exit_req = 1; }
 int  field_player_mx(void) { return (ppx + 8) / 16; }
@@ -111,7 +120,8 @@ void field_hide_player(int on) {
 static int npc_at(int mx, int my) {
     for (int i = 0; i < nnpc; i++) {
         if (npcs[i].flags & NPC_GONE) continue;
-        if (npcs[i].x == mx * 16 && npcs[i].y == my * 16) return i;
+        if ((npcs[i].x + 8) >> 4 == mx && (npcs[i].y + 8) >> 4 == my)
+            return i;   /* center-tile match: patrollers drift off-grid */
     }
     return -1;
 }
@@ -188,6 +198,8 @@ void field_draw(void) {
         int anim = (n->flags & NPC_2FRAME) ? ((ticks >> 4) & 1) : 0;
         draw_walker(OBJ_NPC0 + i, n->x, n->y, n->objt, n->pal, n->face, anim, nf);
     }
+    for (int i = nnpc; i < FMAX_NPC; i++)     /* stale OAM from busier rooms */
+        obj_hide(OBJ_NPC0 + i);
 }
 
 /* walk one tile in dir as a cutscene action (player or npc) */
@@ -209,12 +221,66 @@ void field_wait(int frames) {
     while (frames--) { frame(); field_draw(); }
 }
 
+static int alert_npc = -1, alert_t;
+
+static void npc_ai(void) {
+    for (int i = 0; i < nnpc; i++) {
+        Npc* n = &npcs[i];
+        if ((n->flags & (NPC_PATROL | NPC_GONE)) != NPC_PATROL) continue;
+        int ddx = ppx - n->x, ddy = ppy - n->y;
+        int adx = ddx < 0 ? -ddx : ddx, ady = ddy < 0 ? -ddy : ddy;
+        int dist = adx + ady;
+        int r = n->aggro_r;
+        if (G.pm[0].cls == CLS_ROGUE) r = r * 2 / 3;   /* rogues walk quiet */
+        /* sentries watch a cone ahead; flanks and rear are peripheral */
+        if (!((n->face == 0 && ddy > 0) || (n->face == 1 && ddy < 0) ||
+              (n->face == 2 && ddx < 0) || (n->face == 3 && ddx > 0))) r /= 2;
+        if (!n->chasing) {
+            /* lazy hover-drift around home */
+            int ph = (int)((ticks + i * 37) >> 3) & 31;
+            int off = ph < 16 ? ph - 8 : 23 - ph;
+            n->x = (s16)(n->hx + off);
+            if (dist < r) {
+                n->chasing = 1;
+                alert_npc = i; alert_t = 36;
+                sfx_play(SFX_CANCEL);
+                mgba_logf("aggro npc %d", i);
+            }
+        } else {
+            if (ticks & 1) continue;               /* chase at ~30px/s */
+            n->x = (s16)(n->x + (ddx > 0 ? 1 : ddx < 0 ? -1 : 0));
+            n->y = (s16)(n->y + (ddy > 0 ? 1 : ddy < 0 ? -1 : 0));
+            n->face = (u8)(adx > ady ? (ddx > 0 ? 3 : 2) : (ddy > 0 ? 0 : 1));
+            if (dist <= 16) {
+                n->chasing = 0;
+                ev_aggro(i);
+                return;                            /* npc list may have changed */
+            }
+        }
+    }
+}
+
+static void draw_alert(void) {
+#ifdef OBJT_ALERT
+    if (alert_t > 0 && alert_npc >= 0 && !(npcs[alert_npc].flags & NPC_GONE)) {
+        alert_t--;
+        obj_set(1, npcs[alert_npc].x - cam_x,
+                npcs[alert_npc].y - cam_y - 16, 1, OBJT_ALERT, 9, 0);
+    } else obj_hide(1);
+#else
+    if (alert_t > 0) alert_t--;
+    obj_hide(1);
+#endif
+}
+
 void field_run(void) {
     static const s8 dx[4] = {0, 0, -1, 1}, dy[4] = {1, -1, 0, 0};
     int tdx = 0, tdy = 0;
     while (!exit_req) {
         frame();
         G_FIELD_IDLE = 1;
+        npc_ai();
+        draw_alert();
         if (!pmoving) {
             u16 held = key_state();
             int dir = -1;

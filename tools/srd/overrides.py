@@ -96,3 +96,19 @@ MONSTERS = {
         "resistances": ["cold", "fire", "poison"], "immunities": [],
     },
 }
+
+# Homebrew loot weapons (schema mirrors srd_data.WEAPONS + rider fields).
+WEAPONS = {
+    "everburn blade": {
+        "display": "Everburn Blade",
+        "dice": "2d6", "dmg_type": "slashing",
+        "properties": ["heavy", "two-handed"], "melee": True,
+        "rider": {"dice": "1d4", "dmg_type": "fire", "save": ("dex", 12)},
+    },
+    "imp stinger": {
+        "display": "Imp Stinger",
+        "dice": "1d4", "dmg_type": "piercing",
+        "properties": ["finesse", "light"], "melee": True,
+        "rider": {"dice": "1d4", "dmg_type": "poison", "save": ("con", 10)},
+    },
+}

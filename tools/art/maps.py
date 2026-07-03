@@ -40,7 +40,7 @@ MAPS = {
     ],
     # Room 3: exterior deck — open sky above, burnt githyanki, Lae'zel + imps.
     "deck": [
-        "WWWWWWWWWWWWWWWWWWWW",
+        "WWWWWWWWWWDWWWWWWWWW",
         "#....g.....g.......#",
         "#..................#",
         "#..................#",
@@ -54,7 +54,7 @@ MAPS = {
     ],
     # Room 4: ceremorphosis chamber — Shadowheart's pod, consoles, rune thrall.
     "pods": [
-        "##W####W####W#####",
+        "##W####WD###W#####",
         "#................#",
         "#.O.O.O.O........#",
         "#................#",

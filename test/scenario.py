@@ -24,7 +24,7 @@ DEMO, BATTLE, CLASS, IDLE, DONE = 0x0203FF00, 0x0203FF02, 0x0203FF03, 0x0203FF05
 CHOICE = 0x0203FF10
 
 def ready(maxf=9000): w(f"until {IDLE:08x} 01 {maxf}")
-def done(maxf=40000): w(f"until {DONE:08x} 01 {maxf}")
+def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
 
 def setup(cls, choices, battle_mode=0):
     poke(DEMO, 1); poke(BATTLE, battle_mode); poke(CLASS, cls)
@@ -77,6 +77,39 @@ def helm():
     done()                                # battle + crash + beach + tally
     shot("s_tally")
 
+# --- living-encounter verifications -------------------------------------
+
+def _to_deck_cleared():
+    intro(); nursery(); surgery()
+    walk("DOWN", 1); ready(24000)         # deck brawl
+    walk("DOWN", 8); ready()              # door -> pods
+
+def sneak_strike_body():
+    """Bard flanks the deck straggler through its blind rear, strikes first,
+    and the kill persists across a deck<->pods round trip."""
+    _to_deck_cleared()
+    walk("UP", 1); ready()                # return door -> deck: straggler is up
+    walk("UP", 4); walk("RIGHT", 4); walk("DOWN", 1); walk("RIGHT", 2)
+    wait(30); shot("g_sneak")             # (16,6): in its blind spot
+    walk("DOWN", 1)                       # bump to face it
+    tap("A")                              # strike first: imp is surprised
+    wait(130); shot("g_strike")
+    ready(24000)
+    walk("DOWN", 3); walk("LEFT", 6); walk("DOWN", 1); ready()
+    walk("UP", 1); ready()                # round trip: doors both ways
+    wait(30); shot("g_stays_dead")        # no respawn
+
+def cone_ambush_body():
+    """Wizard blunders into the pods prowler's forward cone; it chases and
+    opens the fight with the party surprised."""
+    _to_deck_cleared()
+    walk("RIGHT", 1); walk("DOWN", 2)     # (9,3)
+    walk("RIGHT", 5)                      # (14,3): inside the front cone
+    wait(12); shot("g_alert")
+    wait(90); shot("g_chase")
+    ready(24000)                          # it reaches us: ambush
+    wait(30); shot("g_ambushed")
+
 SCN = {}
 def scn(f): SCN[f.__name__] = f; return f
 
@@ -100,6 +133,27 @@ def ranger_full():
     setup(2, [0, 0, 0, 0, 0])             # ranger, spare Us, save everyone, connect
     intro(); nursery(); surgery(); deck(); pods(); helm()
 
+@scn
+def sneak_strike():
+    setup(0, [0, 1, 0, 0, 2])
+    sneak_strike_body()
+
+@scn
+def cone_ambush():
+    setup(3, [0, 1, 0, 0, 2])
+    cone_ambush_body()
+
+@scn
+def helm_sleepz():
+    setup(3, [0, 1, 0, 0, 2], 2)
+    intro(); nursery(); surgery(); deck(); pods()
+    walk("UP", 5)
+    wait(500); shot("g_zz1")
+    wait(400); shot("g_zz2")
+    done()
+    shot("g_zz_end")
+
 if __name__ == "__main__":
     SCN[sys.argv[1]]()
     print("\n".join(out))
+

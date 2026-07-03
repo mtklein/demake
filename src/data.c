@@ -55,7 +55,16 @@ void party_init(int cls, const char* name) {
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
+    {
+        int party5_default_weapon(int cls);
+        G.weapon[0] = (u8)party5_default_weapon(cls);
+        G.nwinv = 0;
+    }
     party5_refresh(0);
+}
+
+void loot_weapon(int w) {
+    if (G.nwinv < 8) G.winv[G.nwinv++] = (u8)w;
 }
 
 void party_add_laezel(void) {
@@ -65,6 +74,10 @@ void party_add_laezel(void) {
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.flags |= GF_LAEZEL;
+    {
+        int party5_default_weapon(int cls);
+        G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_FIGHTER);
+    }
     party5_refresh(G.nparty - 1);
 }
 
@@ -76,6 +89,10 @@ void party_add_shadowheart(void) {
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.revivify += 1;
     G.flags |= GF_SH_FREED;
+    {
+        int party5_default_weapon(int cls);
+        G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_CLERIC);
+    }
     party5_refresh(G.nparty - 1);
 }
 

@@ -15,6 +15,7 @@ enum { ENC_WIN, ENC_CONNECTED };
 
 /* helm_rounds: 0 = normal fight; >0 = transponder countdown (that many
  * rounds; hero gains the Nerve! action; cambions warp in as it runs out) */
-int encounter_run(const EncSpawn* es, int n, int helm_rounds);
+/* surprise: 0 none, 1 enemies skip round 1, 2 party+allies skip round 1 */
+int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise);
 
 #endif

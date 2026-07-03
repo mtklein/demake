@@ -785,7 +785,7 @@ def render_sprite_preview(tiles):
     img = bytearray(b"\x28\x18\x28" * (w * h))
     # figure out palette per group from sprite table order
     grouppal = [OBJ_PALS[7]] * groups   # default: cursor pal
-    gi = 1  # group 0 = hand
+    gi = len(obj_tiles()[0]) // 4   # leading UI groups (hand, dice) precede field sprites
     order = list(SF.SPRITES.items())
     for name, spec in order:
         pal = OBJ_PALS[spec["pal"]] if spec["pal"] else pal16(SF.PAL_TAV["bard"])

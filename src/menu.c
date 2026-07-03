@@ -110,17 +110,61 @@ static void draw_overview(void) {
         *d++ = ' '; *d++ = ' ';
         d = mp_str(d, tac_names[G.tactics[i]]); *d = 0;
         txt_put_n(2, y + 2, b, 2, 14);
-        {
-            const char* w = (G.everburn && c->cls == CLS_FIGHTER)
-                          ? "Everburn Blade" : r5_weapons[party5_weapon(i)].name;
-            txt_put_n(2, y + 3, w, 2, 15);
-        }
+        txt_put_n(2, y + 3, r5_weapons[G.weapon[i]].name, 2, 15);
     }
     win_draw(19, 3, 11, 17);
     txt_put(22, 5, "Status", 0);
-    txt_put(22, 7, "Items", 0);
-    txt_put(22, 9, "Tactics", 0);
-    txt_put(22, 11, "Close", 0);
+    txt_put(22, 7, "Equip", 0);
+    txt_put(22, 9, "Items", 0);
+    txt_put(22, 11, "Tactics", 0);
+    txt_put(22, 13, "Close", 0);
+}
+
+/* "Rapier 1d8 fin" style line */
+static void weapon_line(char* d, int w) {
+    const R5Weapon* rw = &r5_weapons[w];
+    d = mp_str(d, rw->name);
+    *d++ = ' ';
+    d = mp_num(d, rw->dmg.n); *d++ = 'd'; d = mp_num(d, rw->dmg.sides);
+    if (rw->props & WP_FINESSE) d = mp_str(d, " fin");
+    if (rw->props & WP_RANGED) d = mp_str(d, " rng");
+    if (rw->props & WP_TWO_HANDED) d = mp_str(d, " 2h");
+    if (rw->rider_dmg.n) {
+        d = mp_str(d, rw->rider_type == DT_FIRE ? " +fire" : " +venom");
+    }
+    *d = 0;
+}
+
+static void equip_screen(void) {
+    for (;;) {
+        clear_all();
+        win_draw(1, 2, 28, 3 + G.nparty * 2);
+        txt_put(11, 3, "-- EQUIP --", 1);
+        char b[32];
+        for (int i = 0; i < G.nparty; i++) {
+            txt_put_n(4, 5 + i * 2, party5[i].name, 0, 7);
+            weapon_line(b, G.weapon[i]);
+            txt_put_n(12, 5 + i * 2, b, 2, 16);
+        }
+        int mi = pick_row(3, 5, 2, G.nparty);
+        if (mi < 0) return;
+        if (!G.nwinv) { sfx_play(SFX_CANCEL); continue; }
+
+        int wy = 6 + G.nparty * 2;
+        win_draw(1, wy, 28, G.nwinv + 3);
+        txt_put(4, wy + 1, "Carried:", 2);
+        for (int j = 0; j < G.nwinv; j++) {
+            weapon_line(b, G.winv[j]);
+            txt_put_n(6, wy + 2 + j, b, 0, 22);
+        }
+        int wj = pick_row(5, wy + 2, 1, G.nwinv);
+        win_clear(1, wy, 28, G.nwinv + 3);
+        if (wj < 0) continue;
+        u8 old = G.weapon[mi];
+        G.weapon[mi] = G.winv[wj];
+        G.winv[wj] = old;                 /* swap keeps the pool honest */
+        sfx_play(SFX_CONFIRM);
+    }
 }
 
 /* ---------------------------------------------------------------- sheet */
@@ -164,9 +208,9 @@ static void member_sheet(int i) {
     txt_put(2, 11, "* save proficiency", 2);
 
     {
-        const char* w = (G.everburn && c->cls == CLS_FIGHTER)
-                      ? "Everburn Blade +1d4f" : r5_weapons[party5_weapon(i)].name;
-        d = b; d = mp_str(d, "Weapon: "); d = mp_str(d, w); *d = 0;
+        char wl[32];
+        weapon_line(wl, G.weapon[i]);
+        d = b; d = mp_str(d, "Weapon: "); d = mp_str(d, wl); *d = 0;
         txt_put_n(2, 13, b, 0, 27);
     }
 
@@ -283,15 +327,16 @@ void field_menu(void) {
     sfx_play(SFX_CONFIRM);
     for (;;) {
         draw_overview();
-        int sel = pick_row(21, 5, 2, 4);
-        if (sel < 0 || sel == 3) break;
+        int sel = pick_row(21, 5, 2, 5);
+        if (sel < 0 || sel == 4) break;
         if (sel == 0) {
-            win_draw(19, 12, 11, G.nparty + 2);
+            win_draw(19, 14, 11, G.nparty + 2);
             for (int i = 0; i < G.nparty; i++)
-                txt_put_n(22, 13 + i, party5[i].name, 0, 7);
-            int m = pick_row(21, 13, 1, G.nparty);
+                txt_put_n(22, 15 + i, party5[i].name, 0, 7);
+            int m = pick_row(21, 15, 1, G.nparty);
             if (m >= 0) member_sheet(m);
-        } else if (sel == 1) items_screen();
+        } else if (sel == 1) equip_screen();
+        else if (sel == 2) items_screen();
         else tactics_screen();
     }
     clear_all();

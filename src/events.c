@@ -35,6 +35,7 @@
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
 static int n_imp[3] = { -1, -1, -1 };
+static int n_wander[2] = { -1, -1 };
 static u16 seen;                     /* room-intro-seen bits */
 static int sh_room_open;             /* Shadowheart pod opened this game */
 static int sh_waiting;               /* freed but not yet recruited */
@@ -59,6 +60,7 @@ void room_enter(int id, int sx, int sy, int face) {
     cur_room = id;
     n_us = n_lz = n_sh = n_zh = n_fl = -1;
     n_imp[0] = n_imp[1] = n_imp[2] = -1;
+    n_wander[0] = n_wander[1] = -1;
 
     switch (id) {
         case RM_NURSERY: field_load(map_nursery, MAP_NURSERY_W, MAP_NURSERY_H); break;
@@ -82,12 +84,21 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_imp[2] = field_add_npc(6, 2, OBJT_IMPF, 4, 0, NPC_2FRAME);
             }
             if (us_with_us()) n_us = field_add_npc(12, 5, OBJT_US, 3, 0, NPC_2FRAME);
+            if ((G.flags & (GF_DECK_FOUGHT | GF_W_DECK)) == GF_DECK_FOUGHT) {
+                /* a straggler imp prowls the far rail -- avoidable */
+                n_wander[0] = field_add_npc(16, 7, OBJT_IMPF, 4, 0, NPC_2FRAME);
+                field_npc_patrol(n_wander[0], 28);
+            }
             break;
         case RM_PODS:
             if (sh_room_open) field_set_meta(6, 2, MT_POD_O);
             if (G.flags & GF_RUNE) field_set_meta(5, 4, MT_CONSOLE_LIT);
             if (sh_waiting) n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
             if (us_with_us()) n_us = field_add_npc(14, 8, OBJT_US, 3, 0, NPC_2FRAME);
+            if (!(G.flags & GF_W_PODS)) {
+                n_wander[1] = field_add_npc(15, 2, OBJT_IMPF, 4, 0, NPC_2FRAME);
+                field_npc_patrol(n_wander[1], 28);
+            }
             break;
         case RM_HELM:
             n_zh = field_add_npc(4, 2, OBJT_ZHALKF, 6, 3, NPC_2FRAME);
@@ -123,7 +134,7 @@ static void door_to(int next, int sx, int sy) {
     room_enter(next, sx, sy, 0);
     field_draw();
     fade_in(14);
-    say("The sphincter door seals shut behind you.");
+    say("The sphincter door clenches shut behind you.");
     dlg_close();
     if (!(seen & (1 << next))) {
         seen |= (u16)(1 << next);
@@ -312,9 +323,15 @@ static void deck_fight(void) {
         deck5[nd].mon = R5M_DEVOURER; deck5[nd].npc = (s8)n_us;
         deck5[nd].xp = 0; deck5[nd].side = 2; nd++;
     }
-    encounter_run(deck5, nd, 0);
+    encounter_run(deck5, nd, 0, 0);
     G.flags |= GF_DECK_FOUGHT;
     music(SONG_EXPLORE);
+    if (!(G.flags & GF_STINGER)) {
+        G.flags |= GF_STINGER;
+        loot_weapon(R5W_STINGER);
+        sfx_play(SFX_CONFIRM);
+        say("You cut the largest imp's stinger free. Still dripping. (A weapon, for the brave.)");
+    }
     SAY_LZ("LAE'ZEL: \"You prove surprisingly adequate in battle. Now -- to the helm.\"");
     if (us_with_us()) SAY_US("US: \"Us helped. Us HELPED!\"");
     dlg_close();
@@ -325,6 +342,33 @@ static void deck_interact(int mx, int my, int m) {
     (void)mx; (void)my;
     if (m == MT_RESTO) { heal_pod(); return; }
     if (m == MT_GITH_CORPSE) {
+        if (mx == 12 && my == 6 && !(G.flags & GF_DUELIST)) {
+            G.flags |= GF_DUELIST;
+            static const u8 find[4] = { R5W_RAPIER, R5W_SHORTSWORD,
+                                        R5W_TRIDENT, R5W_DAGGER };
+            int w = find[G.pm[0].cls];
+            say("A githyanki duelist, dead at her post. Her kit survived the fire.");
+            if (isclass(CLS_BARD))
+                say("[BARD] Beneath the ash: a dueling rapier, silvered and balanced. It suits your hand like it was made for it.");
+            if (isclass(CLS_ROGUE))
+                say("[ROGUE] A silvered shortsword, weighted for quick, quiet work.");
+            if (isclass(CLS_RANGER))
+                say("[RANGER] A boarding trident -- made for ship-to-ship slaughter. It throws true.");
+            if (isclass(CLS_WIZARD))
+                say("[WIZARD] A balanced throwing dagger. Considerably better than a stick.");
+            loot_weapon(w);
+            sfx_play(SFX_CONFIRM);
+            say_keep("Take it up now?");
+            static const char* const o[] = { "Equip it", "Pocket it" };
+            if (choose(2, o) == 0) {
+                u8 old = G.weapon[0];
+                G.weapon[0] = G.winv[--G.nwinv];
+                loot_weapon(old);
+                say("It settles into your grip.");
+            }
+            dlg_close();
+            return;
+        }
         say("A githyanki warrior, burnt where she stood. Her greatsword has melted into her hands.");
         dlg_close();
         return;
@@ -437,7 +481,7 @@ static void victims_console(void) {
             { R5M_THRALL, (s8)t0, 60, 1 },
             { R5M_THRALL, (s8)t1, 60, 1 },
         };
-        encounter_run(th, 2, 0);
+        encounter_run(th, 2, 0, 1);   /* they wake mid-lunge: surprised */
     }
     music(SONG_EXPLORE);
     say("The thralls lie still. Freedom of a kind, you suppose.");
@@ -508,7 +552,7 @@ static void helm_battle(void) {
     if (us_with_us() && n_us >= 0) {
         hs[nh].mon = R5M_DEVOURER; hs[nh].npc = (s8)n_us; hs[nh].xp = 0; hs[nh].side = 2; nh++;
     }
-    int r = encounter_run(hs, nh, 15);
+    int r = encounter_run(hs, nh, 15, 0);
     if (r == ENC_CONNECTED) crash_sequence(0);
     else crash_sequence(1);
 }
@@ -551,11 +595,13 @@ void ev_interact(int mx, int my) {
 void ev_step(int mx, int my) {
     int m = field_meta_at(mx, my);
     if (m == MT_DOOR_C) {
-        switch (cur_room) {
+        switch (cur_room) {                /* top-wall doors lead backward */
             case RM_NURSERY: door_to(RM_SURGERY, 7, 1); return;
             case RM_SURGERY: door_to(RM_DECK, 10, 1); return;
-            case RM_DECK:    door_to(RM_PODS, 8, 1); return;
-            case RM_PODS:    door_to(RM_HELM, 9, 10); return;
+            case RM_DECK:    door_to(my == 0 ? RM_SURGERY : RM_PODS,
+                                     my == 0 ? 7 : 8, my == 0 ? 8 : 1); return;
+            case RM_PODS:    if (my == 0) { door_to(RM_DECK, 10, 8); return; }
+                             door_to(RM_HELM, 9, 10); return;
         }
     }
     if (cur_room == RM_PODS && mx == 12 && my == 5 && !(G.flags & GF_RUNE)) {
@@ -575,7 +621,32 @@ void ev_step(int mx, int my) {
     }
 }
 
+static int is_wanderer(int idx) {
+    return idx >= 0 && (idx == n_wander[0] || idx == n_wander[1]);
+}
+
+static void wanderer_fight(int idx, int surprise) {
+    u16 dead = idx == n_wander[0] ? GF_W_DECK : GF_W_PODS;
+    EncSpawn sp = { R5M_LESSER_IMP, (s8)idx, 40, 1 };
+    if (encounter_run(&sp, 1, 0, surprise) == ENC_WIN) G.flags |= dead;
+    music(SONG_EXPLORE);
+}
+
+void ev_aggro(int idx) {
+    if (!is_wanderer(idx)) return;
+    say("The imp shrieks -- it has your scent!");
+    dlg_close();
+    wanderer_fight(idx, 2);          /* it found you: party surprised */
+}
+
 void ev_npc(int idx) {
+    if (is_wanderer(idx)) {
+        if (npcs[idx].chasing) { wanderer_fight(idx, 0); return; }
+        say("It hasn't seen you. You strike first!");
+        dlg_close();
+        wanderer_fight(idx, 1);      /* unaware: enemies surprised */
+        return;
+    }
     if (idx == n_us) {
         static int said;
         if (!said) { said = 1; SAY_US("US: \"We are us. We are needed to navigate -- needed to LEAVE this realm.\""); }

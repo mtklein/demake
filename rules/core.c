@@ -123,6 +123,21 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
     if (flags & R5F_SNEAK) extra += r5_sneak_dice(a);
     out.dmg = damage_roll(r, spec, abil, out.crit, extra);
     out.damage = (int16_t)scale_damage(t, out.dmg.total, w->dmg_type);
+
+    if (w->rider_dmg.n) {                                   /* magic weapon rider */
+        R5DiceSpec rs = w->rider_dmg;
+        if (out.crit) rs.n = (uint8_t)(rs.n * 2);
+        out.rider_dmg = r5_roll(r, rs.n, rs.sides, rs.mod);
+        int amt = out.rider_dmg.total;
+        if (w->rider_dc) {
+            R5Save sv = r5_save(r, t, w->rider_save_ab, w->rider_dc, 0);
+            out.rider_save = sv.d20;
+            out.rider_saved = sv.success;
+            if (sv.success) amt /= 2;
+        }
+        out.rider_damage = (int16_t)scale_damage(t, amt, w->rider_type);
+        out.rider_type = w->rider_type;
+    }
     return out;
 }
 

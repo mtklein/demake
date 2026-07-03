@@ -20,8 +20,11 @@ typedef struct {
     u8 potions, revivify;
     u8 everburn;
     u8 tactics[3];       /* DQ-style per-member battle AI (TAC_*) */
+    u8 weapon[3];        /* equipped R5W_* per member */
+    u8 winv[8], nwinv;   /* unequipped weapons found around the ship */
     u16 flags;
 } Game;
+void loot_weapon(int w);          /* add to inventory (menu equips) */
 extern Game G;
 
 enum {
@@ -37,6 +40,10 @@ enum {
     GF_DECK_FOUGHT  = 1 << 9,
     GF_CONSOLE_SEEN = 1 << 10,
     GF_RELIQUARY    = 1 << 11,
+    GF_DUELIST      = 1 << 12,
+    GF_STINGER      = 1 << 13,
+    GF_W_DECK       = 1 << 14,   /* deck straggler slain */
+    GF_W_PODS       = 1 << 15,   /* pods prowler slain */
 };
 
 #define HERO_CLS (G.pm[0].cls)

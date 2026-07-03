@@ -97,6 +97,9 @@ typedef struct {
     R5DiceSpec versatile;      /* n==0 if not versatile */
     uint16_t props;
     uint8_t dmg_type;
+    R5DiceSpec rider_dmg;      /* on-hit rider (Everburn fire, Stinger venom) */
+    uint8_t rider_type;
+    uint8_t rider_save_ab, rider_dc;   /* dc 0 = no save, full damage */
 } R5Weapon;
 
 typedef struct {
@@ -208,6 +211,7 @@ void   r5_short_rest(R5Creature*);               /* reset per-rest resources */
 extern const R5Weapon r5_weapons[];
 enum { R5W_DAGGER, R5W_SHORTSWORD, R5W_LONGSWORD, R5W_GREATSWORD, R5W_RAPIER,
        R5W_MACE, R5W_QUARTERSTAFF, R5W_SHORTBOW, R5W_LONGBOW, R5W_TRIDENT,
+       R5W_EVERBURN, R5W_STINGER,   /* homebrew loot (tools/srd/overrides.py) */
        R5W_COUNT };
 
 extern const R5Class r5_classes[R5C_COUNT];

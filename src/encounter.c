@@ -152,6 +152,7 @@ static const u8 dmg_pal_tab[DT_COUNT] = {
  * Every rolled die appears as its polyhedron with the value overdrawn,
  * tinted by damage type, in a row under the message bar. */
 #define OBJ_DICE 56
+#define OBJ_ZZ 50                /* sleep marker overlays, 3 slots */
 static int tray_n;
 
 static int die_objt(int sides) {
@@ -187,6 +188,7 @@ static void tray_dice(const R5Dice* d, int pal) {
 
 static void tray_clear(void) {
     for (int i = 0; i < 8 * 3; i++) obj_hide(OBJ_DICE + i);
+    for (int i = 0; i < 3; i++) obj_hide(OBJ_ZZ + i);
     tray_n = 0;
 }
 
@@ -237,9 +239,34 @@ static void ec_face_toward(EC* e, const EC* t) {
     npcs[e->npc].face = (u8)(adx > ady ? (dx > 0 ? 3 : 2) : (dy > 0 ? 0 : 1));
 }
 
+/* downed PCs lie where they fell; sleepers snore visibly */
+static void garnish_draw(void) {
+    static const u16 pko[6] = { OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO,
+                                OBJT_HERO_KO, OBJT_LAEZEL_KO, OBJT_SHADOW_KO };
+    static const u16 pup[6] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
+                                OBJT_LAEZEL, OBJT_SHADOW };
+    int zs = 0;
+    for (int i = 0; i < nec; i++) {
+        EC* e = &ec[i];
+        if (e->npc < 0 || (npcs[e->npc].flags & NPC_GONE)) continue;
+        int out = (e->c->conds & C_UNCONSCIOUS) != 0;
+        if (e->side == 0) {
+            int cls = G.pm[e->pi].cls;
+            npcs[e->npc].objt = out ? pko[cls] : pup[cls];
+            if (out) npcs[e->npc].face = 0;
+        } else if (out && e->c->hp > 0 && zs < 3) {
+            obj_set(OBJ_ZZ + zs, ec_sx(e) + 6, ec_sy(e) - 12, 1,
+                    OBJT_SLEEPZ, 15, 0);
+            zs++;
+        }
+    }
+    while (zs < 3) obj_hide(OBJ_ZZ + zs++);
+}
+
 static void pump(int n) {
     while (n--) {
         frame();
+        garnish_draw();
         field_draw();
         status_draw();
     }
@@ -366,7 +393,18 @@ static void deal(EC* t, int amount, u8 type, int scr_pop) {
                 bar_wait("Zhalk falls!");
                 G.everburn = 1;
                 G.flags |= GF_ZHALK_DEAD;
-                bar_wait("Everburn Blade claimed!");
+                /* the blade goes to the fighter if present, else the pack */
+                int fi = -1;
+                for (int pi2 = 0; pi2 < G.nparty; pi2++)
+                    if (G.pm[pi2].cls == CLS_FIGHTER) fi = pi2;
+                if (fi >= 0) {
+                    loot_weapon(G.weapon[fi]);
+                    G.weapon[fi] = R5W_EVERBURN;
+                    bar_wait("Lae'zel takes the blade!");
+                } else {
+                    loot_weapon(R5W_EVERBURN);
+                    bar_wait("Everburn Blade claimed!");
+                }
                 mgba_log("zhalk dead, everburn claimed");
             }
         } else {
@@ -471,11 +509,6 @@ static void strike(EC* a, EC* t) {
         bar_damage(&at);
         if (at.rider_dmg.n && t->c->hp > 0 && at.rider_damage > 0)
             deal(t, at.rider_damage, at.rider_type, 1);
-        if (a->side == 0 && G.everburn && G.pm[a->pi].cls == CLS_FIGHTER &&
-            t->c->hp > 0) {
-            R5Dice fd = r5_roll(&rng, 1, 4, 0);   /* the blade burns */
-            deal(t, fd.total, DT_FIRE, 1);
-        }
         if (melee && t->c->hp > 0) { a->engaged = (s8)(t - ec); t->engaged = (s8)(a - ec); }
     }
     post_attack(a, t, &at);
@@ -1017,7 +1050,7 @@ static void add_mon(int mon, int npc, int side, u16 xp) {
     e->xp = xp;
 }
 
-int encounter_run(const EncSpawn* es, int n, int helm_rounds) {
+int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise) {
     Game gsnap = G;
     R5Creature p5snap[3];
     for (int i = 0; i < 3; i++) p5snap[i] = party5[i];
@@ -1112,6 +1145,17 @@ retry:
             if (a->c->conds & C_UNCONSCIOUS) {
                 if (a->side == 1 && a->c->hp > 0) bar("Fast asleep...");
                 continue;
+            }
+            if (round_no == 1 && surprise &&
+                ((surprise == 1 && a->side == 1) ||
+                 (surprise == 2 && a->side != 1))) {
+                char sm[48]; char* sd = sm;
+                sd = put_str(sd, a->c->name);
+                sd = put_str(sd, " is surprised!");
+                *sd = 0;
+                bar(sm);
+                pump(20);
+                continue;                       /* 5e surprise: no round-1 turn */
             }
             a->dodge = 0;                   /* dodge lasts until your turn */
             a->reacted = 0;

@@ -28,7 +28,8 @@ static u8 class_ac(int cls, int dexmod) {
     }
 }
 static const u8 gen_weapon[6] = {
-    [CLS_BARD] = R5W_RAPIER, [CLS_ROGUE] = R5W_DAGGER,
+    [CLS_BARD] = R5W_DAGGER,   /* the rapier is out there, on a duelist */
+    [CLS_ROGUE] = R5W_DAGGER,
     [CLS_RANGER] = R5W_LONGBOW, [CLS_WIZARD] = R5W_QUARTERSTAFF,
     [CLS_FIGHTER] = R5W_GREATSWORD, [CLS_CLERIC] = R5W_MACE,
 };
@@ -37,7 +38,8 @@ static const u8 cast_ab_tab[6] = {
     [CLS_WIZARD] = R5_INT, [CLS_FIGHTER] = R5_STR, [CLS_CLERIC] = R5_WIS,
 };
 
-int party5_weapon(int i) { return gen_weapon[G.pm[i].cls]; }
+int party5_weapon(int i) { return G.weapon[i]; }
+int party5_default_weapon(int cls) { return gen_weapon[cls]; }
 int party5_cast_ab(int cls) { return cast_ab_tab[cls]; }
 int party5_spell_dc(const R5Creature* c) {
     return 8 + r5_prof(c) + r5_mod(c->ab[cast_ab_tab[c->cls]]);

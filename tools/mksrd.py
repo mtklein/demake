@@ -49,25 +49,33 @@ def dmg_mask(names):
 
 # ---------------------------------------------------------------- weapons
 
-WEAPON_MAP = [  # (enum, srd key) in rules.h R5W_ order
-    ("R5W_DAGGER", "dagger"), ("R5W_SHORTSWORD", "shortsword"),
-    ("R5W_LONGSWORD", "longsword"), ("R5W_GREATSWORD", "greatsword"),
-    ("R5W_RAPIER", "rapier"), ("R5W_MACE", "mace"),
-    ("R5W_QUARTERSTAFF", "quarterstaff"), ("R5W_SHORTBOW", "shortbow"),
-    ("R5W_LONGBOW", "longbow"), ("R5W_TRIDENT", "trident"),
+WEAPON_MAP = [  # (enum, source, key) in rules.h R5W_ order
+    ("R5W_DAGGER", "srd", "dagger"), ("R5W_SHORTSWORD", "srd", "shortsword"),
+    ("R5W_LONGSWORD", "srd", "longsword"), ("R5W_GREATSWORD", "srd", "greatsword"),
+    ("R5W_RAPIER", "srd", "rapier"), ("R5W_MACE", "srd", "mace"),
+    ("R5W_QUARTERSTAFF", "srd", "quarterstaff"), ("R5W_SHORTBOW", "srd", "shortbow"),
+    ("R5W_LONGBOW", "srd", "longbow"), ("R5W_TRIDENT", "srd", "trident"),
+    ("R5W_EVERBURN", "ovr", "everburn blade"), ("R5W_STINGER", "ovr", "imp stinger"),
 ]
 
 def gen_weapons(o):
     o.append("const R5Weapon r5_weapons[] = {")
-    for enum, key in WEAPON_MAP:
-        w = SRD.WEAPONS[key]
+    for enum, src, key in WEAPON_MAP:
+        w = (SRD.WEAPONS if src == "srd" else OVR.WEAPONS)[key]
         props = [WP[p] for p in w["properties"] if p in WP]
         if not w.get("melee", True):
             props.append("WP_RANGED")
-        o.append("    [%s] = { \"%s\", %s, %s, %s, %s }," % (
-            enum, key.capitalize(), dice(w["dice"]),
+        rider = w.get("rider")
+        if rider:
+            ab, dc = rider["save"]
+            rtxt = "%s, %s, %d, %d" % (dice(rider["dice"]),
+                                       DT[rider["dmg_type"]], AB[ab], dc)
+        else:
+            rtxt = "{ 0, 0, 0 }, 0, 0, 0"
+        o.append("    [%s] = { \"%s\", %s, %s, %s, %s, %s }," % (
+            enum, w.get("display", key.capitalize()), dice(w["dice"]),
             dice(w.get("versatile_dice", "")),
-            " | ".join(props) if props else "0", DT[w["dmg_type"]]))
+            " | ".join(props) if props else "0", DT[w["dmg_type"]], rtxt))
     o.append("};")
 
 # ---------------------------------------------------------------- classes

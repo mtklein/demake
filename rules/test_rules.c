@@ -368,7 +368,29 @@ static void test_expectations(void) {
     }
 }
 
+static void test_weapon_rider(void) {
+    R5RNG r; r5_seed(&r, 13);
+    R5Creature a = pc(R5C_FIGHTER, 2, 16, 10, 14);
+    R5Creature t = monster(1, 30000);          /* always hit */
+    int hits = 0, saves = 0, fullhits = 0;
+    for (int i = 0; i < 2000; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &t, &r5_weapons[R5W_EVERBURN], 0);
+        if (!at.hit) continue;
+        hits++;
+        CHECK(at.rider_dmg.n >= 1);            /* 1d4 fire, 2d4 on crit */
+        CHECK(at.rider_type == DT_FIRE);
+        if (at.crit) CHECK(at.rider_dmg.n == 2);
+        if (at.rider_saved) { saves++; CHECK(at.rider_damage == at.rider_dmg.total / 2); }
+        else { fullhits++; CHECK(at.rider_damage == at.rider_dmg.total); }
+    }
+    CHECK(hits > 1500 && saves > 100 && fullhits > 100);
+    /* plain weapons have no rider */
+    R5Attack at = r5_weapon_attack(&r, &a, &t, &r5_weapons[R5W_GREATSWORD], 0);
+    if (at.hit) CHECK(at.rider_dmg.n == 0);
+}
+
 int main(void) {
+    test_weapon_rider();
     test_expectations();
     test_dice();
     test_advantage();
