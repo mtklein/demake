@@ -420,6 +420,12 @@ def gen_screens():
         C += fn + [""]
         H.append(f"void scr_{scr['name']}(void);")
 
+    seen = set()
+    for line in H:
+        if line.startswith("#define"):
+            key = line.split()[1]
+            assert key not in seen, f"duplicate screen define {key}"
+            seen.add(key)
     H.append("#endif")
     return H, C
 

@@ -10,14 +10,17 @@ TITLE := NAUTILOID
 
 ARCH    := -mcpu=arm7tdmi -mthumb
 CFLAGS  := $(ARCH) -O2 -g -Wall -Wextra -ffreestanding -fno-strict-aliasing \
-           -Isrc -I$(BUILD)/gen
+           -Isrc -Irules -I$(BUILD)/gen
 LDFLAGS := $(ARCH) -nostdlib -T gba.ld -Wl,-Map,$(BUILD)/rom.map
+HOSTCC  ?= cc
 
-CSRC   := $(wildcard src/*.c)
-GENSRC := $(BUILD)/gen/assets.c $(BUILD)/gen/screens.c
-OBJ    := $(BUILD)/crt0.o \
-          $(patsubst src/%.c,$(BUILD)/%.o,$(CSRC)) \
-          $(BUILD)/gen/assets.o $(BUILD)/gen/screens.o
+CSRC     := $(wildcard src/*.c)
+RULESSRC := rules/dice.c rules/core.c rules/features.c rules/tables.c
+GENSRC   := $(BUILD)/gen/assets.c $(BUILD)/gen/screens.c
+OBJ      := $(BUILD)/crt0.o \
+            $(patsubst src/%.c,$(BUILD)/%.o,$(CSRC)) \
+            $(patsubst rules/%.c,$(BUILD)/r_%.o,$(RULESSRC)) \
+            $(BUILD)/gen/assets.o $(BUILD)/gen/screens.o
 
 TOOLSRC := $(wildcard tools/*.py tools/art/*.py tools/music/*.py)
 
@@ -39,6 +42,17 @@ $(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h $(BUILD)/gen/screens.h | $
 
 $(BUILD)/gen/%.o: $(BUILD)/gen/%.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/r_%.o: rules/%.c rules/rules.h | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+.PHONY: test-rules
+test-rules: $(BUILD)/test_rules
+	$(BUILD)/test_rules
+
+$(BUILD)/test_rules: $(RULESSRC) rules/rules.h rules/test_rules.c | $(BUILD)
+	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules \
+	    -o $@ $(RULESSRC) rules/test_rules.c
 
 $(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)
 	$(PY) tools/mkassets.py

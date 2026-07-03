@@ -88,7 +88,7 @@ SCREENS = [
             {"id": "hdr", "y": 1, "rows": [
                 row("c", l("Name this soul:", 0), g(1), s("name", 6)),
             ]},
-            {"id": "grid", "x": 1, "y": 6, "minw": 25, "rows": [
+            {"id": "gridbox", "x": 1, "y": 6, "minw": 25, "rows": [
                 BLANK,
                 row("l", m("grid")),
                 BLANK,
