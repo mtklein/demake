@@ -234,6 +234,9 @@ void field_run(void) {
                 int ni = npc_at(fx, fy);
                 if (ni >= 0) ev_npc(ni);
                 else ev_interact(fx, fy);
+            } else if (key_hit() & KEY_START) {
+                void field_menu(void);
+                field_menu();
             }
         } else {
             ppx += tdx * 2; ppy += tdy * 2;
