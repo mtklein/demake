@@ -294,7 +294,7 @@ void field_run(void) {
             static u8 turn_t;                 /* tap turns; hold walks */
             if (dir < 0) turn_t = 0;              /* released: window closes */
             if (dir >= 0) {
-                if (dir != (int)pface) { pface = (u8)dir; turn_t = 6; }
+                if (dir != (int)pface) { pface = (u8)dir; turn_t = 3; }
                 else if (turn_t) turn_t--;
                 else {
                     int nx = ppx / 16 + dx[dir], ny = ppy / 16 + dy[dir];

@@ -192,10 +192,16 @@ static void tray_dice(const R5Dice* d, int pal) {
 
 static void tray_clear(void) {
     for (int i = 0; i < 8 * 3; i++) obj_hide(OBJ_DICE + i);
+    tray_n = 0;
+}
+
+/* battle-end OBJ + state cleanup (tray_clear runs after EVERY attack --
+ * resetting g_act there silently killed the engagement tether) */
+static void enc_garnish_clear(void) {
+    tray_clear();
     for (int i = 0; i < 3; i++) obj_hide(OBJ_ZZ + i);
     for (int i = 0; i < 5; i++) obj_hide(OBJ_TETH + i);
     g_act = 0; tsel_a = 0;
-    tray_n = 0;
 }
 
 /* everything an attack rolled, laid out: d20(s), bless, damage, rider */
@@ -261,7 +267,7 @@ static void garnish_draw(void) {
                                 OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO };
     static const u16 pup[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
                                 OBJT_LAEZEL, OBJT_SHADOW,
-                                OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO };
+                                OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
     int zs = 0;
     for (int i = 0; i < nec; i++) {
         EC* e = &ec[i];
@@ -283,6 +289,12 @@ static void garnish_draw(void) {
     gt++;
     if (g_act && g_act->engaged >= 0 && conscious(&ec[g_act->engaged])) {
         EC* o = &ec[g_act->engaged];
+        static s16 logged = -1;
+        s16 pair = (s16)((g_act - ec) * 32 + g_act->engaged);
+        if (pair != logged) {
+            logged = pair;
+            mgba_logf("tether %s<->%s", g_act->c->name, o->c->name);
+        }
         int x0 = ec_sx(g_act) + 8, y0 = ec_sy(g_act) + 8;
         int dx = ec_sx(o) + 8 - x0, dy = ec_sy(o) + 8 - y0;
         for (int i = 0; i < 3; i++) {
@@ -540,7 +552,10 @@ static void strike(EC* a, EC* t) {
         bar_damage(&at);
         if (at.rider_dmg.n && t->c->hp > 0 && at.rider_damage > 0)
             deal(t, at.rider_damage, at.rider_type, 1);
-        if (melee && t->c->hp > 0) { a->engaged = (s8)(t - ec); t->engaged = (s8)(a - ec); }
+        if (melee && t->c->hp > 0) {
+            a->engaged = (s8)(t - ec); t->engaged = (s8)(a - ec);
+            mgba_logf("engage %s<->%s", a->c->name, t->c->name);
+        }
     }
     post_attack(a, t, &at);
     if (melee) dash_home(a);
@@ -1138,7 +1153,7 @@ retry:
     static const s8 form[3][2] = { { 0, 0 }, { -20, 16 }, { 20, 16 } };
     static const u16 pobj[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
                                  OBJT_LAEZEL, OBJT_SHADOW,
-                                 OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO };
+                                 OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
     static const u8 ppal[CLS_COUNT] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < G.nparty; i++) {
         int cls = G.pm[i].cls;
@@ -1259,6 +1274,7 @@ victory:
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
     field_hide_player(0);
     field_cam_override(0, 0, 0);
+    enc_garnish_clear();
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);
@@ -1271,6 +1287,7 @@ connected:
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
     field_hide_player(0);
     field_cam_override(0, 0, 0);
+    enc_garnish_clear();
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);
@@ -1286,6 +1303,7 @@ wipe:
     for (int i = 0; i < 3; i++) party5[i] = p5snap[i];
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);
     field_cam_override(0, 0, 0);
+    enc_garnish_clear();
     win_clear(0, 0, 30, 3);
     win_clear(26, 0, 4, 3);
     win_clear(0, 15, 30, 5);

@@ -14,9 +14,9 @@ def w(s): out.append(s)
 def wait(n): w(f"wait {n}")
 _face = ['DOWN']          # scenario-side facing tracker (spawns face DOWN)
 def _pre_turn(k):
-    """the field turns in place for 7 frames when direction changes"""
+    """the field turns in place for 4 frames when direction changes"""
     if _face[0] != k:
-        w(f"hold {k} 7")
+        w(f"hold {k} 4")
         _face[0] = k
 
 def tap(k, n=1, gap=8):
@@ -145,6 +145,20 @@ def rogue_mutilate():
 def ranger_full():
     setup(2, [0, 0, 0, 0, 0])             # ranger, spare Us, save everyone, connect
     intro(); nursery(); surgery(); deck(); pods(); helm()
+
+@scn
+def tether_check():
+    """Manual deck fight: form a melee engagement and see the tether draw.
+    The gate asserts the 'engage' and 'tether' log lines."""
+    setup(0, [0, 1, 0, 0, 2])
+    poke(0x0203FF07, 1)                  # G_MANUAL_BAT: menus are ours
+    intro(); nursery(); surgery()
+    walk("DOWN", 1)                      # trigger the deck brawl
+    wait(600)                            # cutscene + initiative
+    tap("A", 60, gap=26)                 # drive Attack->target->confirm, rounds of it
+    poke(0x0203FF07, 0)                  # hand the rest back to the AI
+    tap("B", 4, gap=20); tap("A", 12, gap=30)
+    wait(1200)                           # assertion is the tether log, not the win
 
 @scn
 def sneak_strike():
