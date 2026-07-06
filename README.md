@@ -52,12 +52,14 @@ Healer, No Slots — so companions can fight themselves while you drive the hero
 
 ## The mission
 
-Wake in a pod aboard a mind flayer warship falling through Avernus. First choose
-**who you were** — one of six origin heroes (Astarion, Gale, Karlach, Lae'zel,
-Shadowheart, Wyll), **The Dark Urge** (a custom character who hears intrusive
-thoughts), or a **custom Tav** built from scratch: any of the **twelve D&D
-classes**, three subclasses each, with a race, background, standard-array stats,
-and skill proficiencies. Then fight your way to the helm before the ship crashes.
+Wake in a pod aboard a mind flayer warship falling through Avernus. First pick
+your **class** — any of the **twelve D&D classes**, three subclasses each — then
+choose **who you are**: a **custom Tav** built from scratch (race, background,
+standard-array stats, skill proficiencies), that class's **origin hero**
+(Astarion the rogue, Gale the wizard, Karlach the barbarian, Lae'zel the
+fighter, Shadowheart the cleric, Wyll the warlock), or **The Dark Urge** — a
+custom character, any class, who hears intrusive thoughts. Then fight your way
+to the helm before the ship crashes.
 
 Faithful beats from the BG3 prologue, condensed into an FF4 dungeon:
 
