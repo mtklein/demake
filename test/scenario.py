@@ -161,6 +161,17 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def durge_check():
+    """Dark Urge origin hears intrusive thoughts (asserts the urge-line log)"""
+    poke(DEMO, 1); poke(BATTLE, 0); poke(CLASS, 1); poke(0x0203FF0E, 6)
+    for i, byte in enumerate((0x01, 0xEE, 0xFF, 0xC0)): poke(0x0203FF38 + i, byte)
+    for k in range(16): poke(0x0203FF10 + k, 0)
+    poke(0x0203FF05, 0); poke(0x0203FF06, 0)
+    wait(700)
+    w(f"until {IDLE:08x} 01 12000")   # nursery reached; wake URGE line already fired
+    shot("durge_wake")
+
+@scn
 def origin_check():
     """Shadowheart origin: cleric, Masks subclass (id 16) from level 1, her name"""
     poke(DEMO, 1); poke(BATTLE, 0); poke(0x0203FF0E, 4)   # origin = Shadowheart

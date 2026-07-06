@@ -41,6 +41,8 @@ static int sh_room_open;             /* Shadowheart pod opened this game */
 static int sh_waiting;               /* freed but not yet recruited */
 
 static int isclass(int c) { return G.pm[0].cls == c; }
+static int is_durge(void) { return G.origin == ORIG_DURGE; }
+#define URGE(t) do { if (is_durge()) { mgba_log("urge-line"); say("[URGE] " t); } } while (0)
 static int us_with_us(void) {
     return (G.flags & GF_US_FREED) && !(G.flags & GF_US_MUTILATED);
 }
@@ -122,6 +124,7 @@ void intro_wake(void) {
         say("[WIZARD] You know the word for this: ceremorphosis. In days, you become one of THEM.");
     if (isclass(CLS_BARD))
         say("[BARD] Wonderful. You finally have a story no one will believe.");
+    URGE("Behind the passenger, something older stirs, and it is glad. It missed the killing.");
     dlg_close();
 }
 
@@ -220,6 +223,7 @@ static void us_extraction(void) {
     }
     say("An elf sits strapped upright, skullcap hinged open. He is dying. The BRAIN inside is not.");
     say("\"Free us,\" it pleads. \"We are needed to navigate. Needed to LEAVE this realm.\"");
+    URGE("So soft. So exposed. It would take one squeeze. You could just... watch.");
     if (isclass(CLS_WIZARD))
         say("[WIZARD] Arcana tells you plainly: that is a newborn intellect devourer.");
 
@@ -248,6 +252,7 @@ static void us_extraction(void) {
     field_set_meta(7, 2, MT_MYRNATH_EMPTY);
 
     say("It stands on tiny legs. \"We are us,\" it announces. \"We will fight beside you.\"");
+    URGE("Trusting. They always trust you, right up until. Mutilate is such a warm word.");
     say_keep("The brain looks up at you, trusting.");
     static const char* const opts2[] = { "Welcome, Us.", "Mutilate it" };
     int c2 = choose(2, opts2);
