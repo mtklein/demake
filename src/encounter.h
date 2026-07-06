@@ -1,8 +1,22 @@
 #ifndef ENCOUNTER_H
 #define ENCOUNTER_H
 #include "gba.h"
+#include "rules.h"
 
 /* Battle 2.0: 5e encounters fought in place on the field map. */
+
+/* Inputs to the root battle-menu build, decoupled from the (file-private)
+ * combatant struct so the host harness (test/host) can pin the exact
+ * per-class/level kit. pc_turn fills one of these each menu pass. */
+typedef struct {
+    u8 cls, level;        /* PMember class/level (stable across wild shape) */
+    u8 shaped, smited, hidden;
+    s8 engaged;           /* >= 0 shows Disengage */
+    u8 action, bonus;     /* turn economy already spent */
+    u8 nerve;             /* helm-objective row visible */
+} PcMenuCtx;
+int pc_menu_build(const R5Creature* c, const PcMenuCtx* x,
+                  const char** items, u8* code);   /* returns row count */
 
 typedef struct {
     u8 mon;     /* R5M_* stat block */

@@ -981,6 +981,58 @@ static const struct { u8 cls, spell; const char* label; } spell_kit[] = {
     { CLS_PALADIN,  R5S_BLESS,           "Bless"     },
 };
 
+/* Root battle-menu build, extracted verbatim from pc_turn so the host
+ * harness can pin the exact kit per class/level (see encounter.h). */
+int pc_menu_build(const R5Creature* c, const PcMenuCtx* x,
+                  const char** items, u8* code) {
+    int cls = x->cls, n = 0;
+    if (!x->action) {
+        items[n] = "Attack"; code[n++] = 0;
+        if (cls == CLS_DRUID && !x->shaped && x->level >= 2 &&
+            c->rsrc[R5R_SHAPE]) { items[n] = "WildShape"; code[n++] = 25; }
+        for (unsigned ki = 0; x->shaped == 0 &&
+             ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
+            if (spell_kit[ki].cls != cls) continue;
+            const R5Spell* s = &r5_spells[spell_kit[ki].spell];
+            if (s->bonus_action) continue;              /* bonus section */
+            if (s->level > 0) {
+                int have = cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
+                                              : c->slots[s->level - 1];
+                if (!have) continue;
+            }
+            if (s->concentration && c->concentrating) continue;
+            items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
+        }
+        if (cls == CLS_PALADIN && c->rsrc[R5R_LAY]) { items[n] = "Lay Hands"; code[n++] = 22; }
+        if (cls == CLS_PALADIN && c->slots[0] && !x->smited) { items[n] = "Smite"; code[n++] = 24; }
+        items[n] = "Item"; code[n++] = 1;
+        items[n] = "Dodge"; code[n++] = 2;
+        if (x->engaged >= 0) { items[n] = "Disengage"; code[n++] = 3; }
+    }
+    if (!x->bonus) {
+        if (cls == CLS_FIGHTER && r5_can_second_wind(c)) { items[n] = "2nd Wind"; code[n++] = 4; }
+        if (r5_can_rage(c)) { items[n] = "RAGE!"; code[n++] = 20; }
+        if (cls == CLS_MONK && x->action && c->rsrc[R5R_KI]) { items[n] = "Flurry"; code[n++] = 21; }
+        if (cls == CLS_MONK && c->rsrc[R5R_KI]) { items[n] = "Pat.Def"; code[n++] = 23; }
+        if (cls == CLS_ROGUE && !x->hidden) { items[n] = "Hide"; code[n++] = 5; }
+        for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
+            if (spell_kit[ki].cls != cls) continue;
+            const R5Spell* s = &r5_spells[spell_kit[ki].spell];
+            if (!s->bonus_action) continue;
+            if (s->level > 0 && !(cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
+                                                     : c->slots[s->level - 1])) continue;
+            items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
+        }
+        if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
+    }
+    if (x->nerve) {
+        items[n] = "Nerve!"; code[n++] = 8;
+    }
+    items[n] = "Tactics"; code[n++] = 9;
+    items[n] = "End Turn"; code[n++] = 7;
+    return n;
+}
+
 static int pc_turn(EC* a) {
     int tac = (G_DEMO && !G_MANUAL_BAT) ? TAC_WISELY : G.tactics[a->pi];
     if (tac != TAC_ORDERS) return tactic_turn(a, tac);
@@ -989,51 +1041,13 @@ static int pc_turn(EC* a) {
     int cls = G.pm[a->pi].cls;
     int action = 0, bonus = 0;
     for (;;) {
-        const char* items[12]; u8 code[12]; int n = 0;
-        if (!action) {
-            items[n] = "Attack"; code[n++] = 0;
-            if (cls == CLS_DRUID && !a->shaped && G.pm[a->pi].level >= 2 &&
-                c->rsrc[R5R_SHAPE]) { items[n] = "WildShape"; code[n++] = 25; }
-            for (unsigned ki = 0; a->shaped == 0 &&
-                 ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
-                if (spell_kit[ki].cls != cls) continue;
-                const R5Spell* s = &r5_spells[spell_kit[ki].spell];
-                if (s->bonus_action) continue;              /* bonus section */
-                if (s->level > 0) {
-                    int have = cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
-                                                  : c->slots[s->level - 1];
-                    if (!have) continue;
-                }
-                if (s->concentration && c->concentrating) continue;
-                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
-            }
-            if (cls == CLS_PALADIN && c->rsrc[R5R_LAY]) { items[n] = "Lay Hands"; code[n++] = 22; }
-            if (cls == CLS_PALADIN && c->slots[0] && !a->smite) { items[n] = "Smite"; code[n++] = 24; }
-            items[n] = "Item"; code[n++] = 1;
-            items[n] = "Dodge"; code[n++] = 2;
-            if (a->engaged >= 0) { items[n] = "Disengage"; code[n++] = 3; }
-        }
-        if (!bonus) {
-            if (cls == CLS_FIGHTER && r5_can_second_wind(c)) { items[n] = "2nd Wind"; code[n++] = 4; }
-            if (r5_can_rage(c)) { items[n] = "RAGE!"; code[n++] = 20; }
-            if (cls == CLS_MONK && action && c->rsrc[R5R_KI]) { items[n] = "Flurry"; code[n++] = 21; }
-            if (cls == CLS_MONK && c->rsrc[R5R_KI]) { items[n] = "Pat.Def"; code[n++] = 23; }
-            if (cls == CLS_ROGUE && !a->hidden) { items[n] = "Hide"; code[n++] = 5; }
-            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
-                if (spell_kit[ki].cls != cls) continue;
-                const R5Spell* s = &r5_spells[spell_kit[ki].spell];
-                if (!s->bonus_action) continue;
-                if (s->level > 0 && !(cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
-                                                         : c->slots[s->level - 1])) continue;
-                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
-            }
-            if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
-        }
-        if (rounds_left > 0 && a->pi == 0 && round_no >= 2) {
-            items[n] = "Nerve!"; code[n++] = 8;
-        }
-        items[n] = "Tactics"; code[n++] = 9;
-        items[n] = "End Turn"; code[n++] = 7;
+        const char* items[12]; u8 code[12];
+        PcMenuCtx mx = {
+            (u8)cls, G.pm[a->pi].level, a->shaped, a->smite, a->hidden,
+            a->engaged, (u8)action, (u8)bonus,
+            (u8)(rounds_left > 0 && a->pi == 0 && round_no >= 2),
+        };
+        int n = pc_menu_build(c, &mx, items, code);
 
         int sel = menu5(items, n, 0);
         u8 cd = code[sel];
