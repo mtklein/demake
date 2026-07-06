@@ -50,4 +50,17 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     fi
 done
 
+echo "== class smokes (deck brawl x12) =="
+for c in 0 1 2 3 4 5 6 7 8 9 10 11; do
+    python3 test/scenario.py "smoke_$c" > build/gate.script
+    if ! out=$(./build/runner build/nautiloid.gba build/gate.script 2>&1); then
+        echo "FAIL smoke_$c (runner)"; fail=1; continue
+    fi
+    if echo "$out" | grep -q "Illegal opcode"; then echo "FAIL smoke_$c (crash)"; fail=1
+    elif echo "$out" | grep -q "TIMEOUT"; then echo "FAIL smoke_$c (timeout)"; fail=1
+    elif ! echo "$out" | grep -q "enc result=WIN"; then echo "FAIL smoke_$c (no win)"; fail=1
+    else echo "  ok smoke_$c"
+    fi
+done
+
 if [ "$fail" -eq 0 ]; then echo "GATE: all green"; else echo "GATE: FAILED"; exit 1; fi

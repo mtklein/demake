@@ -146,6 +146,19 @@ def ranger_full():
     setup(2, [0, 0, 0, 0, 0])             # ranger, spare Us, save everyone, connect
     intro(); nursery(); surgery(); deck(); pods(); helm()
 
+def _mk_smoke(cls):
+    def f():
+        """boot as this class, win the deck brawl"""
+        setup(cls, [0, 1, 0, 0, 2])
+        intro(); nursery(); surgery()
+        walk("DOWN", 1)
+        w(f"until {IDLE:08x} 01 24000")
+    f.__name__ = f"smoke_{cls}"
+    return f
+
+for _c in range(12):
+    SCN[f"smoke_{_c}"] = _mk_smoke(_c)
+
 @scn
 def tether_check():
     """Manual deck fight: form a melee engagement and see the tether draw.
