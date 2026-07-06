@@ -861,6 +861,56 @@ static void t_battle_helm_allies(void) {
     T_ASSERT(r == ENC_CONNECTED, "battle result %d, want ENC_CONNECTED", r);
 }
 
+/* a companion downed BEFORE the fight takes no turns at 0 hp. The turn
+ * loop logs "turn rN NAME sideS hp=H" only when a turn is actually taken
+ * and hp clamps at 0, so "LAE'ZEL side0 hp=0" is the exact zombie
+ * signature; once the WISELY cleric's heal wakes her, she must act. */
+static void t_battle_no_zombie_turns(void) {
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    party_add_laezel();
+    party5[1].hp = 0;                    /* downed in a previous encounter */
+    party5[1].conds |= C_UNCONSCIOUS;
+    G_DEMO = 1;
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    T_ASSERT(!log_contains("LAE'ZEL side0 hp=0"),
+             "a downed companion took a turn at 0 hp (zombie turn)");
+    T_ASSERT(log_contains("heal LAE'ZEL"), "the cleric never rescued her");
+    T_ASSERT(log_contains("LAE'ZEL side0 hp="),
+             "the healed companion never took a live turn");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+/* helm-style fight (helm_rounds > 0) entered with Tav already down: under
+ * G_DEMO a conscious companion seizes the nerves on the same round-2
+ * timing. Without the fallback the countdown wipes, the retry restores
+ * the same downed Tav, and the demo softlocks forever. Manual play keeps
+ * the Tav-must-stand rule -- that is design, and t_battle_menu_variants
+ * pins the Nerve! row's gate. */
+static void t_battle_helm_tav_down(void) {
+    sim_reset();
+    mk_party(CLS_ROGUE, 3);              /* L3: she outlives cambion rounds */
+    party_add_laezel();
+    party5[0].hp = 0;                    /* Tav went down a battle ago */
+    party5[0].conds |= C_UNCONSCIOUS;
+    G_DEMO = 1;
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    EncSpawn es[1] = { { R5M_CAMBION, (s8)n0, 450, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 1, 10, 0);
+    T_ASSERT(!log_contains("TAV side0 hp=0"), "downed Tav took a zombie turn");
+    T_ASSERT(log_contains("nerve seized pi=1"),
+             "no conscious companion seized the nerves for downed Tav");
+    T_ASSERT(r == ENC_CONNECTED, "battle result %d, want ENC_CONNECTED", r);
+}
+
 /* wild shape is a menu row (code 25), so this one drives the real menu:
  * [DOWN, A] in a fresh root menu lands on row 1 = WildShape (druid L2 kit),
  * then the eb_gen handoff pattern gives the boar to the tactic AI */
@@ -1441,6 +1491,39 @@ static void t_heal_full_rest(void) {
     T_ASSERT(!(party5[1].conds & C_UNCONSCIOUS), "Lae'zel still unconscious");
 }
 
+/* 5e: unconsciousness ends when you regain hit points -- never because a
+ * bookkeeping rebuild ran. C_UNCONSCIOUS is bit 13 of u16 conds; the
+ * shipped truncation (a u8 carry in build()) zeroed it at every
+ * party5_refresh, so a member downed in one battle stood up as a ghost
+ * at the next encounter's refresh. This is the regression pin. */
+static void t_ko_survives_refresh(void) {
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    party_add_laezel();
+    party5[1].hp = 0;                    /* downed in some earlier battle */
+    party5[1].conds |= C_UNCONSCIOUS;
+    party5_refresh(1);                   /* every encounter start does this */
+    T_ASSERT(party5[1].hp == 0, "refresh revived her to %d hp", party5[1].hp);
+    T_ASSERT(party5[1].conds & C_UNCONSCIOUS,
+             "refresh dropped the KO flag (the u8 truncation)");
+    party5_refresh_all();                /* and the bulk path */
+    T_ASSERT(party5[1].conds & C_UNCONSCIOUS, "refresh_all dropped the KO flag");
+    r5_heal(&party5[1], 5);              /* healing still wakes her */
+    T_ASSERT(party5[1].hp == 5 && !(party5[1].conds & C_UNCONSCIOUS),
+             "heal failed to wake her (hp %d conds %04x)",
+             party5[1].hp, party5[1].conds);
+    /* a level-up's max-hp growth is regained hp: it wakes her (the carry
+     * measures missing hp against the OLD max, so hp comes back > 0 --
+     * hp > 0 while KO'd would be a sleep no heal could ever end) */
+    party5[1].hp = 0;
+    party5[1].conds |= C_UNCONSCIOUS;
+    G.pm[1].level = 2;
+    party5_refresh(1);
+    T_ASSERT(party5[1].hp > 0, "L2 rebuild left her at %d hp", party5[1].hp);
+    T_ASSERT(!(party5[1].conds & C_UNCONSCIOUS),
+             "hp %d yet still KO: an unwakeable sleep", party5[1].hp);
+}
+
 /* the on-ROM audit_check pins the audits' CONTENT against a byte-exact
  * golden; running them here adds what the golden can't -- ASan/UBSan
  * eyes on the same string assembly */
@@ -1632,6 +1715,8 @@ static const Test tests[] = {
     { "battle_cleric_rescue",      t_battle_cleric_rescue },
     { "battle_bard_rescue",        t_battle_bard_rescue },
     { "battle_helm_allies",        t_battle_helm_allies },
+    { "battle_no_zombie_turns",    t_battle_no_zombie_turns },
+    { "battle_helm_tav_down",      t_battle_helm_tav_down },
     { "battle_druid_wildshape",    t_battle_druid_wildshape },
     { "battle_rogue_pick",         t_battle_rogue_pick },
     { "battle_ranger_conc",        t_battle_ranger_conc },
@@ -1648,6 +1733,7 @@ static const Test tests[] = {
     { "creation_demo_paths",       t_creation_demo_paths },
     { "spell_dc_math",             t_spell_dc_math },
     { "heal_full_rest",            t_heal_full_rest },
+    { "ko_survives_refresh",       t_ko_survives_refresh },
     { "audit_native",              t_audit_native },
     { "title_jukebox_karaoke",     t_title_jukebox_karaoke },
     { "crawl_pages",               t_crawl_pages },

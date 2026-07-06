@@ -863,9 +863,13 @@ static int tactic_turn(EC* a, int tac) {
     int use_slots = (tac != TAC_NOSLOTS);
     EC* foe = nearest_foe(a, 1);
 
-    /* helm objective: the hero goes for the nerves (demo kill-mode excepted) */
-    if (rounds_left > 0 && a->pi == 0 && G_DEMO && G_DEMO_BATTLE != 2 &&
-        round_no >= 2) {
+    /* helm objective: the hero goes for the nerves (demo kill-mode
+     * excepted). Demo fallback: if Tav lies downed when the countdown
+     * runs, a conscious companion seizes them instead -- manual play
+     * keeps the rule that Tav must be standing (design, not a bug). */
+    if (rounds_left > 0 && G_DEMO && G_DEMO_BATTLE != 2 && round_no >= 2 &&
+        (a->pi == 0 || party5[0].hp <= 0)) {
+        mgba_logf("nerve seized pi=%d", a->pi);
         bar_wait("You seize the nerves...");
         return 1;
     }
@@ -1414,9 +1418,10 @@ retry:
             EC* a = &ec[order[oi]];
             g_act = a;
             crumb(CR_TURN, (oi << 8) | (u8)(a - ec));
-            if (a->c->hp <= 0 && a->side != 0) continue;
+            if (a->c->hp <= 0) continue;   /* any side: the fallen lie where
+                                            * they fell, conditions or not */
             if (a->c->conds & C_UNCONSCIOUS) {
-                if (a->side == 1 && a->c->hp > 0) bar("Fast asleep...");
+                if (a->side == 1) bar("Fast asleep...");
                 continue;
             }
             if (round_no == 1 && surprise &&

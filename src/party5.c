@@ -81,12 +81,13 @@ static void build(const PMember* p, R5Creature* c, int carry) {
     const R5Race* rr = &r5_races[p->race];   /* race 0 = none: all zeros */
     int missing = 0, spent[3] = { 0, 0, 0 };
     int pspent[R5R_COUNT] = { 0 };
-    u8 used = 0, conds = 0, tr_used = 0;
+    u8 used = 0, tr_used = 0;
+    u16 conds = 0;
     if (carry) {
         missing = c->hpmax - c->hp;
         used = c->used;
         tr_used = (u8)(c->traits & TR_USED_RELENTLESS);
-        conds = (u8)(c->conds & C_UNCONSCIOUS);
+        conds = (u16)(c->conds & C_UNCONSCIOUS);   /* bit 13: a u8 zeroed it */
         for (int s = 0; s < 3; s++) {
             int oldmax = r5_classes[c->cls].slots[c->level][s];
             spent[s] = oldmax - c->slots[s];
@@ -113,6 +114,9 @@ static void build(const PMember* p, R5Creature* c, int carry) {
     c->ac = class_ac(p->cls, r5_mod(c->ab[R5_DEX]));
     c->save_prof = r5_classes[p->cls].save_prof;
     c->conds = conds;
+    if (c->hp > 0)               /* regained hp wakes (r5_heal's rule): a
+                                  * level-up's max-hp growth counts */
+        c->conds &= (u16)~C_UNCONSCIOUS;
     c->resist = rr->resist;                  /* tiefling fire, dwarf poison */
     c->immune = c->vulnerable = 0;
     c->traits = (u8)(rr->traits | tr_used);
