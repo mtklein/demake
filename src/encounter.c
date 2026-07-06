@@ -155,6 +155,8 @@ static const u8 dmg_pal_tab[DT_COUNT] = {
  * tinted by damage type, in a row under the message bar. */
 #define OBJ_DICE 56
 #define OBJ_ZZ 50                /* sleep marker overlays, 3 slots */
+#define SPELL_CODE 100          /* menu code base for spells: SPELL_CODE + R5S_id.
+                                 * MUST stay above every class-action code (0-25). */
 #define OBJ_TETH 24              /* engagement tether dots 24-26, cursor glyphs 27-28 */
 static int conscious(const EC* e);
 static void shape_revert(EC* e, const char* why);
@@ -268,20 +270,14 @@ static int sneak_ok(EC* a, EC* t) {
 
 /* downed PCs lie where they fell; sleepers snore visibly */
 static void garnish_draw(void) {
-    static const u16 pko[CLS_COUNT] = { OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO,
-                                OBJT_HERO_KO, OBJT_LAEZEL_KO, OBJT_SHADOW_KO,
-                                OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO };
-    static const u16 pup[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
-                                OBJT_LAEZEL, OBJT_SHADOW,
-                                OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
     int zs = 0;
     for (int i = 0; i < nec; i++) {
         EC* e = &ec[i];
         if (e->npc < 0 || (npcs[e->npc].flags & NPC_GONE)) continue;
         int out = (e->c->conds & C_UNCONSCIOUS) != 0;
         if (e->side == 0 && !e->shaped) {
-            int cls = G.pm[e->pi].cls;
-            npcs[e->npc].objt = out ? pko[cls] : pup[cls];
+            MemberLook L = member_look(G.pm[e->pi].face, G.pm[e->pi].cls);
+            npcs[e->npc].objt = out ? L.ko : L.objt;
             if (out) npcs[e->npc].face = 0;
         } else if (out && e->c->hp > 0 && zs < 3) {
             obj_set(OBJ_ZZ + zs, ec_sx(e) + 6, ec_sy(e) - 12, 1,
@@ -427,8 +423,9 @@ static void deal(EC* t, int amount, u8 type, int scr_pop) {
         return;
     }
     if (t->c->resist & (u16)(1 << type)) bar("Resisted...");
-    int lost = r5_apply_damage(t->c, amount, type);
-    if (scr_pop) popup(ec_sx(t) + 8, ec_sy(t), lost, DPAL(type));
+    int shown = r5_scale_damage(t->c, amount, type);   /* one scale, for the popup */
+    int lost = r5_apply_damage(t->c, amount, type);     /* scales the same raw once */
+    if (scr_pop) popup(ec_sx(t) + 8, ec_sy(t), shown, DPAL(type));
     if (was_sleeping && t->c->hp > 0) {
         t->c->conds &= (u16)~C_UNCONSCIOUS;
         bar_wait("It jolts awake!");
@@ -527,7 +524,7 @@ static void maybe_opportunity(EC* a, EC* new_target) {
     }
     tray_attack(&at);
     bar_attack("OA:", &at);
-    if (at.hit) { hit_react(a); deal(a, at.damage, at.dmg_type, 1); bar_damage(&at); }
+    if (at.hit) { hit_react(a); deal(a, at.dmg.total, at.dmg_type, 1); bar_damage(&at); }
     a->engaged = -1;
 }
 
@@ -569,10 +566,10 @@ static void strike(EC* a, EC* t) {
               at.damage, at.rider_damage);
     if (at.hit) {
         hit_react(t);
-        deal(t, at.damage, at.dmg_type, 1);
+        deal(t, at.dmg.total, at.dmg_type, 1);
         bar_damage(&at);
         if (at.rider_dmg.n && t->c->hp > 0 && at.rider_damage > 0)
-            deal(t, at.rider_damage, at.rider_type, 1);
+            deal(t, at.rider_dmg.total, at.rider_type, 1);
         if (a->smite && a->side == 0 && melee && t->c->hp > 0 &&
             r5_spend_slot(a->c, 1)) {                    /* Divine Smite */
             a->smite = 0;
@@ -607,7 +604,7 @@ static void cast_attack_spell(EC* a, EC* t, int sp) {
               at.total, at.target_ac, at.hit ? "hit" : "miss", at.damage);
     if (at.hit) {
         hit_react(t);
-        deal(t, at.damage, at.dmg_type, 1);
+        deal(t, at.dmg.total, at.dmg_type, 1);
         bar_damage(&at);
         if (sp == R5S_GUIDING_BOLT) { t->gbolt = 1; bar_wait("Light clings to it!"); }
     }
@@ -981,6 +978,38 @@ static const struct { u8 cls, spell; const char* label; } spell_kit[] = {
     { CLS_PALADIN,  R5S_BLESS,           "Bless"     },
 };
 
+/* Ability audit (testability): logs every menu ability a class+level offers,
+ * using the SAME gates as pc_turn. A scenario cycles all twelve so cross-class
+ * leakage (a druid Smite, a fighter's Vicious Mockery) fails the gate. */
+void ability_audit(void) {
+    for (int cls = 0; cls < CLS_COUNT; cls++) {
+        for (int lvl = 1; lvl <= 3; lvl++) {
+            char line[200]; char* d = line;
+            d = put_str(d, "audit cls="); d = put_num(d, cls);
+            d = put_str(d, " L"); d = put_num(d, lvl); d = put_str(d, ":");
+            /* spells: exactly the spell_kit filter (ignoring live slot counts) */
+            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++)
+                if (spell_kit[ki].cls == cls) {
+                    *d++ = ' ';
+                    d = put_str(d, spell_kit[ki].label);
+                }
+            /* class actions, mirroring pc_turn's cls/level gates */
+            if (cls == CLS_FIGHTER)                d = put_str(d, " 2ndWind");
+            if (cls == CLS_FIGHTER && lvl >= 2)    d = put_str(d, " ActSurge");
+            if (cls == CLS_ROGUE)                  d = put_str(d, " Hide");
+            if (cls == CLS_RANGER)                 d = put_str(d, " Mark");
+            if (cls == CLS_BARBARIAN)              d = put_str(d, " Rage");
+            if (cls == CLS_MONK)                   d = put_str(d, " Flurry PatDef");
+            if (cls == CLS_PALADIN)                d = put_str(d, " LayHands");
+            if (cls == CLS_PALADIN && lvl >= 2)    d = put_str(d, " Smite");
+            if (cls == CLS_DRUID && lvl >= 2)      d = put_str(d, " WildShape");
+            *d = 0;
+            mgba_log(line);
+        }
+    }
+}
+
+
 static int pc_turn(EC* a) {
     int tac = (G_DEMO && !G_MANUAL_BAT) ? TAC_WISELY : G.tactics[a->pi];
     if (tac != TAC_ORDERS) return tactic_turn(a, tac);
@@ -1005,7 +1034,7 @@ static int pc_turn(EC* a) {
                     if (!have) continue;
                 }
                 if (s->concentration && c->concentrating) continue;
-                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
+                items[n] = spell_kit[ki].label; code[n++] = (u8)(SPELL_CODE + spell_kit[ki].spell);
             }
             if (cls == CLS_PALADIN && c->rsrc[R5R_LAY]) { items[n] = "Lay Hands"; code[n++] = 22; }
             if (cls == CLS_PALADIN && c->slots[0] && !a->smite) { items[n] = "Smite"; code[n++] = 24; }
@@ -1025,7 +1054,7 @@ static int pc_turn(EC* a) {
                 if (!s->bonus_action) continue;
                 if (s->level > 0 && !(cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
                                                          : c->slots[s->level - 1])) continue;
-                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
+                items[n] = spell_kit[ki].label; code[n++] = (u8)(SPELL_CODE + spell_kit[ki].spell);
             }
             if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
         }
@@ -1090,7 +1119,7 @@ static int pc_turn(EC* a) {
                 for (int fb = 0; fb < 2 && t->c->hp > 0; fb++) {
                     R5Attack at = r5_weapon_attack(&rng, c, t->c, &fists, atk_flags(a, t, 1));
                     tray_attack(&at); bar_attack("Fists", &at);
-                    if (at.hit) { hit_react(t); deal(t, at.damage, at.dmg_type, 1); bar_damage(&at); }
+                    if (at.hit) { hit_react(t); deal(t, at.dmg.total, at.dmg_type, 1); bar_damage(&at); }
                     post_attack(a, t, &at);
                 }
                 tray_clear();
@@ -1176,8 +1205,8 @@ static int pc_turn(EC* a) {
                 break;
             }
             default: {
-                int sp = cd - 10;
-                ASSERT(sp >= 0 && sp < R5S_COUNT);
+                int sp = cd - SPELL_CODE;
+                ASSERT(cd >= SPELL_CODE && sp < R5S_COUNT);
                 crumb(CR_CAST, sp);
                 const R5Spell* s = &r5_spells[sp];
                 int paid = s->level == 0 ? 1
@@ -1296,13 +1325,9 @@ retry:
     int px = field_player_x(), py = field_player_y();
     field_hide_player(1);
     static const s8 form[3][2] = { { 0, 0 }, { -20, 16 }, { 20, 16 } };
-    static const u16 pobj[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
-                                 OBJT_LAEZEL, OBJT_SHADOW,
-                                 OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
-    static const u8 ppal[CLS_COUNT] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < G.nparty; i++) {
-        int cls = G.pm[i].cls;
-        party_npc[i] = field_add_npc(0, 0, pobj[cls], ppal[cls], 1, 0);
+        MemberLook L = member_look(G.pm[i].face, G.pm[i].cls);
+        party_npc[i] = field_add_npc(0, 0, L.objt, L.pal, 1, 0);
         npcs[party_npc[i]].x = (s16)px;
         npcs[party_npc[i]].y = (s16)py;
         add_pc(i, px + form[i][0], py + form[i][1], party_npc[i]);
@@ -1335,8 +1360,11 @@ retry:
                   r5_mod(ec[i].c->ab[R5_DEX]), ec[i].init);
         popup(ec_sx(&ec[i]) + 8, ec_sy(&ec[i]) - 4, ec[i].init, 9);
     }
+    /* identity-fill ALL slots: monsters that warp in later (nec grows) act
+     * at the end of the round via their own slot -- an uninitialized read
+     * here once sent the cambion's turn through a garbage EC pointer. */
     int order[MAXEC];
-    for (int i = 0; i < nec; i++) order[i] = i;
+    for (int i = 0; i < MAXEC; i++) order[i] = i;
     for (int i = 0; i < nec; i++)          /* stable-ish insertion sort */
         for (int j = i + 1; j < nec; j++)
             if (ec[order[j]].init > ec[order[i]].init) {

@@ -230,11 +230,6 @@ static const char* const cls_blurb[CLS_COUNT] = {
     "Magic in\nthe blood.\nBends every\nrule.",
     "A patron\nwhispers.\nEldritch\npower, owed.",
 };
-/* class-select preview: sheet + palette source (-1 = Tav palette slot) */
-static const u16 csel_objt[CLS_COUNT] = {
-    OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
-    OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
-static const s8 csel_tavpal[CLS_COUNT] = { 0,1,2,3, -1,-2, 2,2,0,3, 0,3 };
 
 static void blurb_draw(const char* s) {
     for (int j = 0; j < 4; j++) {
@@ -314,6 +309,38 @@ int game_origin_select(void) {
     return sel;
 }
 
+/* THE single source of party art. Identity (origin/companion) wins; custom
+ * Tav falls back to the class walker. No class-keyed art table survives this. */
+MemberLook member_look(int face, int cls) {
+    MemberLook L = { OBJT_HERO, OBJT_HERO_KO, 0, -1 };
+    static const u16 walk[CLS_COUNT] = {
+        OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
+        OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
+#if defined(POR_TAV_BARD)
+    static const s8 tavpor[CLS_COUNT] = {
+        POR_TAV_BARD, POR_TAV_ROGUE, POR_TAV_RANGER, POR_TAV_WIZARD,
+        -1, -1, -1, -1, -1, -1, -1, -1 };
+#else
+    static const s8 tavpor[CLS_COUNT] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 };
+#endif
+    if (cls < 0 || cls >= CLS_COUNT) cls = 0;
+    if (face == ORIG_LAEZEL) {
+        L.objt = OBJT_LAEZEL; L.ko = OBJT_LAEZEL_KO; L.pal = 1; L.por = POR_LAEZEL;
+    } else if (face == ORIG_SHADOW) {
+        L.objt = OBJT_SHADOW; L.ko = OBJT_SHADOW_KO; L.pal = 2; L.por = POR_SHADOW;
+    } else {
+        L.objt = walk[cls]; L.ko = OBJT_HERO_KO; L.pal = 0; L.por = tavpor[cls];
+        switch (face) {                       /* origin portraits (sprite stays class) */
+            case ORIG_ASTARION: L.por = POR_ASTARION; break;
+            case ORIG_GALE:     L.por = POR_GALE;     break;
+            case ORIG_KARLACH:  L.por = POR_KARLACH;  break;
+            case ORIG_WYLL:     L.por = POR_WYLL;     break;
+            case ORIG_DURGE:    L.por = POR_DURGE;    break;
+        }
+    }
+    return L;
+}
+
 int origin_class(int o) { return origins[o].cls; }
 const char* origin_name(int o) { return origins[o].name; }
 int origin_portrait(int o) { return origins[o].por; }
@@ -333,11 +360,10 @@ int game_class_select(void) {
     int demo_hold = G_DEMO ? 60 : 0;
     for (;;) {
         blurb_draw(cls_blurb[sel]);
-        int pv = csel_tavpal[sel], pal = 0;
-        if (pv >= 0) memcpy16(PAL_OBJ, pal_tav_classes[pv], 16);
-        else pal = -pv;                       /* companion sheets: own palettes */
+        MemberLook L = member_look(ORIG_CUSTOM, sel);   /* preview the class walker */
+        if (L.pal == 0 && sel < 4) memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);
         obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
-                1, csel_objt[sel], pal, 0);
+                1, L.objt, L.pal, 0);
 
         int done = 0;
         for (;;) {

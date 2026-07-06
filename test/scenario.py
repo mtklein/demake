@@ -169,6 +169,15 @@ def skill_check():
     wait(80); shot("skill_done")
 
 @scn
+def audit_check():
+    """dump the per-class battle-menu + sheet ability tables; the gate
+    golden-diffs them against test/audit.golden (cross-class leak guard)"""
+    setup(0, [0, 1, 0, 0, 2])
+    intro()
+    poke(0x0203FF0B, 1)              # G_AUDIT: field loop logs both audits
+    wait(60)
+
+@scn
 def durge_check():
     """Dark Urge origin hears intrusive thoughts (asserts the urge-line log)"""
     poke(DEMO, 1); poke(BATTLE, 0); poke(CLASS, 1); poke(0x0203FF0E, 6)

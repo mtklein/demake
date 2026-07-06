@@ -58,14 +58,6 @@ static void strcpy8(char* d, const char* s) {
 void party5_refresh(int i);   /* party5.c: keep the 5e twin in step */
 
 void party_init(int cls, const char* name) {
-    {   /* the avatar walks in its class silhouette */
-        static const u16 hobj[CLS_COUNT] = {
-            OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
-            OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
-        static const u8 hpal[CLS_COUNT] = { 0,0,0,0, 1,2, 0,0,0,0,0,0 };
-        field_set_hero(hobj[cls], hpal[cls]);
-    }
-
     G.nparty = 1;
     G.potions = 2;
     G.revivify = 0;
@@ -74,6 +66,7 @@ void party_init(int cls, const char* name) {
     PMember* p = &G.pm[0];
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
+    p->face = (u8)G.origin;   /* member 0 art identity = its origin */
     /* origins whose subclass arrives at level 1 get it now (Char 2.0) */
     {
         static const unsigned char sk2[CLS_COUNT][2] = {
@@ -93,6 +86,10 @@ void party_init(int cls, const char* name) {
         G_DEMO_LEVEL >= 3 ? 900 : 300, nm); }   /* test hook: pre-level */
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
+    {   /* the avatar walks in its identity's silhouette */
+        MemberLook L = member_look(p->face, cls);
+        field_set_hero(L.objt, L.pal);
+    }
     G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
     {
         int party5_default_weapon(int cls);
@@ -109,7 +106,7 @@ void loot_weapon(int w) {
 void party_add_laezel(void) {
     PMember* p = &G.pm[G.nparty++];
     strcpy8(p->name, "LAE'ZEL");
-    p->cls = CLS_FIGHTER; p->level = 1; p->xp = G.pm[0].xp;
+    p->cls = CLS_FIGHTER; p->level = 1; p->xp = G.pm[0].xp; p->face = ORIG_LAEZEL;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.flags |= GF_LAEZEL;
@@ -124,7 +121,7 @@ void party_add_laezel(void) {
 void party_add_shadowheart(void) {
     PMember* p = &G.pm[G.nparty++];
     strcpy8(p->name, "SHADOW.");
-    p->cls = CLS_CLERIC; p->level = 1; p->xp = G.pm[0].xp;
+    p->cls = CLS_CLERIC; p->level = 1; p->xp = G.pm[0].xp; p->face = ORIG_SHADOW;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.revivify += 1;

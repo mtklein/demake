@@ -19,14 +19,6 @@ static const char* const cls_names[CLS_COUNT] = {
 static const char* const tac_names[TAC_COUNT] = {
     "Orders", "Wisely", "All Out", "Healer", "No Slots"
 };
-static const s8 cls_portrait[CLS_COUNT] = {
-#if defined(POR_TAV_BARD) && defined(POR_LAEZEL)
-    POR_TAV_BARD, POR_TAV_ROGUE, POR_TAV_RANGER, POR_TAV_WIZARD,
-    POR_LAEZEL, POR_SHADOW, -1, -1, -1, -1, -1, -1,
-#else
-    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-#endif
-};
 
 /* spells shown on the sheet, per class */
 static const u8 cls_spells[CLS_COUNT][3] = {
@@ -52,6 +44,21 @@ static char* mp_num(char* d, int v) {
     return d;
 }
 static char* mp_str(char* d, const char* s) { while (*s) *d++ = *s++; return d; }
+
+void sheet_audit(void) {   /* testability: what member_sheet shows per class */
+    for (int cls = 0; cls < CLS_COUNT; cls++) {
+        char line[120]; char* d = line;
+        d = mp_str(d, "sheet cls="); d = mp_num(d, cls); *d++ = ':';
+        for (int s = 0; s < 3; s++) {
+            u8 sp = cls_spells[cls][s];
+            if (sp == 0xFF) continue;
+            *d++ = ' ';
+            d = mp_str(d, r5_spells[sp].name);
+        }
+        *d = 0;
+        mgba_log(line);
+    }
+}
 
 void ui_portrait(int por, int cx, int cy) {
 #if PORTRAIT_COUNT > 0
@@ -250,7 +257,7 @@ static void member_sheet(int i) {
     R5Creature* c = &party5[i];
     clear_all();
     win_draw(0, 0, 30, 20);
-    ui_portrait(cls_portrait[c->cls], 1, 1);
+    ui_portrait(member_look(G.pm[i].face, c->cls).por, 1, 1);
 
     char b[28]; char* d;
     txt_put_n(9, 1, c->name, 1, 8);

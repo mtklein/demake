@@ -209,6 +209,7 @@ R5Save r5_save(R5RNG*, const R5Creature*, int ability, int dc, int flags);
 /* apply damage honoring temp hp / resist / immune / vulnerable;
  * returns actual hp lost; sets C_UNCONSCIOUS on PCs at 0 */
 int  r5_apply_damage(R5Creature*, int amount, uint8_t type);
+int  r5_scale_damage(const R5Creature*, int amount, uint8_t type);
 void r5_heal(R5Creature*, int amount);           /* wakes unconscious PCs */
 int  r5_conc_dc(int damage);                     /* max(10, dmg/2) */
 
