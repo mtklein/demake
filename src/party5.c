@@ -7,6 +7,7 @@
 #include "party5.h"
 
 R5Creature party5[3];
+R5Creature bench5[RESERVE_MAX];
 static u8 built[3];
 
 /*                              str dex con int wis cha   ac  weapon */
@@ -70,14 +71,14 @@ static s16 max_hp(int cls, int level, int conmod) {
     return (s16)hp;
 }
 
-/* build/refresh member i from G.pm[i]; preserves damage + spent slots */
-void party5_refresh(int i) {
-    PMember* p = &G.pm[i];
-    R5Creature* c = &party5[i];
+/* build/refresh creature c from sheet p; carry preserves the live creature's
+ * missing hp / spent slots / spent pools, measured against the OLD
+ * class+level so a rebuild across a level-up (or a bench swap) stays true */
+static void build(const PMember* p, R5Creature* c, int carry) {
     int missing = 0, spent[3] = { 0, 0, 0 };
     int pspent[R5R_COUNT] = { 0 };
     u8 used = 0, conds = 0;
-    if (built[i]) {
+    if (carry) {
         missing = c->hpmax - c->hp;
         used = c->used;
         conds = (u8)(c->conds & C_UNCONSCIOUS);
@@ -119,22 +120,49 @@ void party5_refresh(int i) {
         int v = c->rsrc[r] - (pspent[r] < 0 ? 0 : pspent[r]);
         c->rsrc[r] = (u8)(v < 0 ? 0 : v);
     }
+}
+
+/* build/refresh member i from G.pm[i]; preserves damage + spent slots */
+void party5_refresh(int i) {
+    build(&G.pm[i], &party5[i], built[i]);
     built[i] = 1;
+}
+
+void party5_bench_build(int r) {
+    build(&G.reserve[r], &bench5[r], 0);
+}
+
+/* Exchange walking creature i with benched creature r, after party_swap has
+ * exchanged the sheets. The slot rebuild must carry the INCOMING member's
+ * damage and spent resources -- refreshing before the exchange would graft
+ * the outgoing member's wounds onto the newcomer. The rebuild drops conds,
+ * and the bench is not a rest: hand the KO flag across it. */
+void party5_swap(int i, int r) {
+    R5Creature t = party5[i];
+    party5[i] = bench5[r];
+    bench5[r] = t;
+    bench5[r].name = G.reserve[r].name;   /* the sheet moved beneath it */
+    u16 ko = (u16)(party5[i].conds & C_UNCONSCIOUS);
+    party5_refresh(i);
+    party5[i].conds |= ko;
 }
 
 void party5_refresh_all(void) {
     for (int i = 0; i < G.nparty; i++) party5_refresh(i);
 }
 
+static void heal_one(R5Creature* c) {
+    c->conds &= (u16)~C_UNCONSCIOUS;
+    c->hp = c->hpmax;
+    c->used = 0;
+    for (int s = 0; s < 3; s++)
+        c->slots[s] = r5_classes[c->cls].slots[c->level][s];
+    r5_refill(c);                        /* pools return on a full rest */
+}
+
 void party5_heal_full(void) {
-    for (int i = 0; i < G.nparty; i++) {
-        R5Creature* c = &party5[i];
-        if (!built[i]) continue;
-        c->conds &= (u16)~C_UNCONSCIOUS;
-        c->hp = c->hpmax;
-        c->used = 0;
-        for (int s = 0; s < 3; s++)
-            c->slots[s] = r5_classes[c->cls].slots[c->level][s];
-        r5_refill(c);                    /* pools return on a full rest */
-    }
+    for (int i = 0; i < G.nparty; i++)
+        if (built[i]) heal_one(&party5[i]);
+    for (int r = 0; r < G.nreserve; r++)
+        heal_one(&bench5[r]);            /* the bench rests too */
 }

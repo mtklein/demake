@@ -132,7 +132,12 @@ static void draw_overview(void) {
     txt_put(22, 9, "Prepare", 0);
     txt_put(22, 11, "Items", 0);
     txt_put(22, 13, "Tactics", 0);
-    txt_put(22, 15, "Close", 0);
+    if (G.nreserve) {                /* the ship never shows this row */
+        txt_put(22, 15, "Party", 0);
+        txt_put(22, 17, "Close", 0);
+    } else {
+        txt_put(22, 15, "Close", 0);
+    }
 }
 
 /* "Rapier 1d8 fin" style line */
@@ -403,6 +408,40 @@ static void tactics_screen(void) {
     }
 }
 
+/* ---------------------------------------------------------------- party */
+
+/* swap slots 1..2 against the reserve; Tav holds slot 0 */
+static void party_screen(void) {
+    for (;;) {
+        clear_all();
+        win_draw(3, 3, 24, 3 + G.nparty * 2);
+        txt_put(7, 4, "-- PARTY --", 1);
+        char b[24]; char* d;
+        for (int i = 0; i < G.nparty; i++) {
+            txt_put_n(6, 6 + i * 2, party5[i].name, i ? 0 : 2, 8);
+            d = b; d = mp_str(d, "Lv"); d = mp_num(d, party5[i].level);
+            *d++ = ' '; d = mp_str(d, cls_names[party5[i].cls]); *d = 0;
+            txt_put_n(15, 6 + i * 2, b, 2, 11);
+        }
+        int m = pick_row(5, 8, 2, G.nparty - 1);   /* the cursor skips Tav */
+        if (m < 0) return;
+        int wy = 5 + G.nparty * 2;
+        win_draw(1, wy, 28, G.nreserve + 3);
+        txt_put(4, wy + 1, "Waiting:", 2);
+        for (int r = 0; r < G.nreserve; r++) {
+            txt_put_n(6, wy + 2 + r, G.reserve[r].name, 0, 8);
+            d = b; d = mp_str(d, "Lv"); d = mp_num(d, G.reserve[r].level);
+            *d++ = ' '; d = mp_str(d, cls_names[G.reserve[r].cls]); *d = 0;
+            txt_put_n(15, wy + 2 + r, b, 2, 11);
+        }
+        int r = pick_row(5, wy + 2, 1, G.nreserve);
+        win_clear(1, wy, 28, G.nreserve + 3);
+        if (r < 0) continue;
+        party_swap(m + 1, r);
+        sfx_play(SFX_CONFIRM);
+    }
+}
+
 /* ---------------------------------------------------------------- main */
 
 void field_menu(void) {
@@ -411,8 +450,9 @@ void field_menu(void) {
     sfx_play(SFX_CONFIRM);
     for (;;) {
         draw_overview();
-        int sel = pick_row(21, 5, 2, 6);
-        if (sel < 0 || sel == 5) break;
+        int rows = G.nreserve ? 7 : 6;
+        int sel = pick_row(21, 5, 2, rows);
+        if (sel < 0 || sel == rows - 1) break;
         if (sel == 0) {
             win_draw(19, 16, 11, G.nparty + 2);
             for (int i = 0; i < G.nparty; i++)
@@ -422,7 +462,8 @@ void field_menu(void) {
         } else if (sel == 1) equip_screen();
         else if (sel == 2) prepare_screen();
         else if (sel == 3) items_screen();
-        else tactics_screen();
+        else if (sel == 4) tactics_screen();
+        else party_screen();
     }
     clear_all();
 }

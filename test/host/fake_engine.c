@@ -497,6 +497,7 @@ void sim_reset(void) {
     memset(&G, 0, sizeof G);
     G.origin = ORIG_CUSTOM;
     memset(party5, 0, sizeof(R5Creature) * 3);
+    memset(bench5, 0, sizeof(R5Creature) * RESERVE_MAX);
 }
 
 int sim_guard(void (*fn)(void)) {

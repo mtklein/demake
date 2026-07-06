@@ -19,6 +19,9 @@ typedef struct {
 
 enum { TAC_ORDERS, TAC_WISELY, TAC_ALLOUT, TAC_HEALER, TAC_NOSLOTS, TAC_COUNT };
 
+/* the beach arc's roster is five souls; three walk, the rest wait */
+enum { RESERVE_MAX = 2 };
+
 typedef struct {
     PMember pm[3];
     u8 nparty;
@@ -29,6 +32,12 @@ typedef struct {
     u8 winv[8], nwinv;   /* unequipped weapons found around the ship */
     u16 flags;
     u8 origin;        /* ORIG_* -- 6 = Dark Urge, 7 = custom Tav */
+    /* reserve roster: souls recruited past the walking three. New fields
+     * append here -- test/scenario.py pokes pm[0] by absolute address. */
+    PMember reserve[RESERVE_MAX];
+    u8 rweapon[RESERVE_MAX];      /* their equipped R5W_* */
+    u8 rtactic[RESERVE_MAX];      /* their TAC_* preference */
+    u8 nreserve;
 } Game;
 enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
        ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
@@ -61,7 +70,10 @@ enum {
 void party_init(int cls, const char* name);
 void party_add_laezel(void);
 void party_add_shadowheart(void);
+void party_add_astarion(void);
+void party_add_gale(void);
+void party_swap(int i, int r);   /* walking slot i (1..2; Tav holds 0) <-> reserve r */
 int  party_give_xp(u16 xp, char* levelup_names);  /* returns # of level-ups */
-void party_heal_full(void);
+void party_heal_full(void);      /* walkers and reserve both */
 
 #endif

@@ -55,7 +55,10 @@ static void strcpy8(char* d, const char* s) {
     d[i] = 0;
 }
 
-void party5_refresh(int i);   /* party5.c: keep the 5e twin in step */
+void party5_refresh(int i);   /* party5.c: keep the 5e twins in step */
+void party5_bench_build(int r);
+void party5_swap(int i, int r);
+int  party5_default_weapon(int cls);
 
 void party_init(int cls, const char* name) {
     G.nparty = 1;
@@ -91,11 +94,8 @@ void party_init(int cls, const char* name) {
         field_set_hero(L.objt, L.pal);
     }
     G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
-    {
-        int party5_default_weapon(int cls);
-        G.weapon[0] = (u8)party5_default_weapon(cls);
-        G.nwinv = 0;
-    }
+    G.weapon[0] = (u8)party5_default_weapon(cls);
+    G.nwinv = 0;
     party5_refresh(0);
 }
 
@@ -103,35 +103,69 @@ void loot_weapon(int w) {
     if (G.nwinv < 8) G.winv[G.nwinv++] = (u8)w;
 }
 
-void party_add_laezel(void) {
-    PMember* p = &G.pm[G.nparty++];
-    strcpy8(p->name, "LAE'ZEL");
-    p->cls = CLS_FIGHTER; p->level = 1; p->xp = G.pm[0].xp; p->face = ORIG_LAEZEL;
+/* level as far as xp allows (prologue cap 3); returns levels gained */
+static int level_ups(PMember* p) {
+    int n = 0;
+    while (p->level < 3 && p->xp >= xp_next[p->level]) {
+        int oldhp = p->hpmax, oldmp = p->mpmax;
+        u8 eb = (G.everburn && p->cls == CLS_FIGHTER) ? 4 : 0;
+        p->level++;
+        set_stats(p);
+        p->atk = (u8)(p->atk + eb);
+        p->hp = (s16)(p->hp + p->hpmax - oldhp);
+        p->mp = (s16)(p->mp + p->mpmax - oldmp);
+        n++;
+    }
+    return n;
+}
+
+/* recruit a soul at the party's level: a walking slot if one is open,
+ * else the reserve (the walking party never exceeds three -- battle and
+ * menu code count on it) */
+static void party_add(const char* name, int cls, int face) {
+    int walk = G.nparty < 3;
+    PMember* p;
+    if (walk) p = &G.pm[G.nparty++];
+    else if (G.nreserve < RESERVE_MAX) p = &G.reserve[G.nreserve];
+    else return;                    /* the arc caps the roster at 5 souls */
+    strcpy8(p->name, name);
+    p->cls = (u8)cls; p->level = 1; p->xp = G.pm[0].xp; p->face = (u8)face;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
-    G.flags |= GF_LAEZEL;
-    {
-        int party5_default_weapon(int cls);
-        G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_FIGHTER);
+    if (walk) {
+        G.weapon[G.nparty - 1] = (u8)party5_default_weapon(cls);
+        { char nm[16]; party_give_xp(0, nm); }
+        party5_refresh(G.nparty - 1);
+    } else {
+        G.rweapon[G.nreserve] = (u8)party5_default_weapon(cls);
+        G.rtactic[G.nreserve] = TAC_ORDERS;
+        level_ups(p);
+        party5_bench_build(G.nreserve++);
     }
-    { char nm[16]; party_give_xp(0, nm); }   /* join at the party's level */
-    party5_refresh(G.nparty - 1);
+}
+
+void party_add_laezel(void) {
+    party_add("LAE'ZEL", CLS_FIGHTER, ORIG_LAEZEL);
+    G.flags |= GF_LAEZEL;
 }
 
 void party_add_shadowheart(void) {
-    PMember* p = &G.pm[G.nparty++];
-    strcpy8(p->name, "SHADOW.");
-    p->cls = CLS_CLERIC; p->level = 1; p->xp = G.pm[0].xp; p->face = ORIG_SHADOW;
-    set_stats(p);
-    p->hp = p->hpmax; p->mp = p->mpmax;
-    G.revivify += 1;
+    party_add("SHADOW.", CLS_CLERIC, ORIG_SHADOW);
+    G.revivify += 1;                /* she carries a Scroll of Revivify */
     G.flags |= GF_SH_FREED;
-    {
-        int party5_default_weapon(int cls);
-        G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_CLERIC);
-    }
-    { char nm[16]; party_give_xp(0, nm); }   /* join at the party's level */
-    party5_refresh(G.nparty - 1);
+}
+
+/* beach recruits; their story beats land in a later stone */
+void party_add_astarion(void) { party_add("ASTAR.", CLS_ROGUE, ORIG_ASTARION); }
+void party_add_gale(void)     { party_add("GALE", CLS_WIZARD, ORIG_GALE); }
+
+/* exchange walking slot i (1..2 -- Tav holds 0) with reserve slot r;
+ * weapon and tactic travel with their member */
+void party_swap(int i, int r) {
+    PMember tp = G.pm[i];  G.pm[i] = G.reserve[r];        G.reserve[r] = tp;
+    u8 tw = G.weapon[i];   G.weapon[i] = G.rweapon[r];    G.rweapon[r] = tw;
+    u8 tt = G.tactics[i];  G.tactics[i] = G.rtactic[r];   G.rtactic[r] = tt;
+    party5_swap(i, r);
 }
 
 int party_give_xp(u16 xp, char* names) {
@@ -139,14 +173,7 @@ int party_give_xp(u16 xp, char* names) {
     for (int i = 0; i < G.nparty; i++) {
         PMember* p = &G.pm[i];
         p->xp = (u16)(p->xp + xp);
-        while (p->level < 3 && p->xp >= xp_next[p->level]) {
-            int oldhp = p->hpmax, oldmp = p->mpmax;
-            u8 eb = (G.everburn && p->cls == CLS_FIGHTER) ? 4 : 0;
-            p->level++;
-            set_stats(p);
-            p->atk = (u8)(p->atk + eb);
-            p->hp = (s16)(p->hp + p->hpmax - oldhp);
-            p->mp = (s16)(p->mp + p->mpmax - oldmp);
+        for (int u = level_ups(p); u; u--) {
             if (ups) { char* d = names; while (*d) d++; *d++ = ' '; *d = 0; }
             char* d = names; while (*d) d++;
             const char* s = p->name;
@@ -162,6 +189,10 @@ void party_heal_full(void) {
     for (int i = 0; i < G.nparty; i++) {
         G.pm[i].hp = G.pm[i].hpmax;
         G.pm[i].mp = G.pm[i].mpmax;
+    }
+    for (int r = 0; r < G.nreserve; r++) {
+        G.reserve[r].hp = G.reserve[r].hpmax;
+        G.reserve[r].mp = G.reserve[r].mpmax;
     }
     /* keep the 5e party in step (Battle 2.0) */
     void party5_heal_full(void);

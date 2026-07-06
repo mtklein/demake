@@ -51,7 +51,7 @@ $(OUT):
 # loudly if TOTAL line coverage drops below HOST_COV_FLOOR.
 # ratchet: raise as coverage rises; never lower (house convention:
 # measured, rounded down, minus one -- see docs/testing.md)
-HOST_COV_FLOOR := 88
+HOST_COV_FLOOR := 89
 
 cov: $(SRCS) shim/gba.h fake_engine.h | $(OUT)
 	$(LLVM)/clang $(CFLAGS) -fprofile-instr-generate -fcoverage-mapping \

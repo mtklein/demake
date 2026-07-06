@@ -404,6 +404,8 @@ static void t_menu_crawl_fuzz(void) {
     mk_party(CLS_CLERIC, 2);
     party_add_laezel();
     party_add_shadowheart();
+    party_add_astarion();          /* a live reserve: the Party screen gets */
+    party_add_gale();              /* fuzzed along with everything else    */
     G.potions = 3;
     G.revivify = 2;
     G.everburn = 1;
@@ -477,6 +479,177 @@ static void t_tactics_set(void) {
     script_keys("DOWN DOWN DOWN DOWN A A DOWN A B B");
     field_menu();
     T_ASSERT(G.tactics[0] == TAC_WISELY, "tactics %d, want Wisely", G.tactics[0]);
+}
+
+/* ------------------------------------------------- roster + reserve swap
+ * Oracles are the SRD sheets, independent of party5.c: rogue d8 CON 13
+ * (L1 9 hp, L2 15), wizard d6 CON 14 (L1 8 hp, L2 14, slots 2/3),
+ * fighter d10 CON 14 (L1 12), cleric d8 CON 14 (L1 10, 2 slots). */
+
+static void mk_roster5(int cls, int lvl) {
+    mk_party(cls, lvl);
+    party_add_laezel();
+    party_add_shadowheart();
+    party_add_astarion();
+    party_add_gale();
+}
+
+static void t_roster_recruit_overflow(void) {
+    sim_reset();
+    mk_party(CLS_BARD, 2);             /* an L2 party: recruits must catch up */
+    party_add_laezel();
+    party_add_shadowheart();
+    T_ASSERT(G.nparty == 3 && G.nreserve == 0,
+             "walking fill: nparty %d nreserve %d", G.nparty, G.nreserve);
+    party_add_astarion();
+    T_ASSERT(G.nparty == 3, "a 4th soul grew the walking party to %d", G.nparty);
+    T_ASSERT(G.nreserve == 1, "Astarion not benched (nreserve %d)", G.nreserve);
+    party_add_gale();
+    T_ASSERT(G.nreserve == 2, "Gale not benched (nreserve %d)", G.nreserve);
+    T_ASSERT(!strcmp(G.reserve[0].name, "ASTAR.") && G.reserve[0].cls == CLS_ROGUE
+             && G.reserve[0].face == ORIG_ASTARION,
+             "reserve 0 is %s cls %d face %d", G.reserve[0].name,
+             G.reserve[0].cls, G.reserve[0].face);
+    T_ASSERT(!strcmp(G.reserve[1].name, "GALE") && G.reserve[1].cls == CLS_WIZARD
+             && G.reserve[1].face == ORIG_GALE,
+             "reserve 1 is %s cls %d face %d", G.reserve[1].name,
+             G.reserve[1].cls, G.reserve[1].face);
+    T_ASSERT(G.reserve[0].level == 2 && G.reserve[1].level == 2,
+             "recruits joined at Lv %d/%d, want the party's 2",
+             G.reserve[0].level, G.reserve[1].level);
+    T_ASSERT(bench5[0].hp == 15 && bench5[0].hpmax == 15,
+             "benched rogue L2 hp %d/%d, want 15/15", bench5[0].hp, bench5[0].hpmax);
+    T_ASSERT(bench5[1].hp == 14 && bench5[1].hpmax == 14,
+             "benched wizard L2 hp %d/%d, want 14/14", bench5[1].hp, bench5[1].hpmax);
+    T_ASSERT(bench5[1].slots[0] == 3, "benched wizard L2 slots %d, want 3",
+             bench5[1].slots[0]);
+    T_ASSERT(G.rweapon[0] == R5W_DAGGER && G.rweapon[1] == R5W_QUARTERSTAFF,
+             "bench weapons %d/%d", G.rweapon[0], G.rweapon[1]);
+    party_add_gale();                  /* a 6th soul has nowhere to land */
+    T_ASSERT(G.nparty == 3 && G.nreserve == 2,
+             "roster overflowed its cap (nparty %d nreserve %d)",
+             G.nparty, G.nreserve);
+}
+
+static void t_party_swap_menu(void) {
+    sim_reset();
+    mk_roster5(CLS_BARD, 1);
+    party5[1].hp -= 3;                 /* Lae'zel carries a wound to the bench */
+    /* Party is row 5 of 7; inside, UP must NOT walk the cursor onto Tav */
+    script_keys("DOWN DOWN DOWN DOWN DOWN A UP A A B B");
+    field_menu();
+    T_ASSERT(!strcmp(G.pm[0].name, "TAV"), "Tav left slot 0 (%s)", G.pm[0].name);
+    T_ASSERT(!strcmp(G.pm[1].name, "ASTAR.") && G.pm[1].cls == CLS_ROGUE,
+             "slot 1 holds %s cls %d", G.pm[1].name, G.pm[1].cls);
+    T_ASSERT(!strcmp(G.reserve[0].name, "LAE'ZEL") && G.reserve[0].cls == CLS_FIGHTER,
+             "reserve 0 holds %s cls %d", G.reserve[0].name, G.reserve[0].cls);
+    /* the newcomer's creature is HIS sheet: full rogue, not her wounds */
+    T_ASSERT(!strcmp(party5[1].name, "ASTAR.") && party5[1].cls == CLS_ROGUE,
+             "party5[1] is %s cls %d", party5[1].name, party5[1].cls);
+    T_ASSERT(party5[1].hp == 9 && party5[1].hpmax == 9,
+             "swapped-in rogue hp %d/%d, want 9/9", party5[1].hp, party5[1].hpmax);
+    T_ASSERT(party5[1].ac == 13, "rogue AC %d, want 13 (leather + DEX 15)",
+             party5[1].ac);
+    T_ASSERT(party5[1].ab[R5_DEX] == 15 && party5[1].ab[R5_INT] == 14,
+             "rogue spread DEX %d INT %d, want 15/14",
+             party5[1].ab[R5_DEX], party5[1].ab[R5_INT]);
+    /* her wound went with her */
+    T_ASSERT(bench5[0].cls == CLS_FIGHTER, "bench5[0] cls %d", bench5[0].cls);
+    T_ASSERT(bench5[0].hpmax == 12 && bench5[0].hp == 9,
+             "benched fighter hp %d/%d, want the wound kept (9/12)",
+             bench5[0].hp, bench5[0].hpmax);
+    /* equipment travels with its owner */
+    T_ASSERT(G.weapon[1] == R5W_DAGGER, "slot-1 weapon %d, want his dagger",
+             G.weapon[1]);
+    T_ASSERT(G.rweapon[0] == R5W_GREATSWORD, "bench weapon %d, want her greatsword",
+             G.rweapon[0]);
+}
+
+static void t_bench_round_trip(void) {
+    sim_reset();
+    mk_roster5(CLS_BARD, 1);
+    /* wound Lae'zel and spend her Second Wind; down Shadowheart and spend
+     * one of her two cleric slots */
+    party5[1].hp -= 2;
+    party5[1].used |= USED_SECOND_WIND;
+    T_ASSERT(r5_spend_slot(&party5[2], 1), "cleric slot spend failed");
+    party5[2].hp = 0;
+    party5[2].conds |= C_UNCONSCIOUS;
+    int lz_max = party5[1].hpmax, sh_max = party5[2].hpmax;
+    /* one Party session: bench both walkers, then bring both home */
+    script_keys("DOWN DOWN DOWN DOWN DOWN A "
+                "A A "                /* slot 1 <-> Astarion       */
+                "DOWN A DOWN A "      /* slot 2 <-> Gale           */
+                "A A "                /* slot 1 <-> Lae'zel (back) */
+                "DOWN A DOWN A "      /* slot 2 <-> Shadow. (back) */
+                "B B");
+    field_menu();
+    T_ASSERT(!strcmp(G.pm[1].name, "LAE'ZEL") && !strcmp(G.pm[2].name, "SHADOW."),
+             "round trip lost the walkers (%s, %s)", G.pm[1].name, G.pm[2].name);
+    /* everything spent stayed spent, everything lost stayed lost */
+    T_ASSERT(party5[1].hp == lz_max - 2, "Lae'zel hp %d, want %d",
+             party5[1].hp, lz_max - 2);
+    T_ASSERT(party5[1].used & USED_SECOND_WIND, "the bench refunded Second Wind");
+    T_ASSERT(party5[2].hp == 0, "Shadowheart hp %d, want still 0", party5[2].hp);
+    T_ASSERT(party5[2].conds & C_UNCONSCIOUS, "the bench woke Shadowheart");
+    T_ASSERT(party5[2].slots[0] == 1, "cleric slots %d, want 1 (one spent)",
+             party5[2].slots[0]);
+    T_ASSERT(party5[2].hpmax == sh_max, "hpmax drifted %d -> %d",
+             sh_max, party5[2].hpmax);
+    /* the tourists came home clean */
+    T_ASSERT(!strcmp(G.reserve[0].name, "ASTAR.") && !strcmp(G.reserve[1].name, "GALE"),
+             "reserve order lost (%s, %s)", G.reserve[0].name, G.reserve[1].name);
+    T_ASSERT(bench5[0].hp == bench5[0].hpmax, "Astarion took wounds while touring");
+    T_ASSERT(bench5[1].slots[0] == 2, "Gale slots %d, want 2 (SRD wizard L1)",
+             bench5[1].slots[0]);
+    /* a spent pact pool survives the bench too: respec the sheet to a
+     * warlock (the rebuild party5_refresh is the respec path), cast, tour */
+    G.pm[1].cls = CLS_WARLOCK;
+    party5_refresh(1);
+    T_ASSERT(party5[1].rsrc[R5R_PACT] == 1, "warlock L1 pact pool %d",
+             party5[1].rsrc[R5R_PACT]);
+    T_ASSERT(r5_pact_cast(&party5[1]), "pact cast failed");
+    party_swap(1, 0);
+    party_swap(1, 0);
+    T_ASSERT(G.pm[1].cls == CLS_WARLOCK && party5[1].rsrc[R5R_PACT] == 0,
+             "the bench refunded the pact slot (cls %d rsrc %d)",
+             G.pm[1].cls, party5[1].rsrc[R5R_PACT]);
+}
+
+static void t_rest_heals_bench(void) {
+    sim_reset();
+    mk_roster5(CLS_BARD, 1);
+    /* Astarion benched at death's door, Gale benched dry of slots */
+    bench5[0].hp = 0;
+    bench5[0].conds |= C_UNCONSCIOUS;
+    G.reserve[0].hp = 1;
+    T_ASSERT(r5_spend_slot(&bench5[1], 1), "wizard slot spend failed");
+    party_heal_full();
+    T_ASSERT(bench5[0].hp == bench5[0].hpmax && bench5[0].hpmax > 0,
+             "benched rogue hp %d/%d after the rest", bench5[0].hp, bench5[0].hpmax);
+    T_ASSERT(!(bench5[0].conds & C_UNCONSCIOUS), "benched rogue still KO after rest");
+    T_ASSERT(bench5[1].slots[0] == 2, "benched wizard slots %d, want 2 back",
+             bench5[1].slots[0]);
+    T_ASSERT(G.reserve[0].hp == G.reserve[0].hpmax, "reserve sheet hp %d/%d",
+             G.reserve[0].hp, G.reserve[0].hpmax);
+}
+
+static void t_party_row_gated(void) {
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    party_add_laezel();
+    party_add_shadowheart();
+    script_keys("SNAP B");
+    field_menu();
+    /* ship state: the five verbs + Close, exactly where they always were */
+    T_ASSERT(!snap_contains(0, "Party"), "Party row shown with an empty reserve");
+    T_ASSERT(strstr(snap_row(0, 15), "Close") != 0, "Close moved off row 15");
+    party_add_astarion();
+    script_keys("SNAP B");
+    field_menu();
+    T_ASSERT(snap_contains(1, "Party"), "Party row missing with a reserve");
+    T_ASSERT(strstr(snap_row(1, 15), "Party") != 0, "Party not on row 15");
+    T_ASSERT(strstr(snap_row(1, 17), "Close") != 0, "Close not on row 17");
 }
 
 /* ------------------------------------------------- battles (encounter.c) */
@@ -1035,6 +1208,11 @@ static const Test tests[] = {
     { "equip_swap",                t_equip_swap },
     { "items_potion",              t_items_potion },
     { "tactics_set",               t_tactics_set },
+    { "roster_recruit_overflow",   t_roster_recruit_overflow },
+    { "party_swap_menu",           t_party_swap_menu },
+    { "bench_round_trip",          t_bench_round_trip },
+    { "rest_heals_bench",          t_rest_heals_bench },
+    { "party_row_gated",           t_party_row_gated },
     { "battle_auto_win",           t_battle_auto_win },
     { "battle_manual_eldritch_blast", t_battle_manual_eldritch_blast },
     { "battle_wizard_sleep",       t_battle_wizard_sleep },
