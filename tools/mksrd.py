@@ -141,39 +141,83 @@ def gen_classes(o):
 
 # ---------------------------------------------------------------- spells
 
-SPELL_MAP = [  # rules.h R5S_ order
-    ("R5S_VICIOUS_MOCKERY", "vicious mockery"),
-    ("R5S_HEALING_WORD", "healing word"),
-    ("R5S_FIRE_BOLT", "fire bolt"),
-    ("R5S_MAGIC_MISSILE", "magic missile"),
-    ("R5S_SLEEP", "sleep"),
-    ("R5S_CURE_WOUNDS", "cure wounds"),
-    ("R5S_GUIDING_BOLT", "guiding bolt"),
-    ("R5S_BLESS", "bless"),
-    ("R5S_HUNTERS_MARK", "hunter's mark"),
+LEGACY_SPELLS = [  # original ids, order frozen (encounter.c uses these names)
+    "vicious mockery", "healing word", "fire bolt", "magic missile", "sleep",
+    "cure wounds", "guiding bolt", "bless", "hunter's mark",
 ]
-HEAL_SPELLS = {"healing word", "cure wounds"}
+HEAL_SPELLS = {"healing word", "cure wounds", "mass healing word", "prayer of healing"}
+COND_BITS = { "blinded": 0, "charmed": 1, "deafened": 2, "frightened": 3,
+    "grappled": 4, "incapacitated": 5, "invisible": 6, "paralyzed": 7,
+    "petrified": 8, "poisoned": 9, "prone": 10, "restrained": 11,
+    "stunned": 12, "unconscious": 13 }
+KINDS = { "attack": 0, "save": 1, "heal": 2, "buff": 3, "condition": 4,
+          "multi": 5, "pool": 6, "utility": 7 }
+CLS_ORDER = ["bard", "rogue", "ranger", "wizard", "fighter", "cleric",
+             "barbarian", "druid", "monk", "paladin", "sorcerer", "warlock"]
+
+def spell_enum(key):
+    out = "R5S_"
+    for ch in key.upper():
+        if ch == "'": continue            # hunter's -> HUNTERS (legacy names)
+        out += ch if ch.isalnum() else "_"
+    while "__" in out: out = out.replace("__", "_")
+    return out.rstrip("_")
+
+def spell_order():
+    rest = sorted((k for k in SRD.SPELLS if k not in LEGACY_SPELLS),
+                  key=lambda k: (SRD.SPELLS[k]["level"], k))
+    return LEGACY_SPELLS + rest
+
+def gen_spell_ids(h):
+    h.append("/* generated: R5S_* spell ids (legacy 13 first, then by level/name) */")
+    h.append("#ifndef SRD_IDS_H")
+    h.append("#define SRD_IDS_H")
+    h.append("enum {")
+    for i, key in enumerate(spell_order()):
+        h.append(f"    {spell_enum(key)} = {i},")
+    h.append(f"    R5S_COUNT = {len(spell_order())}")
+    h.append("};")
+    h.append("#endif")
 
 def gen_spells(o):
-    o.append("const R5Spell r5_spells[] = {")
-    for enum, key in SPELL_MAP:
+    o.append("const R5Spell r5_spells[R5S_COUNT] = {")
+    for key in spell_order():
         s = SRD.SPELLS[key]
+        enum = spell_enum(key)
         d, count, plus = s.get("dice"), 1, 0
         if isinstance(d, dict):
-            count, plus, d = d["count"], d.get("plus", 0), d["dice"]
+            count, plus, d = d.get("count", 1), d.get("plus", 0), d.get("dice")
         save_ab, save_half = "0xFF", 0
-        if s.get("save"):
-            ab, mode = s["save"]
+        sv = s.get("save")
+        if sv:
+            ab, mode = (sv[0], sv[1]) if isinstance(sv, (list, tuple)) else (sv, "negate")
             save_ab, save_half = str(AB[ab]), 1 if mode == "half" else 0
-        heal = key in HEAL_SPELLS
+        heal = key in HEAL_SPELLS or s.get("kind") == "heal"
         add_mod = 1 if heal else 0
         dt = DT.get(s.get("dmg_type") or "", "0")
-        o.append('    [%s] = { "%s", %d, %d, %d, %d, %s, %d, %s, %d, %s, %d, %d },' % (
+        kind = KINDS.get(s.get("kind", "utility"), 7)
+        cond = s.get("condition")
+        if isinstance(cond, (list, tuple)): cond = cond[0]
+        cond_bit = COND_BITS.get(cond, 255) if cond else 255
+        rounds = s.get("rounds") or 0
+        if rounds > 250: rounds = 250
+        aoe = s.get("aoe")
+        tgtf = s.get("targets")
+        if tgtf == "party": tgt = 250
+        elif tgtf == "self": tgt = 251
+        elif aoe: tgt = 2 if (aoe.get("size_ft", 15) <= 15) else 3
+        else: tgt = 1
+        clsmask = 0
+        for cn in s.get("classes", []):
+            if cn in CLS_ORDER: clsmask |= 1 << CLS_ORDER.index(cn)
+        cast = s.get("cast", s.get("action", "action"))
+        o.append('    [%s] = { "%s", %d, %d, %d, %d, %s, %d, %s, %d, %s, %d, %d, %d, %d, %d, %d, 0x%03x },' % (
             enum, key.title().replace("'S", "'s"), s["level"],
-            1 if s["cast"] == "bonus" else 0,
-            1 if s["concentration"] else 0,
+            1 if cast == "bonus" else 0,
+            1 if s.get("concentration") else 0,
             1 if s.get("attack") else 0,
-            save_ab, save_half, dice(d, plus), count, dt, heal, add_mod))
+            save_ab, save_half, dice(d, plus), count, dt, heal, add_mod,
+            kind, cond_bit, rounds, tgt, clsmask))
     o.append("};")
 
 # ---------------------------------------------------------------- monsters
@@ -235,8 +279,12 @@ def main():
     gen_monsters(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
+    h = []
+    gen_spell_ids(h)
+    with open(os.path.join(os.path.dirname(OUT), "srd_ids.h"), "w") as f:
+        f.write("\n".join(h) + "\n")
     print(f"srd tables: {len(WEAPON_MAP)} weapons, {len(CLASS_MAP)} classes, "
-          f"{len(MONSTER_MAP)} monsters -> {OUT}")
+          f"{len(spell_order())} spells, {len(MONSTER_MAP)} monsters -> {OUT}")
 
 if __name__ == "__main__":
     main()

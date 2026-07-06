@@ -52,7 +52,7 @@ $(BUILD)/gen/%.o: $(BUILD)/gen/%.c | $(BUILD)
 $(BUILD)/r_%.o: rules/%.c rules/rules.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(SRDTAB): tools/mksrd.py tools/srd/srd_data.py tools/srd/overrides.py | $(BUILD)
+$(SRDTAB) $(BUILD)/gen/srd_ids.h: tools/mksrd.py tools/srd/srd_data.py tools/srd/overrides.py | $(BUILD)
 	$(PY) tools/mksrd.py
 
 .PHONY: test-rules test-aeabi gate
@@ -69,8 +69,8 @@ $(BUILD)/test_aeabi: src/aeabi.c test/test_aeabi.c | $(BUILD)
 gate:
 	test/gate.sh
 
-$(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) rules/rules.h rules/test_rules.c | $(BUILD)
-	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules \
+$(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h rules/test_rules.c | $(BUILD)
+	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules -I$(BUILD)/gen \
 	    -o $@ $(RULESSRC) $(SRDTAB) rules/test_rules.c
 
 $(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)

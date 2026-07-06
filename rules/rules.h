@@ -262,12 +262,19 @@ typedef struct {
     uint8_t dmg_type;
     uint8_t heal;               /* heals instead of damages */
     uint8_t add_mod;            /* add caster ability mod to the dice */
+    uint8_t kind;               /* R5K_* shape of the effect */
+    uint8_t cond_bit;           /* C_* bit index applied on hit/fail, 0xFF none */
+    uint8_t rounds;             /* condition/buff duration in rounds (0 = scene) */
+    uint8_t tgt;                /* 1..3 = foes hit; R5T_PARTY / R5T_SELF */
+    uint16_t classes;           /* class list bitmask, R5C_ order */
 } R5Spell;
 
+enum { R5K_ATTACK, R5K_SAVE, R5K_HEAL, R5K_BUFF, R5K_CONDITION,
+       R5K_MULTI, R5K_POOL, R5K_UTILITY };
+enum { R5T_PARTY = 250, R5T_SELF = 251 };
+
 extern const R5Spell r5_spells[];
-enum { R5S_VICIOUS_MOCKERY, R5S_HEALING_WORD, R5S_FIRE_BOLT,
-       R5S_MAGIC_MISSILE, R5S_SLEEP, R5S_CURE_WOUNDS, R5S_GUIDING_BOLT,
-       R5S_BLESS, R5S_HUNTERS_MARK, R5S_COUNT };
+#include "srd_ids.h"            /* generated R5S_* ids, legacy 13 first */
 
 extern const R5Monster r5_monsters[];
 /* IMP/BOAR are true SRD stat blocks (test-validated); the rest are our
