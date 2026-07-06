@@ -34,6 +34,46 @@ characters — including The Dark Urge.**
   slot stays empty for the prologue (BG3-accurate: you meet the others on
   the beach).
 
+## Rulesets and precedence
+
+Three real rulesets orbit this game; the amalgam is explicit:
+
+1. **SRD 5.1 (the 2014 rules) is the chassis.** All progression, subclass
+   timing (cleric domains and warlock patrons at level 1, wizard/druid at 2,
+   the rest at 3), slots, and feature mechanics. CC-BY-4.0, attributed.
+2. **BG3-isms are adopted deliberately, one at a time, and listed here.**
+   Current list: **bonus-action potions** (Larian homebrew that the 2024
+   rules later made RAW — the most defensible tweak in the pile).
+3. **SRD 5.2.1 (the 2024 revision, colloquially 5.5e) is cross-check and
+   gap-filler only** — used where 5.1 is silent (Ensnaring Strike precedent)
+   with divergences noted inline. Its biggest structural change (all
+   subclasses at level 3) is explicitly NOT adopted; Shadowheart being a
+   Sharran trickery cleric from level 1 is the whole point of 5.1 timing.
+4. **Homebrew fills non-SRD gaps** under the piscodemon doctrine (original
+   names, original text, engine-primitive mechanics).
+
+## Origins: class and subclass identity
+
+| Origin | Class | Subclass | Default |
+|---|---|---|---|
+| Astarion | Rogue | at 3 | assassin-shape |
+| Gale | Wizard | at 2 | Evocation (SRD) |
+| Karlach | Barbarian | at 3 | Berserker (SRD) |
+| Lae'zel | Fighter | at 3 | Champion (SRD) |
+| Shadowheart | Cleric | **at 1** | trickery-shape (Shar) |
+| Wyll | Warlock | **at 1** | The Fiend (SRD — Mizora) |
+| Dark Urge | any | per class | storm-shape sorcerer suggested |
+
+Origin Lae'zel gets a **githyanki warrior companion for the nautiloid
+only** — he fills her usual slot in the deck fight (her sprite sheet,
+palette-swapped; fighter kit; terse) and is gone by the beach. Origin
+Shadowheart's pod stands empty; the rune beat reroutes.
+
+Wild Shape presentation note: the beast is a replacement actor with its own
+HP pool that hands back the druid at 0 — mechanically closer to FFX's Aeons
+than to anything else in the 16-bit canon, and staged like a summon
+(entrance flash when the form takes over).
+
 ## Data model
 
 - `PMember` grows: `u8 subclass;` `u8 choice[4];` (class-indexed meanings:
