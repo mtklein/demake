@@ -12,29 +12,36 @@
 #define TXT ((vu16*)SCREENBLOCK(30))
 #define POR_VRAM_TILE UI_TILE_COUNT
 
-static const char* const cls_names[6] = {
-    "Bard", "Rogue", "Ranger", "Wizard", "Fighter", "Cleric"
+static const char* const cls_names[CLS_COUNT] = {
+    "Bard", "Rogue", "Ranger", "Wizard", "Fighter", "Cleric",
+    "Barbarian", "Druid", "Monk", "Paladin", "Sorcerer", "Warlock"
 };
 static const char* const tac_names[TAC_COUNT] = {
     "Orders", "Wisely", "All Out", "Healer", "No Slots"
 };
-static const s8 cls_portrait[6] = {
+static const s8 cls_portrait[CLS_COUNT] = {
 #if defined(POR_TAV_BARD) && defined(POR_LAEZEL)
     POR_TAV_BARD, POR_TAV_ROGUE, POR_TAV_RANGER, POR_TAV_WIZARD,
-    POR_LAEZEL, POR_SHADOW,
+    POR_LAEZEL, POR_SHADOW, -1, -1, -1, -1, -1, -1,
 #else
-    -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 #endif
 };
 
 /* spells shown on the sheet, per class */
-static const u8 cls_spells[6][3] = {
+static const u8 cls_spells[CLS_COUNT][3] = {
     [CLS_BARD]    = { R5S_VICIOUS_MOCKERY, R5S_HEALING_WORD, 0xFF },
     [CLS_ROGUE]   = { 0xFF, 0xFF, 0xFF },
     [CLS_RANGER]  = { R5S_HUNTERS_MARK, 0xFF, 0xFF },
     [CLS_WIZARD]  = { R5S_FIRE_BOLT, R5S_MAGIC_MISSILE, R5S_SLEEP },
     [CLS_FIGHTER] = { 0xFF, 0xFF, 0xFF },
-    [CLS_CLERIC]  = { R5S_GUIDING_BOLT, R5S_CURE_WOUNDS, R5S_BLESS },
+    [CLS_CLERIC]  = { R5S_SACRED_FLAME, R5S_GUIDING_BOLT, R5S_CURE_WOUNDS },
+    [CLS_BARBARIAN]= { 0xFF, 0xFF, 0xFF },
+    [CLS_DRUID]   = { R5S_PRODUCE_FLAME, R5S_POISON_SPRAY, R5S_CURE_WOUNDS },
+    [CLS_MONK]    = { 0xFF, 0xFF, 0xFF },
+    [CLS_PALADIN] = { R5S_CURE_WOUNDS, R5S_BLESS, 0xFF },
+    [CLS_SORCERER]= { R5S_FIRE_BOLT, R5S_RAY_OF_FROST, R5S_MAGIC_MISSILE },
+    [CLS_WARLOCK] = { R5S_ELDRITCH_BLAST, R5S_BURNING_HANDS, 0xFF },
 };
 
 static char* mp_num(char* d, int v) {
@@ -115,9 +122,10 @@ static void draw_overview(void) {
     win_draw(19, 3, 11, 17);
     txt_put(22, 5, "Status", 0);
     txt_put(22, 7, "Equip", 0);
-    txt_put(22, 9, "Items", 0);
-    txt_put(22, 11, "Tactics", 0);
-    txt_put(22, 13, "Close", 0);
+    txt_put(22, 9, "Prepare", 0);
+    txt_put(22, 11, "Items", 0);
+    txt_put(22, 13, "Tactics", 0);
+    txt_put(22, 15, "Close", 0);
 }
 
 /* "Rapier 1d8 fin" style line */
@@ -133,6 +141,75 @@ static void weapon_line(char* d, int w) {
         d = mp_str(d, rw->rider_type == DT_FIRE ? " +fire" : " +venom");
     }
     *d = 0;
+}
+
+static int prepared_caster(int cls) {
+    return cls == CLS_CLERIC || cls == CLS_WIZARD ||
+           cls == CLS_DRUID  || cls == CLS_PALADIN;
+}
+
+/* prepare-count = spellcasting mod + level (min 1), 5e-standard */
+static int prepare_count(const R5Creature* c) {
+    int mod = r5_mod(c->ab[party5_cast_ab(c->cls)]);
+    int n = mod + c->level;
+    return n < 1 ? 1 : n;
+}
+
+static void prepare_screen(void) {
+    mgba_log("prepare-screen");
+    for (;;) {
+        clear_all();
+        win_draw(2, 2, 26, 4);
+        txt_put(9, 3, "-- PREPARE --", 1);
+        int cast = 0, rows[4], nc = 0;
+        for (int i = 0; i < G.nparty; i++)
+            if (prepared_caster(G.pm[i].cls)) { rows[nc] = i; txt_put_n(4, 5, "", 0, 1); nc++; }
+        for (int k = 0; k < nc; k++)
+            txt_put_n(5, 4 + k, party5[rows[k]].name, 0, 10);
+        if (!nc) { txt_put(5, 4, "No prepared casters.", 2);
+                   for (;;){ frame(); field_draw(); if (key_hit()&(KEY_A|KEY_B)) return; } }
+        int pk = pick_row(4, 4, 1, nc);
+        if (pk < 0) return;
+        int mi = rows[pk];
+        R5Creature* c = &party5[mi];
+        int cap = prepare_count(c);
+        const u8* list = r5_class_spells[c->cls];
+        int shown[16], sn = 0;
+        for (int s = 0; s < 16 && list[s] != 255; s++)
+            if (r5_spells[list[s]].level >= 1) shown[sn++] = s;   /* cantrips always known */
+        int sel = 0;
+        for (;;) {
+            cast = 0;
+            for (int r = 0; r < sn; r++)
+                if (G.pm[mi].prepared & (1u << shown[r])) cast++;
+            clear_all();
+            win_draw(1, 1, 28, 18);
+            char b[48]; char* d = b;   /* wide: some SRD spell names are 29 chars */
+            d = mp_str(d, party5[mi].name); d = mp_str(d, ": "); d = mp_num(d, cast);
+            d = mp_str(d, "/"); d = mp_num(d, cap); d = mp_str(d, " prepared"); *d = 0;
+            txt_put_n(3, 2, b, 1, 26);
+            for (int r = 0; r < sn && r < 14; r++) {
+                const R5Spell* rs = &r5_spells[list[shown[r]]];
+                int on = (G.pm[mi].prepared >> shown[r]) & 1;
+                d = b; *d++ = on ? '*' : ' '; *d++ = ' ';
+                for (const char* p = rs->name; *p && d < b + 40; p++) *d++ = *p;
+                *d++ = ' '; *d++ = (char)('0' + rs->level); *d = 0;
+                txt_put_n(4, 4 + r, b, on ? 1 : 0, 22);
+            }
+            obj_set(OBJ_CURSOR, 3 * 8 - 6, (4 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame(); field_draw();
+            u16 k = key_hit();
+            if (k & KEY_UP && sel > 0) sel--;
+            if (k & KEY_DOWN && sel < sn - 1) sel++;
+            if (k & KEY_A) {
+                u32 bit = 1u << shown[sel];
+                if (G.pm[mi].prepared & bit) { G.pm[mi].prepared &= ~bit; sfx_play(SFX_CANCEL); }
+                else if (cast < cap) { G.pm[mi].prepared |= bit; sfx_play(SFX_CONFIRM); }
+                else sfx_play(SFX_CANCEL);
+            }
+            if (k & KEY_B) { obj_hide(OBJ_CURSOR); break; }
+        }
+    }
 }
 
 static void equip_screen(void) {
@@ -182,7 +259,7 @@ static void member_sheet(int i) {
     txt_put_n(9, 2, b, 0, 12);
     d = b; d = mp_str(d, "XP "); d = mp_num(d, G.pm[i].xp);
     d = mp_str(d, c->level < 3 ? "/" : "");
-    if (c->level < 3) d = mp_num(d, c->level == 1 ? 100 : 400);
+    if (c->level < 3) d = mp_num(d, c->level == 1 ? 300 : 900);
     *d = 0;
     txt_put_n(9, 3, b, 2, 12);
     d = b; d = mp_str(d, "HP "); d = mp_num(d, c->hp);
@@ -327,16 +404,17 @@ void field_menu(void) {
     sfx_play(SFX_CONFIRM);
     for (;;) {
         draw_overview();
-        int sel = pick_row(21, 5, 2, 5);
-        if (sel < 0 || sel == 4) break;
+        int sel = pick_row(21, 5, 2, 6);
+        if (sel < 0 || sel == 5) break;
         if (sel == 0) {
-            win_draw(19, 14, 11, G.nparty + 2);
+            win_draw(19, 16, 11, G.nparty + 2);
             for (int i = 0; i < G.nparty; i++)
-                txt_put_n(22, 15 + i, party5[i].name, 0, 7);
-            int m = pick_row(21, 15, 1, G.nparty);
+                txt_put_n(22, 17 + i, party5[i].name, 0, 7);
+            int m = pick_row(21, 17, 1, G.nparty);
             if (m >= 0) member_sheet(m);
         } else if (sel == 1) equip_screen();
-        else if (sel == 2) items_screen();
+        else if (sel == 2) prepare_screen();
+        else if (sel == 3) items_screen();
         else tactics_screen();
     }
     clear_all();

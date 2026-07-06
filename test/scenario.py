@@ -160,6 +160,20 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def prepare_check():
+    """cleric opens the prepare screen and toggles a spell without crashing
+    (guards the long-spell-name buffer overflow)"""
+    setup(5, [0, 1, 0, 0, 2])
+    intro()
+    tap("START"); wait(20)
+    tap("DOWN", 2, gap=12); tap("A"); wait(20)   # -> Prepare
+    tap("A"); wait(30)                            # pick member
+    tap("DOWN", 3, gap=12)
+    tap("A"); wait(20)                            # toggle a spell
+    tap("B"); tap("B"); tap("B"); wait(20)        # back out
+    shot("prepare_done")
+
+@scn
 def levelup_check():
     """wizard poked to level 2 without a subclass picks one on deck victory"""
     setup(3, [0, 1, 0, 0, 2])
@@ -225,6 +239,7 @@ def cone_ambush():
 @scn
 def helm_sleepz():
     setup(3, [0, 1, 0, 0, 2], 2)
+    poke(0x0203FF0D, 3)              # kill-all stress test at beach-arc strength
     intro(); nursery(); surgery(); deck(); pods()
     walk("UP", 5)
     wait(500); shot("g_zz1")

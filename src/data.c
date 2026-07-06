@@ -73,6 +73,8 @@ void party_init(int cls, const char* name) {
     PMember* p = &G.pm[0];
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
+    if (G_DEMO_LEVEL >= 2) { char nm[16]; party_give_xp(
+        G_DEMO_LEVEL >= 3 ? 900 : 300, nm); }   /* test hook: pre-level */
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
@@ -99,6 +101,7 @@ void party_add_laezel(void) {
         int party5_default_weapon(int cls);
         G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_FIGHTER);
     }
+    { char nm[16]; party_give_xp(0, nm); }   /* join at the party's level */
     party5_refresh(G.nparty - 1);
 }
 
@@ -114,6 +117,7 @@ void party_add_shadowheart(void) {
         int party5_default_weapon(int cls);
         G.weapon[G.nparty - 1] = (u8)party5_default_weapon(CLS_CLERIC);
     }
+    { char nm[16]; party_give_xp(0, nm); }   /* join at the party's level */
     party5_refresh(G.nparty - 1);
 }
 

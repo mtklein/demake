@@ -352,6 +352,19 @@ def gen_subclass_menu(o):
         o.append("    %d," % lvl)
     o.append("};")
 
+
+def gen_class_spells(o):
+    """per-class spell option lists (levels 0-2) as id arrays for prepare menus"""
+    order = spell_order()
+    idx = {k: i for i, k in enumerate(order)}
+    o.append("const uint8_t r5_class_spells[R5C_COUNT][16] = {")
+    for cls in range(12):
+        cn = CLS_ORDER[cls]
+        ids = [idx[k] for k in order if cn in SRD.SPELLS[k].get("classes", [])][:16]
+        while len(ids) < 16: ids.append(255)
+        o.append("    { %s }," % ", ".join(str(i) for i in ids))
+    o.append("};")
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     o = [
@@ -365,7 +378,8 @@ def main():
     gen_spells(o); o.append("")
     gen_monsters(o); o.append("")
     gen_subclasses(o); o.append("")
-    gen_subclass_menu(o)
+    gen_subclass_menu(o); o.append("")
+    gen_class_spells(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
     h = []

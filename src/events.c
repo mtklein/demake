@@ -599,7 +599,7 @@ void level_up_choices(void) {
             s = " walks a new path:"; while (*s) *d++ = *s++; *d = 0;
             say(m);
         }
-        int c = choose(n, opts);
+        int c = G_DEMO ? 0 : choose(n, opts);   /* demo: auto-pick, don't eat the choice buffer */
         p->subclass = (u8)map[c];
         party5_refresh(i);
         mgba_logf("subclass pick %s -> %d", p->name, p->subclass);
