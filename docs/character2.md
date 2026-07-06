@@ -129,6 +129,20 @@ translates to exactly two things:
 The homebrew subclasses already follow this doctrine (teleport/hop
 features became impose_dis flickers, mobility became save advantage).
 
+**Darkvision (socket named; content when the first dark room ships --
+the nautiloid is lit flesh, the beach is daylight; a beach-arc cave is
+the natural debut):** rooms gain a DARK flag. Without darkvision the
+screen itself dims (BLDY half-step) and that actor's ranged/spell
+attacks roll at disadvantage -- melee exempt; per-actor, both sides, so
+the dark flips the ranged/melee economy rather than taxing a stat.
+Devils (imps) see 120 ft and are never blinded; human thralls halve
+their patrol detection in the dark -- the asymmetry is monster lore.
+Counterplay is capability, not penalty: the Light / Produce Flame /
+Dancing Lights cantrips gain a real field purpose, and the equipped
+Everburn Blade lights the room (the fighter's trophy becomes the
+party's torch). Field dimming keys off Tav; darkvision is a real race
+trait bit from the data merge on, not flavor.
+
 ## Origin sheet identities
 
 Astarion high elf / Gale human / Karlach tiefling / Lae'zel githyanki /
