@@ -1,6 +1,10 @@
-PREFIX  := arm-none-eabi-
-CC      := $(PREFIX)gcc
-OBJCOPY := $(PREFIX)objcopy
+# Cross-compiled with Homebrew LLVM: clang + ld.lld + llvm-objcopy
+# (brew install llvm lld). src/aeabi.c supplies the AEABI division helpers
+# that libgcc used to provide -- the only runtime the game needs.
+LLVM    := $(shell brew --prefix llvm)
+LLD     := $(shell brew --prefix lld)
+CC      := $(LLVM)/bin/clang
+OBJCOPY := $(LLVM)/bin/llvm-objcopy
 PY      := python3
 
 BUILD := build
@@ -8,10 +12,11 @@ ROM   := $(BUILD)/nautiloid.gba
 ELF   := $(BUILD)/nautiloid.elf
 TITLE := NAUTILOID
 
-ARCH    := -mcpu=arm7tdmi -mthumb
+ARCH    := --target=arm-none-eabi -mcpu=arm7tdmi -mthumb
 CFLAGS  := $(ARCH) -O2 -g -Wall -Wextra -ffreestanding -fno-strict-aliasing \
            -Isrc -Irules -I$(BUILD)/gen
-LDFLAGS := $(ARCH) -nostdlib -T gba.ld -Wl,-Map,$(BUILD)/rom.map
+LDFLAGS := $(ARCH) -nostdlib --ld-path=$(LLD)/bin/ld.lld -T gba.ld \
+           -Wl,-Map,$(BUILD)/rom.map
 HOSTCC  ?= cc
 
 CSRC     := $(wildcard src/*.c)
@@ -33,10 +38,10 @@ $(ROM): $(ELF)
 	$(PY) tools/fixrom.py $@ $(TITLE)
 
 $(ELF): $(OBJ) gba.ld
-	$(CC) $(LDFLAGS) -o $@ $(OBJ) -lgcc
+	$(CC) $(LDFLAGS) -o $@ $(OBJ)
 
 $(BUILD)/crt0.o: src/crt0.s | $(BUILD)
-	$(CC) -mcpu=arm7tdmi -x assembler-with-cpp -c $< -o $@
+	$(CC) --target=arm-none-eabi -mcpu=arm7tdmi -x assembler-with-cpp -c $< -o $@
 
 $(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h $(BUILD)/gen/screens.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
