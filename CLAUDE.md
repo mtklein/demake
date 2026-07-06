@@ -8,9 +8,11 @@ src/aeabi.c is the entire runtime (AEABI division + memory intrinsics).
 ## The gate
 
 **`make gate` must be green before any commit lands on main.** It builds the
-ROM and runner, runs the native 5e rules suite and the AEABI division tests,
-lints every song, and drives all seven scripted playthroughs with structural
-assertions. Main is always finishable; the gate is what "finishable" means
+ROM and runner, runs the native 5e rules suite, the AEABI division tests,
+and the ASan/UBSan host sim, lints every song, drives the scripted scenario
+fleet (full playthroughs, feature checks, a deck-brawl smoke for all 12
+classes) with structural assertions, then enforces both coverage ratchets.
+Main is always finishable; the gate is what "finishable" means
 operationally. Scenario checks assert structure (no crash/timeout, battles
 resolved, correct ending), never exact xp — xp shifts legitimately whenever
 timing changes move the tick-seeded RNG (even editing dialog text does this).
@@ -41,11 +43,17 @@ speculative generality.
 - `test/host/` compiles the REAL game logic (menu, encounter, data, game)
   natively against a fake engine under ASan/UBSan: `make -C test/host sim`
   (real-path tests + seeded menu fuzz), `make -C test/host cov` for llvm-cov.
-  Three shipped buffer overflows lived in this layer; test the real code
-  path, never a mirror of its logic.
+  Both run inside the gate. Three shipped buffer overflows lived in this
+  layer; test the real code path, never a mirror of its logic. Battle tests
+  reach encounter internals through the real WISELY tactic brain by stacking
+  the deck (composition, tactics, a downed companion); menu rows (WildShape,
+  manual Attack) go through eb_gen-style key generators. Stack the deck so
+  the story is forced, not scripted.
 - Honest counting: tests are counted by test FUNCTION; sampling-loop
-  iterations are never a headline number. `make coverage` (runs inside the
-  gate) ratchets rules/ line coverage at COV_FLOOR — raise it, never lower.
+  iterations are never a headline number. Two coverage ratchets run inside
+  the gate: `make coverage` holds rules/ lines at COV_FLOOR, and
+  `make -C test/host cov` holds the five game sources at HOST_COV_FLOOR —
+  raise them, never lower.
 
 ## Music
 
