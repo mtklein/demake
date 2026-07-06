@@ -264,12 +264,12 @@ static void draw_alert(void) {
 #ifdef OBJT_ALERT
     if (alert_t > 0 && alert_npc >= 0 && !(npcs[alert_npc].flags & NPC_GONE)) {
         alert_t--;
-        obj_set(1, npcs[alert_npc].x - cam_x,
+        obj_set(OBJ_ALERT, npcs[alert_npc].x - cam_x,
                 npcs[alert_npc].y - cam_y - 16, 1, OBJT_ALERT, 9, 0);
-    } else obj_hide(1);
+    } else obj_hide(OBJ_ALERT);
 #else
     if (alert_t > 0) alert_t--;
-    obj_hide(1);
+    obj_hide(OBJ_ALERT);
 #endif
 }
 

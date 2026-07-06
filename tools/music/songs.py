@@ -810,3 +810,20 @@ def bossa():
 SONGS['BOSSA'] = bossa()
 
 ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE', 'BOSSA']
+
+# Jukebox display names, one per ORDER entry. mkassets emits song_names[]
+# from this and asserts it stays in step with ORDER -- and that the jukebox
+# screen still has a slot for every track.
+TITLES = {
+    'PRELUDE': 'Prelude',
+    'EXPLORE': 'Fleshy Halls',
+    'BATTLE':  'Draw Steel!',
+    'BOSS':    'Commander Zhalk',
+    'VICTORY': 'Victory',
+    'CRASH':   'The Long Fall',
+    'AZURE':   'Kind of Azure',
+    'GAIA':    'Gaia',
+    'TADPOLE': 'Tadpole Twist',
+    'SELUNE':  'Under Selune',
+    'BOSSA':   "Baldur's Bossa",
+}

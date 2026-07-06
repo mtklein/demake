@@ -36,8 +36,8 @@ void obj_flip(int i, int h, int v);
 
 /* obj slot allocation */
 #define OBJ_CURSOR 0
+#define OBJ_ALERT  1    /* field "!" marker (patrol aggro) */
 #define OBJ_PLAYER 4    /* field player sprite */
-#define OBJ_NPC0   8    /* field npcs 8..23 */
-#define OBJ_BATTLE 24   /* battle combatants + popups */
+#define OBJ_NPC0   8    /* field npcs 8..23; encounter popups/zZ/dice claim 40+ */
 
 #endif

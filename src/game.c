@@ -20,20 +20,6 @@ static void sky_full(void) {
     REG_BG3CNT = BGCNT_CB(2) | BGCNT_SB(28) | BGCNT_SIZE(0) | BGCNT_PRIO(3);
 }
 
-static const char* const jb_names[SONG_COUNT] = {
-    "Prelude",           /* SONG_PRELUDE */
-    "Fleshy Halls",      /* SONG_EXPLORE */
-    "Draw Steel!",       /* SONG_BATTLE  */
-    "Commander Zhalk",   /* SONG_BOSS    */
-    "Victory",           /* SONG_VICTORY */
-    "The Long Fall",     /* SONG_CRASH   */
-    "Kind of Azure",     /* SONG_AZURE   */
-    "Gaia",              /* SONG_GAIA    */
-    "Tadpole Twist",     /* SONG_TADPOLE */
-    "Under Selune",      /* SONG_SELUNE  */
-    "Baldur's Bossa",    /* SONG_BOSSA   */
-};
-
 /* Karaoke: lyric lines keyed to playback rows (see docs/under_selune.md).
  * Each entry is two display rows; blank entries clear the screen during the
  * instrumental intro, turn, and outro. Rows match SELUNE's 16-row bars. */
@@ -94,7 +80,7 @@ static void karaoke(int song) {
               SCR_JUKEBOX_BOX_W, SCR_JUKEBOX_BOX_H);
     txt_clear(0, 0, 30, 20);
     win_draw(1, 3, 28, 14);
-    put_center(5, jb_names[song], 0);
+    put_center(5, song_names[song], 0);
     txt_put(10, 16, "(B) BACK", 2);
 
     int cur = -1;
@@ -136,7 +122,7 @@ static void jukebox(void) {
     for (;;) {
         for (int i = 0; i < SONG_COUNT; i++)
             txt_put_n(SCR_JUKEBOX_TRK0_X, SCR_JUKEBOX_TRK0_Y + i,
-                      jb_names[i], (i == playing) ? 1 : 0, SCR_JUKEBOX_TRK0_W);
+                      song_names[i], (i == playing) ? 1 : 0, SCR_JUKEBOX_TRK0_W);
         obj_set(OBJ_CURSOR, SCR_JUKEBOX_TRK0_X * 8 - 14,
                 (SCR_JUKEBOX_TRK0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
         frame();

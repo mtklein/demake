@@ -665,6 +665,12 @@ def main():
                      % (name, ci, rows, ",".join(str(v) for v in chan)))
     h.append(f"#define SONG_COUNT {len(MUSIC.ORDER)}")
     h.append("extern const Song songs[SONG_COUNT];")
+    # jukebox display names, single-sourced from the song registry
+    assert set(MUSIC.ORDER) == set(MUSIC.TITLES), "songs ORDER vs TITLES mismatch"
+    h.append("extern const char* const song_names[SONG_COUNT];")
+    c.append("const char* const song_names[%d] = {%s};"
+             % (len(MUSIC.ORDER),
+                ",".join('"%s"' % MUSIC.TITLES[n] for n in MUSIC.ORDER)))
     c.append("const Song songs[%d] = {" % len(MUSIC.ORDER))
     for name in MUSIC.ORDER:
         s = MUSIC.SONGS[name]
@@ -682,6 +688,10 @@ def main():
         f.write("\n".join(c) + "\n")
 
     sh, sc = gen_screens()
+    trks = sum(1 for line in sh
+               if line.startswith("#define SCR_JUKEBOX_TRK") and line.split()[1].endswith("_X"))
+    assert len(MUSIC.ORDER) <= trks, \
+        f"jukebox screen has {trks} track slots but there are {len(MUSIC.ORDER)} songs"
     with open(os.path.join(OUT, "screens.h"), "w") as f:
         f.write("\n".join(sh) + "\n")
     with open(os.path.join(OUT, "screens.c"), "w") as f:
