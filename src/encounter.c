@@ -37,6 +37,7 @@ typedef struct {
     u8 gbolt, mock;              /* next-attack riders */
     s8 marked_by;
     u8 smite;                    /* paladin: next hit spends a slot */
+    u8 shaped;                   /* druid wild shape: c points at store */
     u16 xp;
 } EC;
 
@@ -156,6 +157,8 @@ static const u8 dmg_pal_tab[DT_COUNT] = {
 #define OBJ_ZZ 50                /* sleep marker overlays, 3 slots */
 #define OBJ_TETH 24              /* engagement tether dots 24-26, cursor glyphs 27-28 */
 static int conscious(const EC* e);
+static void shape_revert(EC* e, const char* why);
+static void mon_to_creature(int mon, R5Creature* c);
 static EC* g_act;    /* whose turn it is (engagement tether) */
 static EC* tsel_a;   /* attacker during attack target-select (cursor glyphs) */
 static int tray_n;
@@ -199,6 +202,8 @@ static void tray_clear(void) {
 /* battle-end OBJ + state cleanup (tray_clear runs after EVERY attack --
  * resetting g_act there silently killed the engagement tether) */
 static void enc_garnish_clear(void) {
+    for (int i = 0; i < nec; i++)
+        if (ec[i].shaped) shape_revert(&ec[i], "");
     tray_clear();
     for (int i = 0; i < 3; i++) obj_hide(OBJ_ZZ + i);
     for (int i = 0; i < 5; i++) obj_hide(OBJ_TETH + i);
@@ -274,7 +279,7 @@ static void garnish_draw(void) {
         EC* e = &ec[i];
         if (e->npc < 0 || (npcs[e->npc].flags & NPC_GONE)) continue;
         int out = (e->c->conds & C_UNCONSCIOUS) != 0;
-        if (e->side == 0) {
+        if (e->side == 0 && !e->shaped) {
             int cls = G.pm[e->pi].cls;
             npcs[e->npc].objt = out ? pko[cls] : pup[cls];
             if (out) npcs[e->npc].face = 0;
@@ -406,6 +411,15 @@ static void break_conc(EC* e, const char* why) {
 }
 
 /* apply damage + all bookkeeping (wake sleepers, concentration checks, death) */
+/* wild shape ends: the druid steps back out of the beast */
+static void shape_revert(EC* e, const char* why) {
+    e->shaped = 0;
+    e->c = &party5[e->pi];
+    if (e->npc >= 0) npcs[e->npc].face = 0;
+    mgba_logf("wildshape revert %s", why);
+    if (why[0]) bar_wait(why);
+}
+
 static void deal(EC* t, int amount, u8 type, int scr_pop) {
     int was_sleeping = (t->c->hp > 0) && (t->c->conds & C_UNCONSCIOUS);
     if (t->c->immune & (u16)(1 << type)) {
@@ -418,6 +432,10 @@ static void deal(EC* t, int amount, u8 type, int scr_pop) {
     if (was_sleeping && t->c->hp > 0) {
         t->c->conds &= (u16)~C_UNCONSCIOUS;
         bar_wait("It jolts awake!");
+    }
+    if (t->shaped && t->c->hp <= 0) {
+        shape_revert(t, "The shape breaks!");
+        return;                       /* excess damage does not carry over */
     }
     if (t->c->hp > 0 && t->c->concentrating && lost > 0) {
         R5Save sv = r5_save(&rng, t->c, R5_CON, r5_conc_dc(lost), 0);
@@ -500,7 +518,7 @@ static void maybe_opportunity(EC* a, EC* new_target) {
     bar_wait("Opportunity attack!");
     ec_face_toward(old, a);
     R5Attack at;
-    if (old->side == 0) {
+    if (old->side == 0 && !old->shaped) {
         at = r5_weapon_attack(&rng, old->c, a->c,
                               &r5_weapons[party5_weapon(old->pi)], 0);
     } else {
@@ -517,13 +535,15 @@ static const R5MAttack* ai_ma;   /* AI-chosen monster attack for next strike */
 
 /* full melee/ranged weapon strike */
 static void strike(EC* a, EC* t) {
-    const R5Weapon* w = a->side == 0 ? &r5_weapons[party5_weapon(a->pi)] : 0;
+    int as_beast = a->side != 0 || a->shaped;
+    const R5Weapon* w = as_beast ? 0 : &r5_weapons[party5_weapon(a->pi)];
     const R5MAttack* mona = 0;
-    if (a->side != 0) {
-        mona = ai_ma ? ai_ma : &r5_monsters[a->mon].attacks[0];
+    if (as_beast) {
+        mona = a->shaped ? &r5_monsters[a->mon].attacks[0]
+                         : (ai_ma ? ai_ma : &r5_monsters[a->mon].attacks[0]);
         ai_ma = 0;
     }
-    int melee = a->side == 0 ? !(w->props & WP_RANGED) : !mona->ranged;
+    int melee = as_beast ? !mona->ranged : !(w->props & WP_RANGED);
     if (melee) {
         maybe_opportunity(a, t);
         if (a->c->hp <= 0) return;          /* OA dropped us */
@@ -533,7 +553,7 @@ static void strike(EC* a, EC* t) {
     int f = atk_flags(a, t, melee);
     R5Attack at;
     const char* verb;
-    if (a->side == 0) {
+    if (!as_beast) {
         at = r5_weapon_attack(&rng, a->c, t->c, w, f);
         verb = w->name;
     } else {
@@ -971,7 +991,10 @@ static int pc_turn(EC* a) {
         const char* items[12]; u8 code[12]; int n = 0;
         if (!action) {
             items[n] = "Attack"; code[n++] = 0;
-            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
+            if (cls == CLS_DRUID && !a->shaped && G.pm[a->pi].level >= 2 &&
+                c->rsrc[R5R_SHAPE]) { items[n] = "WildShape"; code[n++] = 25; }
+            for (unsigned ki = 0; a->shaped == 0 &&
+                 ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
                 if (spell_kit[ki].cls != cls) continue;
                 const R5Spell* s = &r5_spells[spell_kit[ki].spell];
                 if (s->bonus_action) continue;              /* bonus section */
@@ -1094,6 +1117,26 @@ static int pc_turn(EC* a) {
                 a->smite = 1;
                 bar_wait("Radiance coils in the blade.");
                 break;
+            case 25: {                               /* Wild Shape: the Aeon moment */
+                r5_spend(c, R5R_SHAPE, 1);
+                mon_to_creature(R5M_BOAR, &a->store);
+                a->mon = R5M_BOAR;
+                a->shaped = 1;
+                a->c = &a->store;
+                c = a->c;
+                if (a->npc >= 0) {
+#ifdef OBJT_BOARW
+                    npcs[a->npc].objt = OBJT_BOARW;
+#else
+                    npcs[a->npc].objt = OBJT_US;     /* placeholder til boar art */
+#endif
+                }
+                sfx_noise(20);
+                mgba_logf("wildshape boar pi=%d", a->pi);
+                bar_wait("The beast takes you: BOAR!");
+                action = 1;
+                break;
+            }
             case 3:
                 a->engaged = -1;
                 bar_wait("Disengages cleanly.");
@@ -1186,10 +1229,8 @@ static void add_pc(int pi, int x, int y, int npc) {
     ec_place(e, x, y);
 }
 
-static void add_mon(int mon, int npc, int side, u16 xp) {
-    EC* e = &ec[nec++];
+static void mon_to_creature(int mon, R5Creature* c) {
     const R5Monster* m = &r5_monsters[mon];
-    R5Creature* c = &e->store;
     c->name = m->name;
     for (int i = 0; i < 6; i++) c->ab[i] = m->ab[i];
     c->hp = c->hpmax = m->hp;
@@ -1201,7 +1242,14 @@ static void add_mon(int mon, int npc, int side, u16 xp) {
     c->resist = m->resist; c->immune = m->immune; c->vulnerable = 0;
     c->slots[0] = c->slots[1] = c->slots[2] = 0;
     c->used = 0; c->concentrating = 0;
-    e->c = c;
+    c->traits = 0;
+    for (int i = 0; i < R5R_COUNT; i++) c->rsrc[i] = 0;
+}
+
+static void add_mon(int mon, int npc, int side, u16 xp) {
+    EC* e = &ec[nec++];
+    mon_to_creature(mon, &e->store);
+    e->c = &e->store;
     e->npc = (s8)npc;
     e->hx = npc >= 0 ? npcs[npc].x : 0;
     e->hy = npc >= 0 ? npcs[npc].y : 0;
@@ -1246,6 +1294,8 @@ retry:
         npcs[es[i].npc].x = enemy_home[i][0];
         npcs[es[i].npc].y = enemy_home[i][1];
     }
+
+    party5_refresh_all();     /* sync 5e sheets to PMember as combat begins */
 
     /* party materializes beside Tav */
     int px = field_player_x(), py = field_player_y();

@@ -75,6 +75,7 @@ void party5_refresh(int i) {
     PMember* p = &G.pm[i];
     R5Creature* c = &party5[i];
     int missing = 0, spent[3] = { 0, 0, 0 };
+    int pspent[R5R_COUNT] = { 0 };
     u8 used = 0, conds = 0;
     if (built[i]) {
         missing = c->hpmax - c->hp;
@@ -84,6 +85,8 @@ void party5_refresh(int i) {
             int oldmax = r5_classes[c->cls].slots[c->level][s];
             spent[s] = oldmax - c->slots[s];
         }
+        for (int r = 0; r < R5R_COUNT; r++)      /* pools: measure vs OLD max */
+            pspent[r] = r5_classes[c->cls].rsrc[c->level][r] - c->rsrc[r];
     }
     c->name = p->name;
     c->cls = p->cls;
@@ -104,15 +107,10 @@ void party5_refresh(int i) {
     }
     c->used = used;
     c->concentrating = 0;
-    {   /* resource pools: preserve spent amounts across refreshes */
-        u8 spent[R5R_COUNT];
-        for (int p = 0; p < R5R_COUNT; p++) {
-            int oldmax = built[i] ? r5_classes[c->cls].rsrc[c->level][p] : 0;
-            spent[p] = built[i] ? (u8)(oldmax - c->rsrc[p]) : 0;
-        }
-        r5_refill(c);
-        for (int p = 0; p < R5R_COUNT; p++)
-            c->rsrc[p] = (u8)(c->rsrc[p] > spent[p] ? c->rsrc[p] - spent[p] : 0);
+    r5_refill(c);                            /* new-level pools, then re-spend */
+    for (int r = 0; r < R5R_COUNT; r++) {
+        int v = c->rsrc[r] - (pspent[r] < 0 ? 0 : pspent[r]);
+        c->rsrc[r] = (u8)(v < 0 ? 0 : v);
     }
     built[i] = 1;
 }

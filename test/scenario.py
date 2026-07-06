@@ -160,6 +160,24 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def wildshape_check():
+    """druid poked to level 2 wild-shapes into the boar (Aeon moment)"""
+    setup(7, [0, 1, 0, 0, 2])            # CLS_DRUID
+    poke(0x0203FF07, 1)                  # manual battles
+    intro()
+    poke(0x03000061, 2)                  # G.pm[0].level = 2 (wild shape unlocks)
+    nursery(); surgery()
+    walk("DOWN", 1)                      # deck brawl
+    wait(650)                            # cutscene + initiative + first menu
+    for _ in range(6):                   # a few turns: DOWN once -> WildShape row
+        tap("DOWN"); tap("A", 3, gap=24)
+        wait(50); shot("wildshape")      # (re)captures until the boar is on screen
+        wait(40)
+    poke(0x0203FF07, 0)
+    tap("A", 10, gap=30)
+    wait(900)
+
+@scn
 def panic_check():
     """poke the crash-screen test flag; the report must reach the log"""
     setup(0, [0, 1, 0, 0, 2])
