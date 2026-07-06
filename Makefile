@@ -65,11 +65,13 @@ test-aeabi: $(BUILD)/test_aeabi
 $(BUILD)/test_aeabi: src/aeabi.c test/test_aeabi.c | $(BUILD)
 	$(HOSTCC) -O2 -fno-builtin -Wall -Wextra -o $@ src/aeabi.c test/test_aeabi.c
 
-# the whole pre-commit ritual: build, native suites, lint, 7 playthroughs,
-# then coverage numbers + ratchet (Makefile-level wiring; gate.sh is scenarios)
+# the whole pre-commit ritual: build, native suites (rules + AEABI + host
+# sim under sanitizers), lint, scripted playthroughs, then both coverage
+# ratchets (Makefile-level wiring; gate.sh is scenarios)
 gate:
 	test/gate.sh
 	$(MAKE) coverage
+	$(MAKE) -C test/host cov
 
 $(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h rules/test_rules.c | $(BUILD)
 	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules -I$(BUILD)/gen \

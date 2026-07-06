@@ -1,4 +1,4 @@
-# Testing the rules engine
+# Testing the rules engine and the host game layer
 
 ## How tests are counted
 
@@ -49,40 +49,32 @@ Rule: **raise the floor as coverage rises; never lower it.** When new
 tests push the total up, bump `COV_FLOOR` to (measured, rounded down,
 minus one) in the same commit.
 
-## Numbers as of 2026-07-06
+## Rules numbers as of 2026-07-06
 
-21 test functions, 0 failures. `COV_FLOOR := 94`.
+32 test functions, 0 failures. `COV_FLOOR := 99`. All three engine files
+sit at **100%** regions, functions, lines, and branches; the gap list that
+used to live here was closed by the 100%-coverage push (skill checks
+proven, dead helpers deleted rather than tested — deletion is healthy).
 
-| File        | Regions | Functions | Lines   | Branches |
-|-------------|---------|-----------|---------|----------|
-| dice.c      | 94.59%  | 100.00%   | 100.00% | 90.91%   |
-| core.c      | 93.68%  | 100.00%   | 100.00% | 85.92%   |
-| features.c  | 72.29%  | 85.00%    | 84.27%  | 58.93%   |
-| **TOTAL**   | 88.06%  | 92.86%    | 95.61%  | 79.55%   |
+## The host game layer (test/host)
 
-Known gaps (from `llvm-cov report -show-functions` and the branch view;
-candidates for targeted tests):
+Same doctrine, one layer up: `make -C test/host sim` compiles the REAL
+game sources — `menu.c`, `data.c`, `party5.c`, `encounter.c`, `game.c`,
+plus rules/ and the generated tables — against a fake engine and runs
+them under ASan/UBSan. 29 test functions: menu kits and sheets, equip and
+items, real battles driven through the WISELY tactic brain (the spell-cast
+family, allies, the cambion warp, concentration breaking, wild shape),
+generator-driven manual menus, and the title/jukebox/karaoke/name-entry
+flows. Battle tests stack the deck (composition, tactics, a downed
+companion) so the real dispatcher is forced to take the path under test;
+nothing mirrors game logic.
 
-- `r5_skill_check` never called (0%) — live in `src/events.c` field
-  checks, so proficiency, expertise, Lucky-on-checks, and the `d20out`
-  pointer are untested natively.
-- `r5_rage_bonus` and `r5_savage_crit_dice` never called — by tests *or*
-  by game code; both effects are implemented inline in
-  `r5_weapon_attack`. Test them or delete them.
-- `r5_monster_attack` always gets a NULL attacker: the attacker
-  `crit_min` path is untested; `r5_prof`'s monster branch likewise.
-- Rage damage-bonus exclusions unexercised: raging with a ranged weapon
-  and raging with a finesse weapon (DEX > STR) never occur.
-- Lucky is only tested via bare `r5_d20`: no Lucky attacker through
-  `r5_weapon_attack`, no Lucky saver through `r5_save`.
-- `r5_apply_damage`: partial temp-hp absorption (damage smaller than the
-  pool) and the Relentless-on-a-monster guard are untested.
-- Guard rails never tripped: `r5_roll` dice-count clamp, `r5_seed(0)`
-  fallback, level clamps in `r5_prof`/`r5_sneak_dice`, out-of-range
-  `r5_spend_slot`, `r5_refill` bad-class guard, `r5_heal(<=0)`,
-  `r5_lay_hands(<=0)`.
-- Denial paths half-tested: `r5_can_second_wind` on a downed fighter,
-  `r5_can_action_surge` on a non-fighter, `r5_can_rage` with an empty
-  pool or non-barbarian, `r5_martial_die` on a non-monk.
-- `damage_roll`: extra d6s merged into a d6-sided weapon (sneak/mark
-  with a shortsword-class die) takes an untested path.
+`make -C test/host cov` prints the five-file table and ratchets TOTAL line
+coverage at `HOST_COV_FLOOR` (same raise-never-lower rule). Both the sim
+and the ratchet run inside `make gate`.
+
+Host numbers as of 2026-07-06: **100% functions, 89.9% lines** over the
+five game sources (`HOST_COV_FLOOR := 88`); per-file lines: menu 98.6%,
+data 100%, party5 100%, encounter 83.7%, game 97.3%. The thickest
+remaining slice is encounter.c's presentation weave (tray/bar/camera
+choreography), which the ROM scenarios keep exercising end-to-end.

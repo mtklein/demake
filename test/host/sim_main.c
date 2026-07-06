@@ -20,6 +20,15 @@
 
 void field_menu(void);        /* menu.c  */
 int game_class_select(void);  /* game.c  */
+void ability_audit(void);     /* encounter.c: per-class menu dump */
+void sheet_audit(void);       /* menu.c: per-class sheet-spell dump */
+void game_title(void);        /* game.c title/jukebox/karaoke flows */
+void game_crawl(void);
+int  game_origin_choose(int cls);
+void game_name_entry(char* out);
+int  origin_class(int o);
+int  origin_portrait(int o);
+const char* origin_name(int o);
 
 #define T_ASSERT(cond, ...) do { if (!(cond)) sim_fail(__VA_ARGS__); } while (0)
 
@@ -560,6 +569,385 @@ static void t_battle_manual_eldritch_blast(void) {
     T_ASSERT(eb_done, "generator never saw the cast");
 }
 
+/* ------------------------------------------------- battle internals
+ * The WISELY tactic brain is the real dispatcher for the spell-cast
+ * family (cast_sleep / cast_missiles / cast_heal / cast_save_spell):
+ * stack the deck -- composition, tactics, a downed companion -- and the
+ * brain must cast. The ROM scenarios keep pinning structure end-to-end;
+ * these assert the BEHAVIOR (the cast fired, the downed woke, the ally
+ * fought) natively under ASan/UBSan. */
+
+static void t_battle_wizard_sleep(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 1);
+    party_add_laezel();
+    G_DEMO = 1;
+    /* four thralls: even after Lae'zel's opener drops one, three stand --
+     * the WISELY sleep gate is side_up(1) >= 3 at the wizard's turn */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    int n2 = field_add_npc(10, 6, 0, 0, 0, 0);
+    int n3 = field_add_npc(12, 6, 0, 0, 0, 0);
+    EncSpawn es[4] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+        { R5M_THRALL, (s8)n2, 10, 1 },
+        { R5M_THRALL, (s8)n3, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    /* surprise=1: enemies lose round 1 (the 5e surprise branch) */
+    int r = encounter_run(es, 4, 0, 1);
+    T_ASSERT(log_contains("sleep pool="),
+             "3+ foes up + a slot: WISELY wizard never cast Sleep");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_wizard_missiles(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 1);
+    party_add_laezel();
+    G_DEMO = 1;
+    G_MANUAL_BAT = 1;              /* manual mode reads G.tactics... */
+    G.tactics[0] = TAC_ALLOUT;     /* ...ALLOUT spends slots on missiles */
+    G.tactics[1] = TAC_WISELY;     /* (2 foes only, so Sleep never outbids) */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    T_ASSERT(log_contains("missile "),
+             "ALLOUT wizard with slots never cast Magic Missile");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_cleric_rescue(void) {
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    party_add_laezel();
+    party5[1].hp = 0;                        /* she went down before the fight */
+    party5[1].conds |= C_UNCONSCIOUS;
+    G_DEMO = 1;
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    T_ASSERT(log_contains("heal LAE'ZEL"),
+             "WISELY cleric never Cure Wounds'd the downed companion");
+    T_ASSERT(log_contains("spell Guiding Bolt"),
+             "cleric with a slot left never cast Guiding Bolt");
+    T_ASSERT(party5[1].hp > 0, "Lae'zel still at %d hp", party5[1].hp);
+    T_ASSERT(!(party5[1].conds & C_UNCONSCIOUS), "Lae'zel still unconscious");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_bard_rescue(void) {
+    sim_reset();
+    mk_party(CLS_BARD, 1);
+    party_add_laezel();
+    party5[1].hp = 0;
+    party5[1].conds |= C_UNCONSCIOUS;
+    G_DEMO = 1;
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    EncSpawn es[1] = { { R5M_THRALL, (s8)n0, 10, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 1, 0, 0);
+    T_ASSERT(log_contains("heal LAE'ZEL"),
+             "WISELY bard never Healing Word'd the downed companion");
+    /* thralls are psychic-immune, so the save-spell resolves to 0 damage --
+     * the cast + the IMMUNE branch of deal() are the coverage, not the kill */
+    T_ASSERT(log_contains("save-spell Vicious Mockery"),
+             "bard never cast Vicious Mockery");
+    T_ASSERT(party5[1].hp > 0, "Lae'zel still at %d hp", party5[1].hp);
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_helm_allies(void) {
+    sim_reset();
+    mk_party(CLS_FIGHTER, 1);
+    party_add_laezel();
+    G_DEMO = 1;                    /* demo hero seizes the nerves on round 2 */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(12, 4, 0, 0, 0, 0);
+    EncSpawn es[2] = {
+        { R5M_CAMBION, (s8)n0, 450, 1 },     /* tough enough to outlive round 1 */
+        { R5M_FLAYER,  (s8)n1, 0,   2 },     /* the helm ally fights beside us */
+    };
+    sim_budget(2000000, 0);
+    /* helm_rounds=10: after round 1 the countdown hits 9 and a cambion warps */
+    int r = encounter_run(es, 2, 10, 0);
+    T_ASSERT(log_contains("atk Flayer"), "the ally flayer never took a turn");
+    T_ASSERT(log_contains("cambion warps in"), "the countdown never warped one in");
+    T_ASSERT(r == ENC_CONNECTED, "battle result %d, want ENC_CONNECTED", r);
+}
+
+/* wild shape is a menu row (code 25), so this one drives the real menu:
+ * [DOWN, A] in a fresh root menu lands on row 1 = WildShape (druid L2 kit),
+ * then the eb_gen handoff pattern gives the boar to the tactic AI */
+static int ws_step, ws_done;
+static u32 ws_rng;
+static u16 ws_gen(u32 frame) {
+    (void)frame;
+    if (!ws_done && log_contains("wildshape boar")) ws_done = 1;
+    if (ws_done) {
+        G.tactics[0] = TAC_WISELY;      /* re-pin: a wipe-retry restores G */
+        int ph = (int)(ws_step++ % 40);
+        if (ph < 24) return (ph & 1) ? 0 : KEY_DOWN;
+        if (ph == 24) return KEY_A;
+        return 0;
+    }
+    G.tactics[0] = TAC_ORDERS;
+    int ph = ws_step++;
+    if (ph == 0) return KEY_DOWN;
+    if (ph == 2) return KEY_A;
+    if (ph >= 4) {
+        ws_rng ^= ws_rng << 13; ws_rng ^= ws_rng >> 17; ws_rng ^= ws_rng << 5;
+        ws_step = -(int)(ws_rng % 9);
+    }
+    return 0;
+}
+
+static void t_battle_druid_wildshape(void) {
+    sim_reset();
+    mk_party(CLS_DRUID, 2);            /* L2: the shape pool opens */
+    party_add_laezel();
+    G_DEMO = 1;
+    G_MANUAL_BAT = 1;
+    G.tactics[1] = TAC_WISELY;
+    ws_step = 0; ws_done = 0; ws_rng = 0xB0A12u;
+    /* three thralls: the fight must outlive the menu-seek phase, or
+     * Lae'zel ends it before the WildShape row ever gets picked */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    int n2 = field_add_npc(10, 6, 0, 0, 0, 0);
+    EncSpawn es[3] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+        { R5M_THRALL, (s8)n2, 10, 1 },
+    };
+    script_gen(ws_gen);
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 3, 0, 0);
+    T_ASSERT(log_contains("wildshape boar"), "the WildShape row never fired");
+    T_ASSERT(log_contains("wildshape revert"),
+             "the druid never stepped back out of the beast");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+    T_ASSERT(!party5[0].conds, "druid conds %04x after revert", party5[0].conds);
+}
+
+/* manual Attack: [A, A] = Attack row, then pick5 confirms the first target.
+ * The frames spent inside pick5 run the sneak/provoke advisors (sneak_ok)
+ * with a live rogue -- the pip logic the ROM can only screenshot. */
+static int rp_step, rp_done;
+static u32 rp_rng;
+static u16 rp_gen(u32 frame) {
+    (void)frame;
+    if (!rp_done && log_contains("atk TAV")) rp_done = 1;
+    if (rp_done) {
+        G.tactics[0] = TAC_WISELY;
+        int ph = (int)(rp_step++ % 40);
+        if (ph < 24) return (ph & 1) ? 0 : KEY_DOWN;
+        if (ph == 24) return KEY_A;
+        return 0;
+    }
+    G.tactics[0] = TAC_ORDERS;
+    int ph = rp_step++;
+    if (ph == 0 || ph == 2) return KEY_A;
+    if (ph >= 4) {
+        rp_rng ^= rp_rng << 13; rp_rng ^= rp_rng >> 17; rp_rng ^= rp_rng << 5;
+        rp_step = -(int)(rp_rng % 9);
+    }
+    return 0;
+}
+
+static void t_battle_rogue_pick(void) {
+    sim_reset();
+    mk_party(CLS_ROGUE, 1);
+    party_add_laezel();
+    G_DEMO = 1;
+    G_MANUAL_BAT = 1;
+    G.tactics[1] = TAC_WISELY;
+    rp_step = 0; rp_done = 0; rp_rng = 0x5EAC7u;
+    /* three thralls, same reason as the wildshape fight above */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    int n2 = field_add_npc(10, 6, 0, 0, 0, 0);
+    EncSpawn es[3] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+        { R5M_THRALL, (s8)n2, 10, 1 },
+    };
+    script_gen(rp_gen);
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 3, 0, 0);
+    T_ASSERT(log_contains("atk TAV"), "the rogue never attacked off the menu");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_ranger_conc(void) {
+    sim_reset();
+    mk_party(CLS_RANGER, 2);           /* L2: first slots, Hunter's Mark */
+    party_add_laezel();
+    G_DEMO = 1;
+    /* five thralls: the mark lands on the ranger's first turn, and the
+     * fight must run long enough for hits to land on him AFTER it */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    int n2 = field_add_npc(10, 6, 0, 0, 0, 0);
+    int n3 = field_add_npc(12, 6, 0, 0, 0, 0);
+    int n4 = field_add_npc(8, 6, 0, 0, 0, 0);
+    EncSpawn es[5] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+        { R5M_THRALL, (s8)n2, 10, 1 },
+        { R5M_THRALL, (s8)n3, 10, 1 },
+        { R5M_THRALL, (s8)n4, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 5, 0, 0);
+    /* the WISELY ranger marks; three thralls' worth of hits forces CON
+     * saves while concentrating, and this seed breaks at least one */
+    T_ASSERT(log_contains("conc save"),
+             "the marked ranger never took damage while concentrating");
+    T_ASSERT(log_contains("broken"), "no concentration save ever failed");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+/* ------------------------------------------------- party5 + audit units */
+
+static void t_spell_dc_math(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 1);
+    /* SRD: DC = 8 + prof + casting mod. L1 wizard: 8 + 2 + INT 15 (+2) */
+    T_ASSERT(party5_spell_dc(&party5[0]) == 12,
+             "wizard L1 DC %d, want 12", party5_spell_dc(&party5[0]));
+    R5Creature c = { 0 };
+    c.cls = CLS_WARLOCK; c.level = 1; c.ab[R5_CHA] = 20;
+    T_ASSERT(party5_spell_dc(&c) == 15, "CHA-20 warlock DC %d, want 15",
+             party5_spell_dc(&c));
+    /* r5_prof clamps to the prologue domain (levels 1..3): a "level 5"
+     * sheet still gets +2, not the open-SRD +3 */
+    c.cls = CLS_CLERIC; c.level = 5; c.ab[R5_WIS] = 10;
+    T_ASSERT(party5_spell_dc(&c) == 10,
+             "L5 cleric DC %d, want 10 (prologue prof clamp)", party5_spell_dc(&c));
+}
+
+static void t_heal_full_rest(void) {
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    party_add_laezel();
+    party5[0].hp = 1;
+    r5_spend_slot(&party5[0], 1);
+    party5[1].hp = 0;
+    party5[1].conds |= C_UNCONSCIOUS;
+    party_heal_full();
+    T_ASSERT(party5[0].hp == party5[0].hpmax, "cleric hp %d/%d after full rest",
+             party5[0].hp, party5[0].hpmax);
+    T_ASSERT(party5[0].slots[0] == 2, "cleric slots %d, want 2 (SRD L1)",
+             party5[0].slots[0]);
+    T_ASSERT(party5[1].hp == party5[1].hpmax, "Lae'zel hp %d/%d after full rest",
+             party5[1].hp, party5[1].hpmax);
+    T_ASSERT(!(party5[1].conds & C_UNCONSCIOUS), "Lae'zel still unconscious");
+}
+
+/* the on-ROM audit_check pins the audits' CONTENT against a byte-exact
+ * golden; running them here adds what the golden can't -- ASan/UBSan
+ * eyes on the same string assembly */
+static void t_audit_native(void) {
+    sim_reset();
+    mk_party(CLS_BARD, 1);
+    ability_audit();
+    sheet_audit();
+    T_ASSERT(log_contains("audit cls=11"), "ability audit never reached cls 11");
+    T_ASSERT(log_contains("sheet cls=11"), "sheet audit never reached cls 11");
+}
+
+/* ------------------------------------------------- title flows (game.c)
+ * jukebox/karaoke are reachable ONLY via SELECT on the title screen; no
+ * ROM scenario presses it, so until now no test had ever run them. */
+
+static void t_title_jukebox_karaoke(void) {
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    /* the title fade_in eats 20 frames (keys land after W24); L L flips
+     * attract mode on and back off; SELECT opens the jukebox; nine DOWNs
+     * land on track 9 = SELUNE; A plays it and, since it carries lyrics,
+     * drops into karaoke; the SNAP catches the synced lyric sheet around
+     * playback rows 224..287; B backs out twice; START leaves the title. */
+    script_keys("W24 L L SELECT W4 "
+                "DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN A "
+                "W200 SNAP B W8 B W8 START");
+    game_title();
+    T_ASSERT(snap_count() == 1, "snap never fired (script derailed)");
+    T_ASSERT(snap_contains(0, "morning takes") || snap_contains(0, "all that's left"),
+             "no Under Selune lyric on the karaoke sheet");
+    T_ASSERT(sim_last_music == SONG_PRELUDE,
+             "music %d after backing out, want the title PRELUDE", sim_last_music);
+    T_ASSERT(!G_DEMO, "L L should have left attract mode off");
+}
+
+static void t_crawl_pages(void) {
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(200000, 0);
+    game_crawl();
+    T_ASSERT(log_contains("say: The city of Baldur's Gate"),
+             "the crawl never told page 1");
+    T_ASSERT(log_contains("dragonfire"), "the crawl never told page 4");
+}
+
+static void t_origin_choose_flow(void) {
+    sim_reset();
+    /* demo-driven: 8 = "this class's origin row", computed in the chooser */
+    G_DEMO = 1;
+    G_DEMO_ORIGIN = ORIG_COUNT;
+    sim_budget(200000, 0);
+    int o = game_origin_choose(CLS_CLERIC);
+    T_ASSERT(o == ORIG_SHADOW, "cleric origin row gave %d, want Shadowheart", o);
+    G_DEMO_ORIGIN = ORIG_DURGE;
+    o = game_origin_choose(CLS_MONK);      /* no monk companion: 2-row menu */
+    T_ASSERT(o == ORIG_DURGE, "Dark Urge row gave %d", o);
+    /* manual: DOWN, A takes "Play Gale" under wizard */
+    G_DEMO = 0;
+    script_keys("W16 DOWN A");
+    o = game_origin_choose(CLS_WIZARD);
+    T_ASSERT(o == ORIG_GALE, "manual pick gave %d, want Gale", o);
+    T_ASSERT(!strcmp(origin_name(ORIG_SHADOW), "Shadowheart"),
+             "origin 4 named '%s'", origin_name(ORIG_SHADOW));
+    /* identity portraits win for every fixed origin (the borrowed-faces law) */
+    for (int i = 0; i < ORIG_CUSTOM; i++) {
+        int cls = origin_class(i) < 0 ? CLS_BARD : origin_class(i);
+        T_ASSERT(member_look(i, cls).por == origin_portrait(i),
+                 "origin %d portrait drifted from its table", i);
+    }
+}
+
+static void t_name_entry_grid(void) {
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    char nm[8];
+    /* B B B clears the default TAV; seven As at grid (0,0) type AAAAAA and
+     * prove the 6-char cap holds; DOWN x4 reaches END; A confirms */
+    script_keys("W12 B B B A A A A A A A DOWN DOWN DOWN DOWN A");
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "AAAAAA"), "name '%s', want AAAAAA (6-char cap)", nm);
+    /* straight to END keeps the default */
+    script_keys("W12 DOWN DOWN DOWN DOWN A");
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "TAV"), "name '%s', want the TAV default", nm);
+    G_DEMO = 1;                        /* demo path: no screen at all */
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "TAV"), "demo name '%s', want TAV", nm);
+}
+
 /* ------------------------------------------------- party art (game.c) */
 
 /* the custom-Tav walker per class: fighter/cleric are OBJT_HERO now --
@@ -638,6 +1026,21 @@ static const Test tests[] = {
     { "tactics_set",               t_tactics_set },
     { "battle_auto_win",           t_battle_auto_win },
     { "battle_manual_eldritch_blast", t_battle_manual_eldritch_blast },
+    { "battle_wizard_sleep",       t_battle_wizard_sleep },
+    { "battle_wizard_missiles",    t_battle_wizard_missiles },
+    { "battle_cleric_rescue",      t_battle_cleric_rescue },
+    { "battle_bard_rescue",        t_battle_bard_rescue },
+    { "battle_helm_allies",        t_battle_helm_allies },
+    { "battle_druid_wildshape",    t_battle_druid_wildshape },
+    { "battle_rogue_pick",         t_battle_rogue_pick },
+    { "battle_ranger_conc",        t_battle_ranger_conc },
+    { "spell_dc_math",             t_spell_dc_math },
+    { "heal_full_rest",            t_heal_full_rest },
+    { "audit_native",              t_audit_native },
+    { "title_jukebox_karaoke",     t_title_jukebox_karaoke },
+    { "crawl_pages",               t_crawl_pages },
+    { "origin_choose_flow",        t_origin_choose_flow },
+    { "name_entry_grid",           t_name_entry_grid },
     { "member_look_identity",      t_member_look_identity },
     { "class_select_art",          t_class_select_art },
     { "menu_crawl_fuzz",           t_menu_crawl_fuzz },

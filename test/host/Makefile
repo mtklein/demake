@@ -46,14 +46,27 @@ $(OUT):
 	mkdir -p $(OUT)
 
 # Coverage: build with Homebrew LLVM so clang / llvm-profdata / llvm-cov
-# agree on profile format. Report covers the game sources compiled in.
+# agree on profile format. Report scopes to the GAME sources -- rules/ has
+# its own 100% suite and ratchet in the top-level Makefile -- and fails
+# loudly if TOTAL line coverage drops below HOST_COV_FLOOR.
+# ratchet: raise as coverage rises; never lower (house convention:
+# measured, rounded down, minus one -- see docs/testing.md)
+HOST_COV_FLOOR := 88
+
 cov: $(SRCS) shim/gba.h fake_engine.h | $(OUT)
 	$(LLVM)/clang $(CFLAGS) -fprofile-instr-generate -fcoverage-mapping \
 	    -o $(OUT)/sim_cov $(SRCS)
 	LLVM_PROFILE_FILE=$(OUT)/sim.profraw $(OUT)/sim_cov $(ARGS)
 	$(LLVM)/llvm-profdata merge -sparse $(OUT)/sim.profraw -o $(OUT)/sim.profdata
 	$(LLVM)/llvm-cov report $(OUT)/sim_cov -instr-profile=$(OUT)/sim.profdata \
-	    $(GAME) $(RULES)
+	    $(GAME) > $(OUT)/report.txt
+	@cat $(OUT)/report.txt
+	@awk -v floor=$(HOST_COV_FLOOR) '/^TOTAL/ { seen = 1; pct = $$(NF-3); sub(/%/, "", pct); \
+	        if (pct + 0 < floor + 0) { \
+	            printf "HOST COVERAGE RATCHET: lines %s%% < floor %s%%\n", pct, floor; exit 1; } \
+	        printf "host coverage: lines %s%% >= floor %s%% (ratchet ok)\n", pct, floor; } \
+	    END { if (!seen) { print "HOST COVERAGE RATCHET: no TOTAL in llvm-cov report"; exit 1; } }' \
+	    $(OUT)/report.txt
 
 clean:
 	rm -rf $(OUT)
