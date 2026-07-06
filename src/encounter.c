@@ -153,6 +153,10 @@ static const u8 dmg_pal_tab[DT_COUNT] = {
  * tinted by damage type, in a row under the message bar. */
 #define OBJ_DICE 56
 #define OBJ_ZZ 50                /* sleep marker overlays, 3 slots */
+#define OBJ_TETH 24              /* engagement tether dots 24-26, cursor glyphs 27-28 */
+static int conscious(const EC* e);
+static EC* g_act;    /* whose turn it is (engagement tether) */
+static EC* tsel_a;   /* attacker during attack target-select (cursor glyphs) */
 static int tray_n;
 
 static int die_objt(int sides) {
@@ -189,6 +193,8 @@ static void tray_dice(const R5Dice* d, int pal) {
 static void tray_clear(void) {
     for (int i = 0; i < 8 * 3; i++) obj_hide(OBJ_DICE + i);
     for (int i = 0; i < 3; i++) obj_hide(OBJ_ZZ + i);
+    for (int i = 0; i < 5; i++) obj_hide(OBJ_TETH + i);
+    g_act = 0; tsel_a = 0;
     tray_n = 0;
 }
 
@@ -239,6 +245,15 @@ static void ec_face_toward(EC* e, const EC* t) {
     npcs[e->npc].face = (u8)(adx > ady ? (dx > 0 ? 3 : 2) : (dy > 0 ? 0 : 1));
 }
 
+/* would attacking t sneak for a? mirrors atk_flags' ally-engaged test */
+static int sneak_ok(EC* a, EC* t) {
+    if (a->hidden) return 1;
+    for (int i = 0; i < nec; i++)
+        if (&ec[i] != a && ec[i].side == a->side && conscious(&ec[i]) &&
+            ec[i].engaged == (s8)(t - ec)) return 1;
+    return 0;
+}
+
 /* downed PCs lie where they fell; sleepers snore visibly */
 static void garnish_draw(void) {
     static const u16 pko[6] = { OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO,
@@ -261,6 +276,20 @@ static void garnish_draw(void) {
         }
     }
     while (zs < 3) obj_hide(OBJ_ZZ + zs++);
+    /* marching-ant tether on the acting combatant's melee lock */
+    static u32 gt;
+    gt++;
+    if (g_act && g_act->engaged >= 0 && conscious(&ec[g_act->engaged])) {
+        EC* o = &ec[g_act->engaged];
+        int x0 = ec_sx(g_act) + 8, y0 = ec_sy(g_act) + 8;
+        int dx = ec_sx(o) + 8 - x0, dy = ec_sy(o) + 8 - y0;
+        for (int i = 0; i < 3; i++) {
+            int f = i * 8 + (int)((gt >> 2) & 7);           /* 0..23: dots flow */
+            obj_set(OBJ_TETH + i, x0 + dx * f / 24 - 4,
+                    y0 + dy * f / 24 - 4, 0, OBJT_GARN, 10, 0);
+        }
+    } else
+        for (int i = 0; i < 3; i++) obj_hide(OBJ_TETH + i);
 }
 
 static void pump(int n) {
@@ -759,12 +788,25 @@ static EC* pick5(int side, int allow_downed) {
     for (;;) {
         EC* t = cands[sel];
         obj_set(OBJ_CURSOR, ec_sx(t) - 12, ec_sy(t), 1, OBJT_HAND, 7, 0);
+        if (tsel_a) {   /* attack targeting: provoke warning + sneak pip */
+            EC* old = tsel_a->engaged >= 0 ? &ec[tsel_a->engaged] : 0;
+            if (old && old != t && conscious(old) && !old->reacted)
+                obj_set(OBJ_TETH + 3, ec_sx(t) + 6, ec_sy(t) - 16, 1,
+                        OBJT_ALERT, 11, 0);                 /* red !: provokes */
+            else obj_hide(OBJ_TETH + 3);
+            if (G.pm[tsel_a->pi].cls == CLS_ROGUE && sneak_ok(tsel_a, t))
+                obj_set(OBJ_TETH + 4, ec_sx(t) - 10, ec_sy(t) - 10, 0,
+                        OBJT_GARN + 1, 8, 0);               /* green pip: sneak */
+            else obj_hide(OBJ_TETH + 4);
+        }
         pump(1);
         u16 k = key_hit();
         if (k & (KEY_UP | KEY_LEFT)) { sel = (sel + n - 1) % n; sfx_play(SFX_CURSOR); }
         if (k & (KEY_DOWN | KEY_RIGHT)) { sel = (sel + 1) % n; sfx_play(SFX_CURSOR); }
-        if (k & KEY_A) { sfx_play(SFX_CONFIRM); obj_hide(OBJ_CURSOR); return t; }
-        if (k & KEY_B) { sfx_play(SFX_CANCEL); obj_hide(OBJ_CURSOR); return 0; }
+        if (k & KEY_A) { sfx_play(SFX_CONFIRM); obj_hide(OBJ_CURSOR);
+                         obj_hide(OBJ_TETH + 3); obj_hide(OBJ_TETH + 4); return t; }
+        if (k & KEY_B) { sfx_play(SFX_CANCEL); obj_hide(OBJ_CURSOR);
+                         obj_hide(OBJ_TETH + 3); obj_hide(OBJ_TETH + 4); return 0; }
     }
 }
 
@@ -907,7 +949,9 @@ static int pc_turn(EC* a) {
         if (cd == 7) break;
         switch (cd) {
             case 0: {
+                tsel_a = a;
                 EC* t = pick5(1, 0);
+                tsel_a = 0;
                 if (!t) break;
                 strike(a, t);
                 action = 1;
@@ -1141,6 +1185,7 @@ retry:
     for (;;) {
         for (int oi = 0; oi < nec; oi++) {
             EC* a = &ec[order[oi]];
+            g_act = a;
             if (a->c->hp <= 0 && a->side != 0) continue;
             if (a->c->conds & C_UNCONSCIOUS) {
                 if (a->side == 1 && a->c->hp > 0) bar("Fast asleep...");

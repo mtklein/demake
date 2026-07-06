@@ -332,6 +332,18 @@ def obj_tiles():
         defs["OBJT_DIE_" + name.upper()] = len(tiles)
         tiles += sprite_tiles(DICE[name], DICE_LEG, 2, 2)
         pals.append(pal)
+    # tether dot (tile +0) and sneak pip (tile +1), drawn as 8x8 objs
+    GARN = ["........" "........",
+            "..ggg..." "...WW...",
+            ".gWWWg.." "..WWWW..",
+            ".gWWWg.." "..WWWW..",
+            ".gWWWg.." "...WW...",
+            "..ggg..." "........",
+            "........" "........",
+            "........" "........"] + ["................"] * 8
+    defs["OBJT_GARN"] = len(tiles)
+    tiles += sprite_tiles(GARN, SPR_LEG, 2, 2)
+    pals.append(10)
     return tiles, defs, pals
 
 # ---------------------------------------------------------------- field art
