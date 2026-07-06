@@ -1,39 +1,39 @@
-audit cls=0 L1: V.Mockery Heal.Word
-audit cls=0 L2: V.Mockery Heal.Word
-audit cls=0 L3: V.Mockery Heal.Word
-audit cls=1 L1: Hide
-audit cls=1 L2: Hide
-audit cls=1 L3: Hide
-audit cls=2 L1: Mark
-audit cls=2 L2: Mark
-audit cls=2 L3: Mark
-audit cls=3 L1: Fire Bolt M.Missile Sleep
-audit cls=3 L2: Fire Bolt M.Missile Sleep
-audit cls=3 L3: Fire Bolt M.Missile Sleep
-audit cls=4 L1: 2ndWind
-audit cls=4 L2: 2ndWind ActSurge
-audit cls=4 L3: 2ndWind ActSurge
-audit cls=5 L1: S.Flame Guid.Bolt Cure Wnds Bless
-audit cls=5 L2: S.Flame Guid.Bolt Cure Wnds Bless
-audit cls=5 L3: S.Flame Guid.Bolt Cure Wnds Bless
-audit cls=6 L1: Rage
-audit cls=6 L2: Rage
-audit cls=6 L3: Rage
-audit cls=7 L1: P.Flame Psn.Spray Cure Wnds Heal.Word
-audit cls=7 L2: P.Flame Psn.Spray Cure Wnds Heal.Word WildShape
-audit cls=7 L3: P.Flame Psn.Spray Cure Wnds Heal.Word WildShape
-audit cls=8 L1: Flurry PatDef
-audit cls=8 L2: Flurry PatDef
-audit cls=8 L3: Flurry PatDef
-audit cls=9 L1: Cure Wnds Bless LayHands
-audit cls=9 L2: Cure Wnds Bless LayHands Smite
-audit cls=9 L3: Cure Wnds Bless LayHands Smite
-audit cls=10 L1: Fire Bolt RayFrost M.Missile Sleep
-audit cls=10 L2: Fire Bolt RayFrost M.Missile Sleep
-audit cls=10 L3: Fire Bolt RayFrost M.Missile Sleep
-audit cls=11 L1: Eld.Blast Burn.Hands
-audit cls=11 L2: Eld.Blast Burn.Hands
-audit cls=11 L3: Eld.Blast Burn.Hands
+audit cls=0 L1: Attack=0 V.Mockery=100 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=0 L2: Attack=0 V.Mockery=100 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=0 L3: Attack=0 V.Mockery=100 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=1 L1: Attack=0 Item=1 Dodge=2 Hide=5 Tactics=9 End Turn=7
+audit cls=1 L2: Attack=0 Item=1 Dodge=2 Hide=5 Tactics=9 End Turn=7
+audit cls=1 L3: Attack=0 Item=1 Dodge=2 Hide=5 Tactics=9 End Turn=7
+audit cls=2 L1: Attack=0 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=2 L2: Attack=0 Item=1 Dodge=2 Hunt.Mark=6 Tactics=9 End Turn=7
+audit cls=2 L3: Attack=0 Item=1 Dodge=2 Hunt.Mark=6 Tactics=9 End Turn=7
+audit cls=3 L1: Attack=0 Fire Bolt=102 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=3 L2: Attack=0 Fire Bolt=102 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=3 L3: Attack=0 Fire Bolt=102 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=4 L1: Attack=0 Item=1 Dodge=2 2nd Wind=4 Tactics=9 End Turn=7
+audit cls=4 L2: Attack=0 Item=1 Dodge=2 2nd Wind=4 ActSurge=26 Tactics=9 End Turn=7
+audit cls=4 L3: Attack=0 Item=1 Dodge=2 2nd Wind=4 ActSurge=26 Tactics=9 End Turn=7
+audit cls=5 L1: Attack=0 S.Flame=117 Guid.Bolt=106 Cure Wnds=105 Bless=107 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=5 L2: Attack=0 S.Flame=117 Guid.Bolt=106 Cure Wnds=105 Bless=107 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=5 L3: Attack=0 S.Flame=117 Guid.Bolt=106 Cure Wnds=105 Bless=107 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=6 L1: Attack=0 Item=1 Dodge=2 RAGE!=20 Tactics=9 End Turn=7
+audit cls=6 L2: Attack=0 Item=1 Dodge=2 RAGE!=20 Tactics=9 End Turn=7
+audit cls=6 L3: Attack=0 Item=1 Dodge=2 RAGE!=20 Tactics=9 End Turn=7
+audit cls=7 L1: Attack=0 P.Flame=114 Psn.Spray=113 Cure Wnds=105 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=7 L2: Attack=0 WildShape=25 P.Flame=114 Psn.Spray=113 Cure Wnds=105 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=7 L3: Attack=0 WildShape=25 P.Flame=114 Psn.Spray=113 Cure Wnds=105 Item=1 Dodge=2 Heal.Word=101 Tactics=9 End Turn=7
+audit cls=8 L1: Attack=0 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=8 L2: Attack=0 Item=1 Dodge=2 Pat.Def=23 Tactics=9 End Turn=7
+audit cls=8 L3: Attack=0 Item=1 Dodge=2 Pat.Def=23 Tactics=9 End Turn=7
+audit cls=9 L1: Attack=0 Lay Hands=22 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=9 L2: Attack=0 Cure Wnds=105 Bless=107 Lay Hands=22 Smite=24 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=9 L3: Attack=0 Cure Wnds=105 Bless=107 Lay Hands=22 Smite=24 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=10 L1: Attack=0 Fire Bolt=102 RayFrost=115 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=10 L2: Attack=0 Fire Bolt=102 RayFrost=115 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=10 L3: Attack=0 Fire Bolt=102 RayFrost=115 M.Missile=103 Sleep=104 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=11 L1: Attack=0 Eld.Blast=111 Burn.Hands=123 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=11 L2: Attack=0 Eld.Blast=111 Burn.Hands=123 Item=1 Dodge=2 Tactics=9 End Turn=7
+audit cls=11 L3: Attack=0 Eld.Blast=111 Burn.Hands=123 Item=1 Dodge=2 Tactics=9 End Turn=7
 sheet cls=0: Vicious Mockery Healing Word
 sheet cls=1:
 sheet cls=2: Hunter's Mark

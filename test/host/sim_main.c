@@ -39,10 +39,11 @@ static const char* const cls_display[CLS_COUNT] = {
  * The expected root menu per class x level 1..3, from the design:
  *   - only bards mock; Smite is paladin L2+ (first slots); WildShape is
  *     druid L2+; rage is barbarian-only; ki (Pat.Def) arrives monk L2;
- *     Hunter's Mark needs ranger slots (L2+); warlocks cast leveled spells
- *     on pact slots (present from L1); everyone gets Attack/Item/Dodge/
- *     Tactics/End Turn.
- * Codes: fixed actions 0..9, class features 20..25, spells SPELL_CODE(100)
+ *     Action Surge is fighter L2+ (once per rest, free -- neither the
+ *     action nor the bonus action); Hunter's Mark needs ranger slots
+ *     (L2+); warlocks cast leveled spells on pact slots (present from
+ *     L1); everyone gets Attack/Item/Dodge/Tactics/End Turn.
+ * Codes: fixed actions 0..9, class features 20..26, spells SPELL_CODE(100)
  * + R5S_id -- pinned here so no generated spell id can ever collide with a
  * feature case again (the druid-Smite bug). */
 typedef struct { const char* label; int code; } Row;
@@ -71,8 +72,13 @@ static const Row kit_wizard[] = {
     { "M.Missile", SP(R5S_MAGIC_MISSILE) }, { "Sleep", SP(R5S_SLEEP) },
     { "Item", 1 }, { "Dodge", 2 }, { "Tactics", 9 }, { "End Turn", 7 },
 };
-static const Row kit_fighter[] = {
+static const Row kit_fighter1[] = {
     { "Attack", 0 }, { "Item", 1 }, { "Dodge", 2 }, { "2nd Wind", 4 },
+    { "Tactics", 9 }, { "End Turn", 7 },
+};
+static const Row kit_fighter2[] = {
+    { "Attack", 0 }, { "Item", 1 }, { "Dodge", 2 }, { "2nd Wind", 4 },
+    { "ActSurge", 26 },
     { "Tactics", 9 }, { "End Turn", 7 },
 };
 static const Row kit_cleric[] = {
@@ -135,7 +141,7 @@ static const struct { const Row* rows; int n; } kits[CLS_COUNT][3] = {
     [CLS_ROGUE]     = { KIT(kit_rogue),   KIT(kit_rogue),   KIT(kit_rogue)   },
     [CLS_RANGER]    = { KIT(kit_ranger1), KIT(kit_ranger2), KIT(kit_ranger2) },
     [CLS_WIZARD]    = { KIT(kit_wizard),  KIT(kit_wizard),  KIT(kit_wizard)  },
-    [CLS_FIGHTER]   = { KIT(kit_fighter), KIT(kit_fighter), KIT(kit_fighter) },
+    [CLS_FIGHTER]   = { KIT(kit_fighter1), KIT(kit_fighter2), KIT(kit_fighter2) },
     [CLS_CLERIC]    = { KIT(kit_cleric),  KIT(kit_cleric),  KIT(kit_cleric)  },
     [CLS_BARBARIAN] = { KIT(kit_barb),    KIT(kit_barb),    KIT(kit_barb)    },
     [CLS_DRUID]     = { KIT(kit_druid1),  KIT(kit_druid2),  KIT(kit_druid2)  },
@@ -241,6 +247,14 @@ static void t_battle_menu_variants(void) {
     for (int i = 0; i < n; i++)
         T_ASSERT(!strcmp(items[i], monk_bonus[i].label) && code[i] == monk_bonus[i].code,
                  "monk post-action row %d: '%s'(%d)", i, items[i], code[i]);
+
+    /* a fighter who already surged this rest gets no second ActSurge */
+    sim_reset(); mk_party(CLS_FIGHTER, 2);
+    r5_use_action_surge(&party5[0]);
+    n = build_root_menu(items, code);
+    for (int i = 0; i < n; i++)
+        T_ASSERT(strcmp(items[i], "ActSurge"),
+                 "spent fighter still offers ActSurge");
 
     /* armed smite hides the Smite row until it discharges */
     sim_reset(); mk_party(CLS_PALADIN, 2);
