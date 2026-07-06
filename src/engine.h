@@ -39,6 +39,11 @@ void obj_flip(int i, int h, int v);
 #define OBJ_CURSOR 0
 #define OBJ_ALERT  1    /* field "!" marker (patrol aggro) */
 #define OBJ_PLAYER 4    /* field player sprite */
-#define OBJ_NPC0   8    /* field npcs 8..23; encounter popups/zZ/dice claim 40+ */
+#define OBJ_NPC0   8    /* field npcs 8..19 (FMAX_NPC), 20-23 spare;
+                         * battle tether dots + cursor glyphs 24-28
+                         * (encounter.c OBJ_TETH), field patrol-cone dots
+                         * 29-38 (field.c OBJ_CONE -- field-mode, kept
+                         * disjoint from battle garnish on purpose);
+                         * encounter popups/zZ/dice claim 40+ */
 
 #endif

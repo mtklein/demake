@@ -34,7 +34,7 @@ echo "== scenarios =="
 fail=0
 for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            beach_full beach_medicine beach_flayer beach_origin \
-           sneak_strike cone_ambush helm_sleepz tether_check panic_check \
+           sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
            audit_check; do
@@ -49,6 +49,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         beach_flayer)                         want="flayer beat finished" ;;
         beach_origin)                         want="beach reroute shadowheart" ;;
         tether_check)                         want="tether"          ;;
+        cone_show)                            want="cone shown npc=" ;;
         panic_check)                          want="PANIC poked"     ;;
         wildshape_check)                      want="wildshape boar"  ;;
         levelup_check)                        want="subclass pick"   ;;

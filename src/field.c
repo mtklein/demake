@@ -37,9 +37,13 @@ int field_meta_at(int mx, int my) {
     return fmeta[my * fw + mx];
 }
 
+static void cone_hide(void);     /* vision-cone garnish; block sits by npc_ai */
+static u8 cone_seen;             /* one-shot "cone shown" log, per room */
+
 void field_load(const u8* meta, int w, int h) {
     fmeta = meta; fw = w; fh = h;
     nnpc = 0; exit_req = 0; pmoving = 0;
+    cone_seen = 0; cone_hide();      /* fresh room: fresh one-shot, no dots */
 
     memcpy16(CHARBLOCK(1), field_tiles_gfx, FIELD_TILE_COUNT * 16);
     memcpy16(CHARBLOCK(2), sky_tiles_gfx, SKY_TILE_COUNT * 16);
@@ -230,6 +234,86 @@ void field_wait(int frames) {
 
 static int alert_npc = -1, alert_t;
 
+/* The party-adjusted detection radius patroller n applies to a point at
+ * (ddx,ddy) relative to it. npc_ai's trip test and the vision-cone garnish
+ * BOTH call this -- the drawn boundary can never drift from the real one. */
+static int sense_r(const Npc* n, int ddx, int ddy) {
+    int r = n->aggro_r;
+    if (G.pm[0].skills & (1u << SK_STEALTH)) r = r * 2 / 3;   /* trained: quieter */
+    if (G.pm[0].expert & (1u << SK_STEALTH)) r = r * 2 / 3;   /* Expertise: quieter still */
+    /* sentries watch a cone ahead; flanks and rear are peripheral */
+    if (!((n->face == 0 && ddy > 0) || (n->face == 1 && ddy < 0) ||
+          (n->face == 2 && ddx < 0) || (n->face == 3 && ddx > 0))) r /= 2;
+    return r;
+}
+
+/* ---- patrol vision cones ------------------------------------------------
+ * When the party skirts a patrolling sentry, its detection boundary draws as
+ * marching-ant dots: the Manhattan diamond the trip test actually uses, full
+ * radius across the watched forward half-plane (bright gold), half radius
+ * across the peripheral rear (dim violet). Nearest non-chasing patroller
+ * only; a chaser's cone is moot.
+ *
+ * OBJ slots 29..38, claimed here. Deliberately NOT shared with battle
+ * garnish (tether/glyphs 24-28, popups 40+, zZ 50+, dice 56+) even though
+ * cones are field-mode and tether is battle-mode: a dedicated range means a
+ * missed cone_hide() can never repaint battle garnish mid-fight. Every exit
+ * from the field loop (dialog, menu, battle, room change) hides the dots
+ * first, so they cannot linger into those modes. */
+#define OBJ_CONE  29
+#define CONE_DOTS 10
+
+static void cone_hide(void) {
+    for (int i = 0; i < CONE_DOTS; i++) obj_hide(OBJ_CONE + i);
+}
+
+static void cone_draw(void) {
+    int best = -1, bestd = 0;       /* nearest patrolling, non-chasing sentry */
+    for (int i = 0; i < nnpc; i++) {
+        Npc* n = &npcs[i];
+        if ((n->flags & (NPC_PATROL | NPC_GONE)) != NPC_PATROL || n->chasing)
+            continue;
+        int adx = ppx - n->x, ady = ppy - n->y;
+        if (adx < 0) adx = -adx;
+        if (ady < 0) ady = -ady;
+        if (best < 0 || adx + ady < bestd) { best = i; bestd = adx + ady; }
+    }
+    if (best >= 0) {
+        Npc* n = &npcs[best];
+        static const s8 fxs[4] = { 0, 0, -1, 1 }, fys[4] = { 1, -1, 0, 0 };
+        int fx = fxs[n->face], fy = fys[n->face];   /* forward unit */
+        int rf = sense_r(n, fx, fy);                /* the SAME oracle npc_ai */
+        int rr = sense_r(n, -fx, -fy);              /*   trips on, both halves */
+        if (rf < 2 || bestd >= rf * 3 / 2) { cone_hide(); return; }
+        if (!cone_seen) { cone_seen = 1; mgba_logf("cone shown npc=%d", best); }
+        /* the boundary is a kite: forward diamond half at rf, rear half at
+         * rr, flat jogs along the equator where the half-planes meet. Walk
+         * its L1 perimeter, dots evenly spaced, phase marching with ticks. */
+        int px = -fy, py = fx;                      /* perpendicular unit */
+        int vx[6] = { px * rf, fx * rf, -px * rf, -px * rr, -fx * rr, px * rr };
+        int vy[6] = { py * rf, fy * rf, -py * rf, -py * rr, -fy * rr, py * rr };
+        int len[6] = { 2 * rf, 2 * rf, rf - rr, 2 * rr, 2 * rr, rf - rr };
+        int per = 6 * rf + 2 * rr;
+        int scx = n->x + 8 - cam_x, scy = n->y + 8 - cam_y;
+        for (int k = 0; k < CONE_DOTS; k++) {
+            int s = (k * per / CONE_DOTS + (int)((ticks >> 1) % (u32)per)) % per;
+            int seg = 0;
+            while (seg < 5 && s >= len[seg]) s -= len[seg++];
+            int L = len[seg] ? len[seg] : 1;
+            int dx = vx[seg] + (vx[(seg + 1) % 6] - vx[seg]) * s / L;
+            int dy = vy[seg] + (vy[(seg + 1) % 6] - vy[seg]) * s / L;
+            /* tint by asking the oracle again: full radius here = watched
+             * (bright), halved = peripheral (dim) -- no hand-kept copy of
+             * the half-plane test to drift */
+            int watched = sense_r(n, dx, dy) == rf;
+            obj_set(OBJ_CONE + k, scx + dx - 4, scy + dy - 4, 0,
+                    OBJT_GARN, watched ? 9 : 13, 2);
+        }
+        return;
+    }
+    cone_hide();
+}
+
 static void npc_ai(void) {
     for (int i = 0; i < nnpc; i++) {
         Npc* n = &npcs[i];
@@ -237,12 +321,7 @@ static void npc_ai(void) {
         int ddx = ppx - n->x, ddy = ppy - n->y;
         int adx = ddx < 0 ? -ddx : ddx, ady = ddy < 0 ? -ddy : ddy;
         int dist = adx + ady;
-        int r = n->aggro_r;
-        if (G.pm[0].skills & (1u << SK_STEALTH)) r = r * 2 / 3;   /* trained: quieter */
-        if (G.pm[0].expert & (1u << SK_STEALTH)) r = r * 2 / 3;   /* Expertise: quieter still */
-        /* sentries watch a cone ahead; flanks and rear are peripheral */
-        if (!((n->face == 0 && ddy > 0) || (n->face == 1 && ddy < 0) ||
-              (n->face == 2 && ddx < 0) || (n->face == 3 && ddx > 0))) r /= 2;
+        int r = sense_r(n, ddx, ddy);
         if (!n->chasing) {
             /* lazy hover-drift around home */
             int ph = (int)((ticks + i * 37) >> 3) & 31;
@@ -261,6 +340,7 @@ static void npc_ai(void) {
             n->face = (u8)(adx > ady ? (ddx > 0 ? 3 : 2) : (ddy > 0 ? 0 : 1));
             if (dist <= 16) {
                 n->chasing = 0;
+                cone_hide();                       /* battle: no cone garnish */
                 ev_aggro(i);
                 return;                            /* npc list may have changed */
             }
@@ -288,8 +368,10 @@ void field_run(void) {
         frame();
         G_FIELD_IDLE = 1;
         if (G_SKILL_TEST) { int sk = G_SKILL_TEST - 1; G_SKILL_TEST = 0;
+            cone_hide();
             void ev_skill_test(int, int); ev_skill_test(sk, 12); }
-        if (G_AUDIT) { G_AUDIT = 0; void ability_audit(void); ability_audit();
+        if (G_AUDIT) { G_AUDIT = 0; cone_hide();
+            void ability_audit(void); ability_audit();
             void sheet_audit(void); sheet_audit(); }
         npc_ai();
         draw_alert();
@@ -315,19 +397,23 @@ void field_run(void) {
             } else if (key_hit() & KEY_A) {
                 int fx = ppx / 16 + dx[pface], fy = ppy / 16 + dy[pface];
                 int ni = npc_at(fx, fy);
+                cone_hide();                       /* dialog: no cone garnish */
                 if (ni >= 0) ev_npc(ni);
                 else ev_interact(fx, fy);
             } else if (key_hit() & KEY_START) {
                 void field_menu(void);
+                cone_hide();
                 field_menu();
             }
         } else {
             ppx += tdx * 2; ppy += tdy * 2;
             if (++pstep >= 8) {
                 pmoving = 0;
+                cone_hide();          /* ev_step may open a door or a fight */
                 ev_step(ppx / 16, ppy / 16);
             }
         }
+        cone_draw();   /* after any dispatch: a no-op event redraws same frame */
         field_draw();
     }
     exit_req = 0;

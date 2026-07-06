@@ -325,6 +325,26 @@ def cone_ambush():
     setup(3, [0, 1, 0, 0, 2])
     cone_ambush_body()
 
+@scn
+def cone_show():
+    """The pods prowler's vision cone surfaces as garnish: loitering at
+    (15,1) -- 16..24px behind it, inside the 1.5x activation band but past
+    its halved 14px rear reach -- draws the marching-ant boundary (bright
+    forward, dim rear) WITHOUT tripping it (the gate asserts the one-shot
+    'cone shown' log). Then a hook around into (15,3), 16..24px down its
+    gaze and inside the drawn edge at any drift: the usual ambush resolves,
+    proving the boundary shown is the boundary used."""
+    setup(3, [0, 1, 0, 0, 2])
+    _to_deck_cleared()
+    walk("RIGHT", 7)                      # (15,1): the whole row is rear --
+    wait(30); shot("g_cone")              #   peripheral, never detected
+    wait(45); shot("g_cone2")             # ants have marched; still unseen
+    walk("LEFT", 1); walk("DOWN", 2)      # flank hook: (14,3)
+    walk("RIGHT", 1)                      # (15,3): cross the drawn edge
+    wait(90)                              # it sees us; the chase closes
+    ready(24000)                          # ambush battle resolves
+    wait(30)
+
 # --- the Ravaged Beach (stone 2) -----------------------------------------
 
 @scn
