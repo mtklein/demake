@@ -1,12 +1,16 @@
 # The Ravaged Beach — Act 1 begins
 
-> **Status: PROPOSED** (drafted 2026-07-06; ratify, cut, or reshape before
-> any stone lands).
+> **Status: RATIFIED 2026-07-06.** Scope set in conversation: the full
+> stretch from the crash to the grove-gates battle as finale. No save
+> system (emulator save states cover a game this size; revisit only if
+> playtime badly outgrows a sitting). Party stays three on foot,
+> CT-style, with **swap available any time out of combat** — not gated
+> to camp.
 
 The nautiloid burns down into Avernus and the tally promises "THE ADVENTURE
-BEGINS ...IN BALDUR'S GATE." This release keeps that promise: wake on the
-sand, gather the scattered, brave the crypt, share one night at camp, and
-march on the grove gates.
+BEGINS ...IN BALDUR'S GATE." This release keeps that promise: wake alone on
+the sand, re-gather the scattered, brave the crypt, share one night at
+camp, and hold the grove gates.
 
 The codebase has been pointing here from several directions at once:
 
@@ -21,63 +25,65 @@ The codebase has been pointing here from several directions at once:
   releases before the camp.
 - The devourer stat block (Claws/Jolt) sits unused in overrides.py, and
   the tally flags (Us freed/mutilated, Lae'zel, Shadowheart, Zhalk,
-  Everburn) are precisely the world-state a beach save file opens with.
+  Everburn) are precisely the world-state the beach opens from.
 
 ## Scope
 
-**Rooms:** crash beach (2–3 screens), the dune path, chapel ruins, the
-crypt (first DARK rooms), the campsite, the grove gates (cliffhanger
-tally). **Fights:** intellect devourers on the sand, SRD skeletons below,
-a looter band at the chapel door, one set-piece at the gates.
-**Recruits:** Astarion on the beach, Gale at the portal rune, Shadowheart
-washed ashore if she was left in her pod (BG3-accurate), and Withers as a
-service NPC. **Payoff:** the XP budget crosses 900 near the gates — the
-level-3 subclass reveals fire on schedule with zero new mechanics.
+The crash scatters everyone — you wake alone, and rebuilding the party is
+the arc's spine. Ship flags color each reunion, they don't skip it.
 
-## The three systems this content forces
+- **Beach:** the crash site and dunes; **intellect devourers** on the
+  sand; **the dying mind flayer** in the wreckage — a story beat with an
+  INT save through the field-check system (approach and it grasps at your
+  mind), kill it or leave it to die.
+- **Recoveries:** Shadowheart ashore (saved on ship: she wakes near you;
+  left behind: found unconscious, a Medicine check wakes her), Lae'zel
+  caged by scared tiefling scavengers on the dune path (ship-ally or not
+  shades the scene).
+- **Recruits:** Astarion by the shore (his knife-at-your-throat beat),
+  Gale at the portal rune. An origin-played companion doesn't appear as a
+  recruit; their beat reroutes (same story-surgery doctrine as the ship).
+- **Chapel + crypt:** bandits arguing outside the tomb door; inside, the
+  first DARK rooms, skeleton ambushes, the guardian set piece as far as
+  it will stretch, and **Withers**, who wakes to offer revival and
+  re-picks (exact respec depth scoped when the stone lands).
+- **Camp:** a campsite room; the one-time *Under Selûne* night scene
+  (karaoke tech as story); the campfire is the long rest thereafter
+  (party5_heal_full + refresh — mechanics already exist).
+- **Finale:** the battle at the grove gates, then the tally and release.
 
-1. **Battery save (SRAM).** The game outgrows one sitting, so this is the
-   release that adds the cart battery: declare SRAM, serialize Game +
-   party5 + bench with a version header, "Continue" on the title. Save at
-   camp only — one savepoint keeps the semantics (and the test matrix)
-   small. The serializer is a host-test dream: round-trip, version-bump
-   rejection, and corrupt-header rejection all run under ASan before any
-   ROM boots.
-2. **Camp and rest.** The campfire is the long rest: party5_heal_full
-   already does the mechanics; camp adds the place, the bench (recruits
-   beyond the walking three), CT-style swap, and the one-time *Under
-   Selûne* night scene reusing the karaoke tech as story.
-3. **Darkvision rooms.** Per the character2.md doctrine, unchanged: DARK
+## The two systems this content forces
+
+1. **Roster + swap.** The walking party stays G.pm[3]/party5[3]; a
+   reserve roster joins Game. Tav is locked in slot 0; slots 1–2 swap
+   from reserve through a party screen reachable from the Start menu
+   **any time out of combat**. Reserve members refresh on rest like
+   everyone else. This is pure menu/data logic — it lands first, proven
+   by host tests with a fabricated five-soul roster before any beach
+   content exists.
+2. **Darkvision rooms.** Per the character2.md doctrine, unchanged: DARK
    flag dims the screen, ranged/spell attacks at disadvantage for actors
    without darkvision, devils exempt, the Everburn Blade lights the room,
    and Light/Produce Flame earn their field purpose.
 
-Party stays three on foot + the camp bench (CT-shaped, no churn in
-party5/battle layout). Still deferred: race/background pickers, standard
-array, Pace/Jump — nothing on the beach demands them.
+Still deferred: race/background pickers, standard array, Pace/Jump —
+nothing on the beach demands them. No SRAM, no Continue screen.
 
 ## Stones, in order (each gate-green, each release-shaped)
 
-1. SRAM plumbing + serializer + Continue, proven by host round-trip tests
-   and a save/load scenario before any beach content exists.
-2. Beach rooms + devourer encounters, opened from the carried-in tally
-   flags (the ending state becomes the world state).
-3. Recruits + bench + camp swap menus.
-4. The crypt: darkvision debut + Withers (revive, and a re-pick service —
-   scope his respec when we get there).
-5. Camp night: the rest cycle + the Selûne scene.
-6. Grove-gates set piece, XP tuning across the arc, release.
+1. Roster + swap: data model, party screen, host tests (swap in/out,
+   Tav locked, stats/damage/slots survive the bench round-trip).
+2. Beach rooms opened from the carried-in tally flags: crash site, the
+   Shadowheart and Lae'zel recoveries, devourer fights, the dying mind
+   flayer beat.
+3. Astarion and Gale recruit beats — the roster outgrows three and swap
+   earns its keep.
+4. Chapel bandits; the crypt: darkvision debut, skeletons, Withers.
+5. Camp night: the *Under Selûne* scene + the long-rest cycle.
+6. The grove-gates battle, XP tuning across the arc (gates ≈ 900), tally,
+   release.
 
 Verification-first, per the testing ladder: every stone's logic lands with
-host tests (the serializer and bench-swap are exactly the buffer-overflow
-habitat the host layer exists for); each new room-flow gets one scenario;
-the ratchets only rise.
-
-## Alternatives considered
-
-- **Finish character creation** (races, backgrounds, standard array):
-  completes the sheet but gives players no new place to use it. Fold in
-  when a creation-flow revisit demands it.
-- **More nautiloid content:** the ship is paced and done; padding dilutes.
-- **Pure infrastructure release** (saves + polish, no content): saves
-  belong in the same release as the content that makes them necessary.
+host tests (roster/bench swap is exactly the buffer-overflow habitat the
+host layer exists for); each new room-flow gets one scenario; the ratchets
+only rise.
