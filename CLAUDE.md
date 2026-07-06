@@ -21,9 +21,10 @@ Best Simple System for Now (dannorth.net/blog/best-simple-system-for-now):
 move stepping-stone to stepping-stone; each commit a checkpoint we'd proudly
 call "best for what it's trying to do." Replace rather than retrofit when
 understanding changes (the FF4 battle system was deleted, not wrapped).
-Invest rigor where the substrate is stable (rules/ has 247k property checks —
-the SRD never changes under us); keep content layers (events.c) cheap to
-rewrite. Deletion is healthy. No speculative generality.
+Invest rigor where the substrate is stable (rules/ sits at 100% line+branch
+coverage under a ratcheted floor — the SRD never changes under us); keep
+content layers (events.c) cheap to rewrite. Deletion is healthy. No
+speculative generality.
 
 ## Verification architecture
 
@@ -37,6 +38,14 @@ rewrite. Deletion is healthy. No speculative generality.
   firehoses the log); pipe through `awk '/Illegal opcode/...'` instead.
 - New features get a canned scenario in test/scenario.py and a slot in
   test/gate.sh, not an ad-hoc script.
+- `test/host/` compiles the REAL game logic (menu, encounter, data, game)
+  natively against a fake engine under ASan/UBSan: `make -C test/host sim`
+  (real-path tests + seeded menu fuzz), `make -C test/host cov` for llvm-cov.
+  Three shipped buffer overflows lived in this layer; test the real code
+  path, never a mirror of its logic.
+- Honest counting: tests are counted by test FUNCTION; sampling-loop
+  iterations are never a headline number. `make coverage` (runs inside the
+  gate) ratchets rules/ line coverage at COV_FLOOR — raise it, never lower.
 
 ## Music
 
