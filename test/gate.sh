@@ -15,11 +15,16 @@ mkdir -p test/shots   # gitignored; fresh clones/worktrees lack it and every sce
 echo "== build (ROM + runner) =="
 make -s all runner
 
+# (assignment form, not `make | tail`: a pipe launders make's exit status
+#  under plain set -e, and this file's own header warns callers about that)
 echo "== 5e rules suite (native) =="
-make -s test-rules | tail -1
+out=$(make -s test-rules); echo "$out" | tail -1
 
 echo "== AEABI division helpers (native) =="
-make -s test-aeabi | tail -1
+out=$(make -s test-aeabi); echo "$out" | tail -1
+
+echo "== host sim: real game logic under ASan/UBSan =="
+out=$(make -s -C test/host sim); echo "$out" | tail -1
 
 echo "== counterpoint lint =="
 python3 tools/music/check_music.py >/dev/null
