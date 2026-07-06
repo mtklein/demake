@@ -33,6 +33,7 @@ echo "music lint: OK"
 echo "== scenarios =="
 fail=0
 for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
+           beach_full beach_medicine beach_flayer beach_origin \
            sneak_strike cone_ambush helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
@@ -43,6 +44,10 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     fi
     case "$scn" in
         bard_full|rogue_mutilate|ranger_full) want="result=CONNECTED" ;;
+        beach_full)                           want="beach recover laezel" ;;
+        beach_medicine)                       want="field-check Medicine" ;;
+        beach_flayer)                         want="flayer beat finished" ;;
+        beach_origin)                         want="beach reroute shadowheart" ;;
         tether_check)                         want="tether"          ;;
         panic_check)                          want="PANIC poked"     ;;
         wildshape_check)                      want="wildshape boar"  ;;
@@ -59,9 +64,25 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
+    # beach scenarios assert the arc's structure, never exact xp: the wake
+    # fired, the recoveries landed, the devourer entered the initiative log
+    case "$scn" in
+        beach_full)     extra="beach wake|result=CONNECTED|beach recover shadowheart|init Devourer" ;;
+        beach_medicine) extra="beach wake|beach recover shadowheart" ;;
+        beach_flayer)   extra="beach recover shadowheart|field-check Arcana|init Devourer|enc result=WIN" ;;
+        beach_origin)   extra="beach wake|beach recover laezel" ;;
+        *)              extra="" ;;
+    esac
+    if [ -n "$extra" ]; then
+        IFS='|'
+        for pat in $extra; do
+            echo "$out" | grep -q "$pat" || bad="${bad:+$bad,}missing:$pat"
+        done
+        unset IFS
+    fi
     if [ "$scn" = audit_check ]; then
         # golden diff, not a want grep: the full per-class ability dump must
         # match test/audit.golden byte-for-byte (cross-class leaks fail here)

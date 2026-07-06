@@ -33,6 +33,10 @@ def poke(addr, val): w(f"poke {addr:08x} {val:02x}")
 
 DEMO, BATTLE, CLASS, IDLE, DONE = 0x0203FF00, 0x0203FF02, 0x0203FF03, 0x0203FF05, 0x0203FF06
 CHOICE = 0x0203FF10
+BEACH, BEACHF = 0x0203FF04, 0x0203FF2C     # G_DEMO_BEACH / G_BEACH_FLAGS (u16 LE)
+
+# ship-outcome bits (src/game.h GF_*) that shade the beach
+GF_LAEZEL, GF_SH_FREED, GF_ZHALK_DEAD, GF_DECK_FOUGHT = 1 << 2, 1 << 3, 1 << 5, 1 << 9
 
 def ready(maxf=9000):
     w(f"until {IDLE:08x} 01 {maxf}")
@@ -51,6 +55,21 @@ def setup(cls, choices, battle_mode=0):
     # magic cookie: gba_init wipes the flag block without it (hardware safety)
     for i, b in enumerate((0x01, 0xEE, 0xFF, 0xC0)):
         poke(0x0203FF38 + i, b)
+
+def beach_setup(cls, choices, flags=0, battle_mode=0, origin=7, level=2):
+    """Boot straight to the beach wake: the poked G_BEACH_FLAGS stand in for
+    the ship's outcome, G_DEMO_LEVEL for its xp. Creation still auto-drives."""
+    setup(cls, choices, battle_mode)
+    poke(0x0203FF0E, origin)
+    poke(0x0203FF0D, level)
+    poke(BEACH, 1)
+    poke(BEACHF, flags & 0xFF); poke(BEACHF + 1, (flags >> 8) & 0xFF)
+
+def beach_boot():
+    """title/crawl/creation auto-advance; the wake fires G_DONE, then field"""
+    done(18000)
+    ready()
+    shot("b_wake")
 
 def intro():
     wait(160); shot("s_title")
@@ -305,6 +324,71 @@ def sneak_strike():
 def cone_ambush():
     setup(3, [0, 1, 0, 0, 2])
     cone_ambush_body()
+
+# --- the Ravaged Beach (stone 2) -----------------------------------------
+
+@scn
+def beach_full():
+    """The whole arc so far: ship (bard, everyone saved) -> crash -> wake
+    alone -> Shadowheart rejoins ashore -> strike the crash-site devourer
+    from behind -> dune path -> free Lae'zel from the scavenger cage."""
+    setup(0, [0, 0, 0, 0, 0, 0])       # ship picks + cage "Open the cage"
+    intro(); nursery(); surgery(); deck(); pods(); helm()
+    ready()                            # the beach is playable after the wake
+    shot("b_shadowheart")              # she stands ashore at (11,6)
+    face_interact("RIGHT")             # ...and rejoins
+    walk("UP", 5); walk("RIGHT", 5)    # (15,1): behind the devourer's cone
+    tap("DOWN"); tap("A")              # strike first
+    ready(24000)
+    shot("b_devourer")
+    walk("LEFT", 5); walk("UP", 1)     # the dune gap (10,0)
+    ready()
+    shot("b_dunes")
+    walk("UP", 4); walk("LEFT", 6)     # (4,6): west corridor
+    walk("UP", 4); walk("LEFT", 1)     # (3,2): beside the cage
+    face_interact("LEFT")              # the cage beat; Lae'zel rejoins
+    shot("b_cage")
+
+@scn
+def beach_medicine():
+    """Poked wake, Shadowheart LEFT BEHIND on the ship: she lies at the
+    tide line and a Medicine field check wakes her (she joins either way)."""
+    beach_setup(0, [0, 0, 0, 0], flags=GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    walk("DOWN", 1); walk("LEFT", 5)   # (5,7), beside the body
+    face_interact("LEFT")
+    shot("b_medic")
+
+@scn
+def beach_flayer():
+    """Poked wake, Shadowheart FREED on the ship: she rejoins with a word
+    (the other recovery fork); the dying mind flayer grasps at your mind
+    (Arcana field check), gets finished; a dune devourer falls to the pair."""
+    beach_setup(0, [0, 0, 0, 0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    face_interact("RIGHT")             # Shadowheart, upright at (11,6)
+    walk("LEFT", 4); walk("UP", 2)     # (6,4): within the flayer's reach
+    ready()
+    shot("b_flayer")
+    walk("RIGHT", 4); walk("UP", 4)    # the dune gap
+    ready()
+    walk("UP", 4); walk("RIGHT", 2)    # (12,6): behind the dune devourer
+    tap("DOWN"); tap("A")              # strike first
+    ready(24000)
+    shot("b_dunefight")
+
+@scn
+def beach_origin():
+    """Origin Shadowheart wakes on the beach: her recovery beat must not
+    exist (story surgery), and stranger Lae'zel still gets freed."""
+    beach_setup(5, [0, 0, 0, 0], flags=0, origin=4)
+    beach_boot()
+    walk("UP", 6)                      # straight up the sand to the gap
+    ready()
+    walk("UP", 4); walk("LEFT", 6)
+    walk("UP", 4); walk("LEFT", 1)
+    face_interact("LEFT")              # the cage, stranger fork
+    shot("b_origin")
 
 @scn
 def helm_sleepz():
