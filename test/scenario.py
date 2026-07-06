@@ -169,6 +169,15 @@ def skill_check():
     wait(80); shot("skill_done")
 
 @scn
+def audit_check():
+    """dump the per-class battle-menu + sheet ability tables; the gate
+    golden-diffs them against test/audit.golden (cross-class leak guard)"""
+    setup(0, [0, 1, 0, 0, 2])
+    intro()
+    poke(0x0203FF0B, 1)              # G_AUDIT: field loop logs both audits
+    wait(60)
+
+@scn
 def durge_check():
     """Dark Urge origin hears intrusive thoughts (asserts the urge-line log)"""
     poke(DEMO, 1); poke(BATTLE, 0); poke(CLASS, 1); poke(0x0203FF0E, 6)
@@ -185,9 +194,23 @@ def origin_check():
     poke(DEMO, 1); poke(BATTLE, 0); poke(0x0203FF0E, 4)   # origin = Shadowheart
     for i, byte in enumerate((0x01, 0xEE, 0xFF, 0xC0)): poke(0x0203FF38 + i, byte)
     poke(0x0203FF05, 0); poke(0x0203FF06, 0)
-    wait(700)                          # title + crawl + origin auto-select
+    wait(700)                          # title + crawl + class/chooser auto-drive
     w(f"until {IDLE:08x} 01 12000")    # reach the nursery
     shot("origin_shadow")
+
+@scn
+def origin_flow_check():
+    """class-first chooser: auto-pick Cleric as a CLASS, then take the
+    chooser's 'Play <origin>' row. No origin index is poked -- 8 means 'this
+    class's origin row', so the cleric->Shadowheart mapping is computed by
+    game_origin_choose itself (asserts start: origin=4 class=5 sub=16)."""
+    poke(DEMO, 1); poke(BATTLE, 0); poke(CLASS, 5)        # Cleric, by class
+    poke(0x0203FF0E, 8)                # take the class's origin row
+    for i, byte in enumerate((0x01, 0xEE, 0xFF, 0xC0)): poke(0x0203FF38 + i, byte)
+    poke(0x0203FF05, 0); poke(0x0203FF06, 0)
+    wait(700)                          # title + crawl + class/chooser auto-drive
+    w(f"until {IDLE:08x} 01 12000")    # reach the nursery
+    shot("origin_flow")
 
 @scn
 def prepare_check():

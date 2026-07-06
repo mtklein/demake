@@ -289,6 +289,8 @@ void field_run(void) {
         G_FIELD_IDLE = 1;
         if (G_SKILL_TEST) { int sk = G_SKILL_TEST - 1; G_SKILL_TEST = 0;
             void ev_skill_test(int, int); ev_skill_test(sk, 12); }
+        if (G_AUDIT) { G_AUDIT = 0; void ability_audit(void); ability_audit();
+            void sheet_audit(void); sheet_audit(); }
         npc_ai();
         draw_alert();
         if (!pmoving) {

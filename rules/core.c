@@ -21,7 +21,7 @@ int r5_prof(const R5Creature* c) {
 
 /* ---------------------------------------------------------------- damage */
 
-static int scale_damage(const R5Creature* t, int amount, uint8_t type) {
+int r5_scale_damage(const R5Creature* t, int amount, uint8_t type) {
     uint16_t bit = (uint16_t)(1 << type);
     if (t->immune & bit) return 0;
     if (t->resist & bit) return amount / 2;
@@ -30,7 +30,7 @@ static int scale_damage(const R5Creature* t, int amount, uint8_t type) {
 }
 
 int r5_apply_damage(R5Creature* t, int amount, uint8_t type) {
-    int dmg = scale_damage(t, amount, type);
+    int dmg = r5_scale_damage(t, amount, type);
     if (dmg <= 0) return 0;
     if (t->temp_hp > 0) {
         int absorbed = dmg < t->temp_hp ? dmg : t->temp_hp;
@@ -134,7 +134,7 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
         !((w->props & WP_FINESSE) && r5_mod(a->ab[R5_DEX]) > r5_mod(a->ab[R5_STR])))
         flat = 2;
     out.dmg = damage_roll(r, spec, abil + flat, out.crit, extra);
-    out.damage = (int16_t)scale_damage(t, out.dmg.total, w->dmg_type);
+    out.damage = (int16_t)r5_scale_damage(t, out.dmg.total, w->dmg_type);
 
     if (w->rider_dmg.n) {                                   /* magic weapon rider */
         R5DiceSpec rs = w->rider_dmg;
@@ -147,7 +147,7 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
             out.rider_saved = sv.success;
             if (sv.success) amt /= 2;
         }
-        out.rider_damage = (int16_t)scale_damage(t, amt, w->rider_type);
+        out.rider_damage = (int16_t)r5_scale_damage(t, amt, w->rider_type);
         out.rider_type = w->rider_type;
     }
     return out;
@@ -162,7 +162,7 @@ R5Attack r5_monster_attack(R5RNG* r, const R5Creature* a, const R5MAttack* ma,
     if (!out.hit) return out;
 
     out.dmg = damage_roll(r, ma->dmg, 0, out.crit, 0);
-    out.damage = (int16_t)scale_damage(t, out.dmg.total, ma->dmg_type);
+    out.damage = (int16_t)r5_scale_damage(t, out.dmg.total, ma->dmg_type);
 
     if (ma->rider_dmg.n) {
         R5DiceSpec rs = ma->rider_dmg;
@@ -172,7 +172,7 @@ R5Attack r5_monster_attack(R5RNG* r, const R5Creature* a, const R5MAttack* ma,
         out.rider_save = sv.d20;
         out.rider_saved = sv.success;
         int amt = sv.success ? out.rider_dmg.total / 2 : out.rider_dmg.total;
-        out.rider_damage = (int16_t)scale_damage(t, amt, ma->rider_type);
+        out.rider_damage = (int16_t)r5_scale_damage(t, amt, ma->rider_type);
         out.rider_type = ma->rider_type;
     }
     return out;

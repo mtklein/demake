@@ -11,6 +11,7 @@ typedef struct {
     u8 cls, level, subclass;
     u32 prepared;    /* prepared-caster spell bitmask into r5_class_spells */
     u32 skills, expert;   /* SK_* proficiency + expertise bitmasks */
+    u8 face;              /* art identity: ORIG_* (companions too) */
     s16 hp, hpmax, mp, mpmax;
     u8 atk, def, mag, spd;
     u16 xp;
@@ -31,6 +32,8 @@ typedef struct {
 } Game;
 enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
        ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
+typedef struct { u16 objt, ko; u8 pal; s8 por; } MemberLook;
+MemberLook member_look(int face, int cls);   /* single source of party art */
 void loot_weapon(int w);          /* add to inventory (menu equips) */
 extern Game G;
 

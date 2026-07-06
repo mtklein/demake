@@ -230,11 +230,6 @@ static const char* const cls_blurb[CLS_COUNT] = {
     "Magic in\nthe blood.\nBends every\nrule.",
     "A patron\nwhispers.\nEldritch\npower, owed.",
 };
-/* class-select preview: sheet + palette source (-1 = Tav palette slot) */
-static const u16 csel_objt[CLS_COUNT] = {
-    OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
-    OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
-static const s8 csel_tavpal[CLS_COUNT] = { 0,1,2,3, -1,-2, 2,2,0,3, 0,3 };
 
 static void blurb_draw(const char* s) {
     for (int j = 0; j < 4; j++) {
@@ -247,8 +242,8 @@ static void blurb_draw(const char* s) {
     }
 }
 
-/* origin identity: class (-1 = choose), portrait, default subclass or 255,
- * and a two-line blurb. Fixed origins skip class selection. */
+/* origin identity: class (-1 = any), portrait, default subclass or 255,
+ * and a short blurb. Fixed origins live under their class in the chooser. */
 typedef struct { const char* name; s8 cls; s8 por; u8 sub; const char* blurb; } Origin;
 static const Origin origins[ORIG_COUNT] = {
     { "Astarion",  CLS_ROGUE,   POR_ASTARION, 255, "Pale elf. A hunger\nhe hides too well." },
@@ -261,57 +256,36 @@ static const Origin origins[ORIG_COUNT] = {
     { "Custom Tav",-1,          -1,           255, "Someone new.\nChoose your path." },
 };
 
-static void origin_blurb(const char* s) {
-    for (int j = 0; j < 4; j++) {
-        char line[16]; int k = 0;
-        while (*s && *s != '\n' && k < 11) line[k++] = *s++;
-        if (*s == '\n') s++;
-        line[k] = 0;
-        txt_put_n(SCR_CLASSSEL_B0_X, SCR_CLASSSEL_B0_Y + j, line, 2, SCR_CLASSSEL_B0_W);
-    }
-}
-
-int game_origin_select(void) {
-    memset16(SCREENBLOCK(30), 0, 1024);
-    memset16(SCREENBLOCK(31), 0, 1024);
-    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
-    fade_in(10);
-    scr_classsel();
-    txt_put(SCR_CLASSSEL_PROMPT_X, SCR_CLASSSEL_PROMPT_Y, "Who were you?", 0);
-    for (int i = 0; i < ORIG_COUNT; i++)
-        txt_put_n(SCR_CLASSSEL_C0_X, SCR_CLASSSEL_C0_Y + i, origins[i].name, 0, SCR_CLASSSEL_C0_W);
-
-    int sel = 0, demo_hold = G_DEMO ? 60 : 0;
-    for (;;) {
-        origin_blurb(origins[sel].blurb);
-        s8 por = origins[sel].por;
-        if (por >= 0) ui_portrait(por, SCR_CLASSSEL_HERO_X, SCR_CLASSSEL_HERO_Y - 2);
-        else txt_clear(SCR_CLASSSEL_HERO_X, SCR_CLASSSEL_HERO_Y - 2, 6, 6);
-        int done = 0;
-        for (;;) {
-            obj_set(OBJ_CURSOR, SCR_CLASSSEL_LIST_X * 8 - 6,
-                    (SCR_CLASSSEL_C0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
-            frame();
-            if (demo_hold) {
-                int target = G_DEMO_ORIGIN < ORIG_COUNT ? G_DEMO_ORIGIN : ORIG_CUSTOM;
-                if (--demo_hold == 0) {
-                    if (sel < target) { sel++; demo_hold = 12; }
-                    else { sfx_play(SFX_CONFIRM); done = 1; break; }
-                }
-                continue;
-            }
-            u16 k = key_hit();
-            if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
-            if (k & KEY_DOWN && sel < ORIG_COUNT - 1) { sel++; sfx_play(SFX_CURSOR); break; }
-            if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
+/* THE single source of party art. Identity (origin/companion) wins; custom
+ * Tav falls back to the class walker. No class-keyed art table survives this. */
+MemberLook member_look(int face, int cls) {
+    MemberLook L = { OBJT_HERO, OBJT_HERO_KO, 0, -1 };
+    static const u16 walk[CLS_COUNT] = {
+        OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
+        OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
+#if defined(POR_TAV_BARD)
+    static const s8 tavpor[CLS_COUNT] = {
+        POR_TAV_BARD, POR_TAV_ROGUE, POR_TAV_RANGER, POR_TAV_WIZARD,
+        -1, -1, -1, -1, -1, -1, -1, -1 };
+#else
+    static const s8 tavpor[CLS_COUNT] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 };
+#endif
+    if (cls < 0 || cls >= CLS_COUNT) cls = 0;
+    if (face == ORIG_LAEZEL) {
+        L.objt = OBJT_LAEZEL; L.ko = OBJT_LAEZEL_KO; L.pal = 1; L.por = POR_LAEZEL;
+    } else if (face == ORIG_SHADOW) {
+        L.objt = OBJT_SHADOW; L.ko = OBJT_SHADOW_KO; L.pal = 2; L.por = POR_SHADOW;
+    } else {
+        L.objt = walk[cls]; L.ko = OBJT_HERO_KO; L.pal = 0; L.por = tavpor[cls];
+        switch (face) {                       /* origin portraits (sprite stays class) */
+            case ORIG_ASTARION: L.por = POR_ASTARION; break;
+            case ORIG_GALE:     L.por = POR_GALE;     break;
+            case ORIG_KARLACH:  L.por = POR_KARLACH;  break;
+            case ORIG_WYLL:     L.por = POR_WYLL;     break;
+            case ORIG_DURGE:    L.por = POR_DURGE;    break;
         }
-        if (done) break;
     }
-    obj_hide(OBJ_CURSOR);
-    fade_out(10);
-    txt_clear(0, 0, 30, 20);
-    memset16(SCREENBLOCK(31), 0, 1024);
-    return sel;
+    return L;
 }
 
 int origin_class(int o) { return origins[o].cls; }
@@ -333,11 +307,10 @@ int game_class_select(void) {
     int demo_hold = G_DEMO ? 60 : 0;
     for (;;) {
         blurb_draw(cls_blurb[sel]);
-        int pv = csel_tavpal[sel], pal = 0;
-        if (pv >= 0) memcpy16(PAL_OBJ, pal_tav_classes[pv], 16);
-        else pal = -pv;                       /* companion sheets: own palettes */
+        MemberLook L = member_look(ORIG_CUSTOM, sel);   /* preview the class walker */
+        if (L.pal == 0 && sel < 4) memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);
         obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
-                1, csel_objt[sel], pal, 0);
+                1, L.objt, L.pal, 0);
 
         int done = 0;
         for (;;) {
@@ -345,8 +318,12 @@ int game_class_select(void) {
                     (SCR_CLASSSEL_C0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
             frame();
             if (demo_hold) {
+                /* poked fixed origins (0-5) steer the class pick; everything
+                 * else (Urge/custom/origin-row) honors G_DEMO_CLASS */
+                int tcls = G_DEMO_ORIGIN < ORIG_DURGE ? origin_class(G_DEMO_ORIGIN)
+                                                      : G_DEMO_CLASS;
                 if (--demo_hold == 0) {
-                    if (sel < G_DEMO_CLASS) { sel++; demo_hold = 14; }
+                    if (sel < tcls) { sel++; demo_hold = 14; }
                     else { sfx_play(SFX_CONFIRM); done = 1; break; }
                 }
                 continue;
@@ -364,6 +341,92 @@ int game_class_select(void) {
     txt_clear(0, 0, 30, 20);
     memset16(SCREENBLOCK(31), 0, 1024);
     return sel;
+}
+
+/* After the class is picked: who wears it? A new Tav, the class's origin
+ * companion (rogue Astarion ... warlock Wyll), or the Dark Urge (any class).
+ * Demo drive (G_DEMO_ORIGIN): 0-5 = that origin's row, 6 = Dark Urge,
+ * 7 = create your own, 8 = "whatever origin this class has" -- with 8 the
+ * class->origin mapping is computed HERE, never poked (origin_flow_check
+ * pins that the chooser itself yields Shadowheart under cleric). */
+int game_origin_choose(int cls) {
+    int omatch = -1;
+    for (int o = 0; o < ORIG_DURGE; o++)
+        if (origins[o].cls == cls) { omatch = o; break; }
+
+    char play[24];                            /* "Play <Origin>" */
+    {
+        char* d = play;
+        for (const char* s = "Play "; *s; )        *d++ = *s++;
+        if (omatch >= 0)
+            for (const char* s = origins[omatch].name; *s; ) *d++ = *s++;
+        *d = 0;
+    }
+    const char* lab[3];
+    int orow[3];                              /* row -> ORIG_* */
+    int n = 0;
+    lab[n] = "Create your own"; orow[n++] = ORIG_CUSTOM;
+    if (omatch >= 0) { lab[n] = play; orow[n++] = omatch; }
+    lab[n] = "The Dark Urge";   orow[n++] = ORIG_DURGE;
+
+    memset16(SCREENBLOCK(30), 0, 1024);
+    memset16(SCREENBLOCK(31), 0, 1024);
+    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
+    fade_in(10);
+
+    win_draw(1, 1, 27, 4);                    /* class name + the question */
+    {
+        int cl = 0; while (cls_names[cls][cl]) cl++;
+        txt_put(2 + (25 - cl) / 2, 2, cls_names[cls], 1);
+        txt_put(2, 3, "But whose story is this?", 0);
+    }
+    win_draw(2, 6, 26, 8);                    /* rows left, portrait right */
+    for (int i = 0; i < n; i++) txt_put(5, 7 + i, lab[i], 0);
+    win_draw(1, 14, 28, 6);                   /* blurb card */
+
+    int target = 0;                           /* demo row for G_DEMO_ORIGIN */
+    if (G_DEMO_ORIGIN == ORIG_DURGE) target = n - 1;
+    else if (omatch >= 0 && (G_DEMO_ORIGIN == omatch || G_DEMO_ORIGIN == ORIG_COUNT))
+        target = 1;
+
+    int sel = 0, demo_hold = G_DEMO ? 60 : 0;
+    for (;;) {
+        {   /* blurb + portrait preview for the highlighted row */
+            const char* s = origins[orow[sel]].blurb;
+            for (int j = 0; j < 4; j++) {
+                char line[26]; int k = 0;
+                while (*s && *s != '\n' && k < 24) line[k++] = *s++;
+                if (*s == '\n') s++;
+                line[k] = 0;
+                txt_put_n(3, 15 + j, line, 2, 24);
+            }
+            s8 por = member_look(orow[sel], cls).por;
+            if (por >= 0) ui_portrait(por, 21, 7);
+            else txt_clear(21, 7, 6, 6);
+        }
+        int done = 0;
+        for (;;) {
+            obj_set(OBJ_CURSOR, 2 * 8 - 6, (7 + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame();
+            if (demo_hold) {
+                if (--demo_hold == 0) {
+                    if (sel < target) { sel++; demo_hold = 12; }
+                    else { sfx_play(SFX_CONFIRM); done = 1; break; }
+                }
+                continue;
+            }
+            u16 k = key_hit();
+            if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_DOWN && sel < n - 1) { sel++; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
+        }
+        if (done) break;
+    }
+    obj_hide(OBJ_CURSOR);
+    fade_out(10);
+    txt_clear(0, 0, 30, 20);
+    memset16(SCREENBLOCK(31), 0, 1024);
+    return orow[sel];
 }
 
 /* FF-style name entry, 6 chars, default TAV */

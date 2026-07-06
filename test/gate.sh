@@ -10,6 +10,7 @@ set -e
 # (callers: never pipe `make gate` through tail/grep without pipefail --
 #  a laundered exit status once let two broken commits land)
 cd "$(dirname "$0")/.."
+mkdir -p test/shots   # gitignored; fresh clones/worktrees lack it and every scenario fails
 
 echo "== build (ROM + runner) =="
 make -s all runner
@@ -28,8 +29,8 @@ echo "== scenarios =="
 fail=0
 for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            sneak_strike cone_ambush helm_sleepz tether_check panic_check \
-           wildshape_check levelup_check prepare_check origin_check durge_check \
-           skill_check; do
+           wildshape_check levelup_check prepare_check origin_check \
+           origin_flow_check durge_check skill_check audit_check; do
     python3 test/scenario.py "$scn" > build/gate.script
     if ! out=$(./build/runner build/nautiloid.gba build/gate.script 2>&1); then
         echo "FAIL $scn (runner exited nonzero)"; fail=1; continue
@@ -41,18 +42,29 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         wildshape_check)                      want="wildshape boar"  ;;
         levelup_check)                        want="subclass pick"   ;;
         prepare_check)                        want="prepare-screen"  ;;
-        origin_check)                         want="origin=4 class=5 sub=16" ;;
+        origin_check|origin_flow_check)       want="origin=4 class=5 sub=16" ;;
         durge_check)                          want="urge-line"       ;;
         skill_check)                          want="field-check Arcana" ;;
+        audit_check)                          want=""                ;;  # golden diff below
         *)                                    want="enc result=WIN"  ;;
     esac
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|durge_check|skill_check) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|skill_check|audit_check) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
-    echo "$out" | grep -q "$want"          || bad="${bad:+$bad,}missing:$want"
+    if [ "$scn" = audit_check ]; then
+        # golden diff, not a want grep: the full per-class ability dump must
+        # match test/audit.golden byte-for-byte (cross-class leaks fail here)
+        echo "$out" | grep -E '^\[mgba\] (audit|sheet) ' | sed 's/^\[mgba\] //' > build/audit.out
+        if ! diff -u test/audit.golden build/audit.out; then
+            echo "audit_check: ability audit diverged from test/audit.golden ^^^"
+            bad="${bad:+$bad,}audit-golden-diff"
+        fi
+    else
+        echo "$out" | grep -q "$want"      || bad="${bad:+$bad,}missing:$want"
+    fi
     if [ "$scn" != panic_check ] && echo "$out" | grep -q "PANIC"; then
         bad="${bad:+$bad,}panic"; echo "$out" | grep -A6 "PANIC" | head -10
     fi
