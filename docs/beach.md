@@ -50,7 +50,16 @@ the arc's spine. Ship flags color each reunion, they don't skip it.
 - **Camp:** a campsite room; the one-time *Under Selûne* night scene
   (karaoke tech as story); the campfire is the long rest thereafter
   (party5_heal_full + refresh — mechanics already exist).
-- **Finale:** the battle at the grove gates, then the tally and release.
+- **Finale (ratified 2026-07-06, second pass):** the battle at the grove
+  gates, with **Zevlor** holding the door and **Wyll** introduced
+  mid-fight — the Blade of Frontiers is exactly who'd be out front. Wyll
+  fights the battle as an ally (the helm's side-2 machinery) and joins
+  after it: the roster's **sixth soul** (RESERVE_MAX grows 2 → 3 when he
+  lands; the "five souls" comments in game.h/data.c update with it).
+  Origin-played Wyll reroutes per the story-surgery doctrine. Then the
+  tally returns with the arc's accounting, and the release.
+  **The grove interior is a different release entirely** — a settlement
+  hub, not a gauntlet; nothing this arc builds should presume its shape.
 
 ## The two systems this content forces
 
@@ -80,8 +89,9 @@ nothing on the beach demands them. No SRAM, no Continue screen.
    earns its keep.
 4. Chapel bandits; the crypt: darkvision debut, skeletons, Withers.
 5. Camp night: the *Under Selûne* scene + the long-rest cycle.
-6. The grove-gates battle, XP tuning across the arc (gates ≈ 900), tally,
-   release.
+6. The grove-gates battle — Zevlor at the door, Wyll allied in the fight
+   and recruited after (roster to six) — XP tuning across the arc
+   (gates ≈ 900), the tally's return, release.
 
 Verification-first, per the testing ladder: every stone's logic lands with
 host tests (roster/bench swap is exactly the buffer-overflow habitat the
