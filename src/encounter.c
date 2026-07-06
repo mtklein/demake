@@ -980,7 +980,7 @@ static const struct { u8 cls, spell; const char* label; } spell_kit[] = {
 
 /* Root battle-menu build, extracted verbatim from pc_turn so the host
  * harness (test/host) can pin the exact kit per class/level. Codes: fixed
- * actions 0..9, class features 20..25, spells SPELL_CODE + R5S_id. */
+ * actions 0..9, class features 20..26, spells SPELL_CODE + R5S_id. */
 int pc_menu_build(const R5Creature* c, const PcMenuCtx* x,
                   const char** items, u8* code) {
     int cls = x->cls, n = 0;
@@ -1023,6 +1023,10 @@ int pc_menu_build(const R5Creature* c, const PcMenuCtx* x,
         }
         if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
     }
+    /* Action Surge is neither the action nor the bonus action (free, once
+     * per rest), so it lives outside both sections -- same gate the tactic
+     * AI checks before its extra strike. */
+    if (cls == CLS_FIGHTER && r5_can_action_surge(c)) { items[n] = "ActSurge"; code[n++] = 26; }
     if (x->nerve) {
         items[n] = "Nerve!"; code[n++] = 8;
     }
@@ -1031,35 +1035,45 @@ int pc_menu_build(const R5Creature* c, const PcMenuCtx* x,
     return n;
 }
 
-/* Ability audit (testability): logs every menu ability a class+level offers,
- * using the SAME gates as pc_turn. A scenario cycles all twelve so cross-class
- * leakage (a druid Smite, a fighter's Vicious Mockery) fails the gate. */
+/* Ability audit (testability): logs the REAL root battle menu -- items and
+ * dispatch codes straight out of pc_menu_build -- for every class x level,
+ * each fed a canonical full-resource turn-start member (party5_refresh +
+ * r5_refill, not engaged/shaped/concentrating). No hand-kept mirror of the
+ * gates: the old mirror listed ActSurge while the menu itself lacked the
+ * row, the exact drift this dump exists to catch. */
 void ability_audit(void) {
+    PMember pmsave = G.pm[0];
+    R5Creature csave = party5[0];
     for (int cls = 0; cls < CLS_COUNT; cls++) {
         for (int lvl = 1; lvl <= 3; lvl++) {
+            G.pm[0].cls = (u8)cls;
+            G.pm[0].level = (u8)lvl;
+            G.pm[0].subclass = 255;              /* no subclass passives */
+            party5_refresh(0);
+            R5Creature* c = &party5[0];
+            c->hp = c->hpmax;                    /* canonical turn 1: */
+            c->used = 0;                         /* nothing spent yet */
+            c->concentrating = 0;
+            for (int s = 0; s < 3; s++)
+                c->slots[s] = r5_classes[cls].slots[lvl][s];
+            r5_refill(c);
+            const char* items[12]; u8 code[12];
+            PcMenuCtx mx = { (u8)cls, (u8)lvl, 0, 0, 0, -1, 0, 0, 0 };
+            int n = pc_menu_build(c, &mx, items, code);
             char line[200]; char* d = line;
             d = put_str(d, "audit cls="); d = put_num(d, cls);
             d = put_str(d, " L"); d = put_num(d, lvl); d = put_str(d, ":");
-            /* spells: exactly the spell_kit filter (ignoring live slot counts) */
-            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++)
-                if (spell_kit[ki].cls == cls) {
-                    *d++ = ' ';
-                    d = put_str(d, spell_kit[ki].label);
-                }
-            /* class actions, mirroring pc_turn's cls/level gates */
-            if (cls == CLS_FIGHTER)                d = put_str(d, " 2ndWind");
-            if (cls == CLS_FIGHTER && lvl >= 2)    d = put_str(d, " ActSurge");
-            if (cls == CLS_ROGUE)                  d = put_str(d, " Hide");
-            if (cls == CLS_RANGER)                 d = put_str(d, " Mark");
-            if (cls == CLS_BARBARIAN)              d = put_str(d, " Rage");
-            if (cls == CLS_MONK)                   d = put_str(d, " Flurry PatDef");
-            if (cls == CLS_PALADIN)                d = put_str(d, " LayHands");
-            if (cls == CLS_PALADIN && lvl >= 2)    d = put_str(d, " Smite");
-            if (cls == CLS_DRUID && lvl >= 2)      d = put_str(d, " WildShape");
+            for (int i = 0; i < n; i++) {
+                *d++ = ' ';
+                d = put_str(d, items[i]);
+                *d++ = '='; d = put_num(d, code[i]);
+            }
             *d = 0;
             mgba_log(line);
         }
     }
+    G.pm[0] = pmsave;            /* exact restore: sheet and 5e twin both */
+    party5[0] = csave;
 }
 
 static int pc_turn(EC* a) {
@@ -1175,6 +1189,12 @@ static int pc_turn(EC* a) {
                 action = 1;
                 break;
             }
+            case 26:                       /* Action Surge: an extra action,
+                                            * same helpers the tactic AI uses */
+                r5_use_action_surge(c);
+                bar_wait("Action Surge!");
+                action = 0;
+                break;
             case 3:
                 a->engaged = -1;
                 bar_wait("Disengages cleanly.");
