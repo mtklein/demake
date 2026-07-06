@@ -34,6 +34,10 @@ int r5_spend_slot(R5Creature* c, int slot_level) {
     return 1;
 }
 
+int r5_savage_crit_dice(const R5Creature* c) {
+    return (c->traits & TR_SAVAGE) ? 1 : 0;
+}
+
 void r5_short_rest(R5Creature* c) {
     c->used = 0;
     r5_pact_rest(c);
@@ -42,6 +46,7 @@ void r5_short_rest(R5Creature* c) {
 /* ------------------------------------------------- resource pools (Char 2.0) */
 
 void r5_refill(R5Creature* c) {           /* long rest: pools from class table */
+    c->traits &= (uint8_t)~TR_USED_RELENTLESS;
     if (c->cls >= R5C_COUNT) return;
     for (int i = 0; i < R5R_COUNT; i++)
         c->rsrc[i] = r5_classes[c->cls].rsrc[c->level][i];

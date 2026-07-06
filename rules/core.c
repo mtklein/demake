@@ -39,6 +39,12 @@ int r5_apply_damage(R5Creature* t, int amount, uint8_t type) {
     }
     int lost = dmg < t->hp ? dmg : t->hp;
     t->hp = (int16_t)(t->hp - dmg);
+    if (t->hp <= 0 && (t->traits & TR_RELENTLESS) &&
+        !(t->traits & TR_USED_RELENTLESS) && t->cls != R5C_MONSTER) {
+        t->traits |= TR_USED_RELENTLESS;      /* half-orc: stay at 1 hp */
+        t->hp = 1;
+        return lost - 1 > 0 ? lost - 1 : 0;
+    }
     if (t->hp <= 0) {
         t->hp = 0;
         t->concentrating = 0;
@@ -111,6 +117,7 @@ static R5Dice damage_roll(R5RNG* r, R5DiceSpec spec, int mod, int crit,
 R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
                           const R5Weapon* w, int flags) {
     R5Attack out = { 0 };
+    if (a->traits & TR_LUCKY) flags |= R5F_LUCKY;
     int abil = ability_for_weapon(a, w);
     resolve_to_hit(r, &out, abil + r5_prof(a), flags, t->ac);
     out.dmg_type = w->dmg_type;
@@ -118,6 +125,7 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
 
     R5DiceSpec spec = w->dmg;
     if ((flags & R5F_VERSATILE) && w->versatile.n) spec = w->versatile;
+    if (out.crit && (a->traits & TR_SAVAGE)) spec.n++;   /* Savage Attacks */
     int extra = 0;
     if (flags & R5F_MARK) extra += 1;                       /* hunter's mark */
     if (flags & R5F_SNEAK) extra += r5_sneak_dice(a);
@@ -204,6 +212,7 @@ int r5_ev_attack_x100(int bonus, int ac, int advflags, R5DiceSpec dmg) {
 
 R5Save r5_save(R5RNG* r, const R5Creature* c, int ability, int dc, int flags) {
     R5Save s = { 0 };
+    if (c->traits & TR_LUCKY) flags |= R5F_LUCKY;
     s.d20 = r5_d20(r, flags);
     int bonus = r5_mod(c->ab[ability]);
     if (c->save_prof & (1 << ability)) bonus += r5_prof(c);

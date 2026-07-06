@@ -442,6 +442,42 @@ static void test_char2_pools(void) {
     r5_short_rest(&w);                             /* pact returns on short rest */
     CHECK(w.rsrc[R5R_PACT] == 2);
 
+    /* --- racial traits --- */
+    R5Creature h = { 0 };                          /* halfling: Lucky */
+    h.cls = R5C_ROGUE; h.level = 1; h.ab[R5_DEX] = 16; h.traits = TR_LUCKY;
+    R5RNG lr = { 777 };
+    int ones = 0, rolls = 60000;
+    for (int i = 0; i < rolls; i++) {
+        R5Dice d = r5_d20(&lr, R5F_LUCKY);
+        if (d.rolls[0] == 1) ones++;
+    }
+    /* reroll-once: P(final 1) = 1/400; allow wide slack around 150/60000 */
+    CHECK(ones > 60 && ones < 300);
+
+    R5Creature ho = { 0 };                         /* half-orc: Relentless */
+    ho.cls = R5C_FIGHTER; ho.level = 1; ho.hp = 5; ho.hpmax = 20;
+    ho.traits = TR_RELENTLESS;
+    r5_apply_damage(&ho, 50, DT_SLASHING);
+    CHECK(ho.hp == 1 && (ho.traits & TR_USED_RELENTLESS));
+    r5_apply_damage(&ho, 50, DT_SLASHING);
+    CHECK(ho.hp == 0);                             /* once per rest */
+    ho.traits = TR_RELENTLESS; ho.hp = 5;
+    r5_refill(&ho);                                /* rest clears the use */
+    CHECK(!(ho.traits & TR_USED_RELENTLESS));
+
+    R5Creature so = { 0 };                         /* half-orc: Savage crits */
+    so.cls = R5C_FIGHTER; so.level = 1; so.ab[R5_STR] = 16;
+    so.traits = TR_SAVAGE;
+    R5Creature tgt = { 0 }; tgt.ac = 0; tgt.hp = tgt.hpmax = 1000;
+    R5RNG sr = { 4242 };
+    int saw_crit_dice = 0;
+    for (int i = 0; i < 400 && !saw_crit_dice; i++) {
+        R5Attack at = r5_weapon_attack(&sr, &so, &tgt,
+                                       &r5_weapons[R5W_GREATSWORD], R5F_AUTOCRIT);
+        if (at.crit) saw_crit_dice = at.dmg.n;     /* greatsword 2d6 -> savage crit 6 dice */
+    }
+    CHECK(saw_crit_dice == 6);
+
     R5Creature mk = { 0 };
     mk.cls = R5C_MONK; mk.level = 2; r5_refill(&mk);
     CHECK(mk.rsrc[R5R_KI] == 2 && r5_martial_die(&mk) == 4);

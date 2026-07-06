@@ -48,6 +48,7 @@ enum {
     R5F_VERSATILE = 1 << 4,   /* use two-handed damage die         */
     R5F_SNEAK     = 1 << 5,   /* add sneak attack dice (by level)  */
     R5F_AUTOCRIT  = 1 << 6,   /* melee vs unconscious: hit -> crit */
+    R5F_LUCKY     = 1 << 7,   /* halfling: reroll natural 1s once  */
 };
 
 /* weapon properties */
@@ -107,6 +108,16 @@ typedef struct {
 /* per-level class resource pools, generator-emitted (0 where N/A) */
 enum { R5R_RAGE, R5R_KI, R5R_SORC, R5R_LAY, R5R_SHAPE, R5R_PACT, R5R_COUNT };
 
+/* racial trait bits (Character 2.0; set at creation from race data) */
+enum {
+    TR_LUCKY      = 1 << 0,   /* halfling: reroll natural 1s, keep the new roll */
+    TR_RELENTLESS = 1 << 1,   /* half-orc: drop to 1 hp instead of 0, 1/rest */
+    TR_SAVAGE     = 1 << 2,   /* half-orc: +1 weapon die on a crit */
+    TR_FEY        = 1 << 3,   /* elf-kin: advantage vs charm, sleep-immune */
+    TR_CUNNING    = 1 << 4,   /* gnome: adv on INT/WIS/CHA saves vs magic */
+    TR_USED_RELENTLESS = 1 << 7,
+};
+
 typedef struct {
     uint8_t hit_die;
     uint8_t save_prof;               /* bit per ability */
@@ -152,6 +163,7 @@ typedef struct {
     uint8_t slots[3];
     uint8_t used;                    /* USED_* resource bits */
     uint8_t rsrc[R5R_COUNT];         /* live pools (see R5R_) */
+    uint8_t traits;                  /* TR_* racial trait bits */
     uint8_t concentrating;           /* spell id + 1, or 0 */
 } R5Creature;
 
@@ -224,6 +236,7 @@ R5DiceSpec r5_smite_dice(int slot_level);
 int  r5_lay_hands(R5Creature* pal, R5Creature* t, int amt);
 int  r5_pact_cast(R5Creature*);
 void r5_pact_rest(R5Creature*);
+int  r5_savage_crit_dice(const R5Creature*);  /* extra crit weapon dice */
 
 /* ---------------------------------------------------------------- data */
 

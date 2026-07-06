@@ -37,14 +37,14 @@ R5Dice r5_d20(R5RNG* r, int flags) {
     d.sides = 20;
     d.mod = 0;
     int adv = (flags & R5F_ADV) != 0, dis = (flags & R5F_DIS) != 0;
-    if (adv == dis) {
-        d.n = 1;
-        d.rolls[0] = (uint8_t)r5_die(r, 20);
-        d.total = d.rolls[0];
-    } else {
-        d.n = 2;
-        d.rolls[0] = (uint8_t)r5_die(r, 20);
-        d.rolls[1] = (uint8_t)r5_die(r, 20);
+    d.n = (uint8_t)(adv == dis ? 1 : 2);
+    for (int i = 0; i < d.n; i++) {
+        d.rolls[i] = (uint8_t)r5_die(r, 20);
+        if (d.rolls[i] == 1 && (flags & R5F_LUCKY))
+            d.rolls[i] = (uint8_t)r5_die(r, 20);   /* Lucky: reroll a 1 once */
+    }
+    if (d.n == 1) d.total = d.rolls[0];
+    else {
         int a = d.rolls[0], b = d.rolls[1];
         d.total = (int16_t)(adv ? (a > b ? a : b) : (a < b ? a : b));
     }
