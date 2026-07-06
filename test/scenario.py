@@ -12,18 +12,31 @@ import sys
 out = []
 def w(s): out.append(s)
 def wait(n): w(f"wait {n}")
+_face = ['DOWN']          # scenario-side facing tracker (spawns face DOWN)
+def _pre_turn(k):
+    """the field turns in place for 7 frames when direction changes"""
+    if _face[0] != k:
+        w(f"hold {k} 7")
+        _face[0] = k
+
 def tap(k, n=1, gap=8):
+    if k in ('UP', 'DOWN', 'LEFT', 'RIGHT'):
+        _face[0] = k                     # a field tap turns in place
     for _ in range(n):
         w(f"hold {k} 3"); w(f"wait {gap}")
 def walk(k, steps):
-    w(f"hold {k} {steps * 8}"); w("wait 12")
+    _pre_turn(k)
+    w(f"hold {k} {steps * 8}"); w("wait 12")   # settle before next command
+
 def shot(name): w(f"shot test/shots/{name}.ppm")
 def poke(addr, val): w(f"poke {addr:08x} {val:02x}")
 
 DEMO, BATTLE, CLASS, IDLE, DONE = 0x0203FF00, 0x0203FF02, 0x0203FF03, 0x0203FF05, 0x0203FF06
 CHOICE = 0x0203FF10
 
-def ready(maxf=9000): w(f"until {IDLE:08x} 01 {maxf}")
+def ready(maxf=9000):
+    w(f"until {IDLE:08x} 01 {maxf}")
+    _face[0] = 'DOWN'   # room spawns face down
 def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
 
 def setup(cls, choices, battle_mode=0):

@@ -115,6 +115,8 @@ static int player_hidden;
 void field_hide_player(int on) {
     player_hidden = on;
     if (on) obj_hide(OBJ_PLAYER);
+    else pface = 0;   /* resuming field control (post-battle): face DOWN, so
+                       * facing is deterministic for the turn-in-place walk */
 }
 
 static int npc_at(int mx, int my) {
@@ -289,11 +291,16 @@ void field_run(void) {
             else if (held & KEY_LEFT) dir = 2;
             else if (held & KEY_RIGHT) dir = 3;
 
+            static u8 turn_t;                 /* tap turns; hold walks */
+            if (dir < 0) turn_t = 0;              /* released: window closes */
             if (dir >= 0) {
-                pface = dir;
-                int nx = ppx / 16 + dx[dir], ny = ppy / 16 + dy[dir];
-                if (walkable(nx, ny)) {
-                    pmoving = 1; pstep = 0; tdx = dx[dir]; tdy = dy[dir];
+                if (dir != (int)pface) { pface = (u8)dir; turn_t = 6; }
+                else if (turn_t) turn_t--;
+                else {
+                    int nx = ppx / 16 + dx[dir], ny = ppy / 16 + dy[dir];
+                    if (walkable(nx, ny)) {
+                        pmoving = 1; pstep = 0; tdx = dx[dir]; tdy = dy[dir];
+                    }
                 }
             } else if (key_hit() & KEY_A) {
                 int fx = ppx / 16 + dx[pface], fy = ppy / 16 + dy[pface];
