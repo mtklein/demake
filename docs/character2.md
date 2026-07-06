@@ -106,6 +106,29 @@ The rest of the character sheet, same doctrine:
   cls==ROGUE (Expertise shrinks it further). Checks use the same poked
   choice-buffer determinism as dialogs for the gate.
 
+## Movement translation doctrine
+
+Movement never becomes literal field pixels (walk pace is a game-feel and
+scenario-determinism constant) and never becomes fake battle tiles. It
+translates to exactly two things:
+
+- **Speed -> the Pace trait** (Slow 25 / Standard 30 / Fleet 35). Fleet =
+  free target-switching in combat (no opportunity attack when changing
+  victims) plus a +1 initiative nudge; Slow = -1 initiative. The wood elf
+  dances between enemies; the dwarf commits -- and is compensated the 5.1
+  way (resilience, hit points), not with pixels.
+- **Jump -> a field verb** riding the field-check system: gap meta-tiles
+  (torn deck plating) crossed via a visible Athletics roll or a STR
+  auto-clear; two-tile gaps demand real strength. Rewards: chests,
+  shortcut lanes past patrols. Halfling/Fleet races hop one-tile gaps
+  free. Sprite arcs over in ~12 frames.
+- **Fly (future, nothing grants it at levels 1-3):** field = crosses any
+  gap/void tile; combat = melee against a flier at disadvantage until it
+  is prone or restrained. The socket exists; the content waits.
+
+The homebrew subclasses already follow this doctrine (teleport/hop
+features became impose_dis flickers, mobility became save advantage).
+
 ## Origin sheet identities
 
 Astarion high elf / Gale human / Karlach tiefling / Lae'zel githyanki /
