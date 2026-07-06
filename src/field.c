@@ -154,6 +154,9 @@ static void draw_walker(int obj, int px, int py, int objt, int pal,
     obj_flip(obj, hf, 0);
 }
 
+static u16 hero_objt = OBJT_HERO;
+void field_set_hero(int objt) { hero_objt = (u16)objt; }
+
 static int shake_t;
 void field_shake(int frames) { shake_t = frames; }
 
@@ -192,7 +195,7 @@ void field_draw(void) {
     update_cam();
     int panim = pmoving ? ((pstep >> 2) & 1) : 0;
     if (!player_hidden)
-        draw_walker(OBJ_PLAYER, ppx, ppy, OBJT_HERO, 0, pface, panim, 6);
+        draw_walker(OBJ_PLAYER, ppx, ppy, hero_objt, 0, pface, panim, 6);
     for (int i = 0; i < nnpc; i++) {
         Npc* n = &npcs[i];
         if (n->flags & NPC_GONE) { obj_hide(OBJ_NPC0 + i); continue; }

@@ -1,6 +1,7 @@
 #include "gba.h"
 #include "game.h"
 #include "assets.h"
+#include "field.h"
 
 Game G;
 
@@ -56,6 +57,13 @@ static void strcpy8(char* d, const char* s) {
 void party5_refresh(int i);   /* party5.c: keep the 5e twin in step */
 
 void party_init(int cls, const char* name) {
+    {   /* the avatar walks in its class silhouette */
+        static const u16 hobj[CLS_COUNT] = {
+            OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
+            OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
+        field_set_hero(hobj[cls]);
+    }
+
     G.nparty = 1;
     G.potions = 2;
     G.revivify = 0;

@@ -40,6 +40,7 @@ int  field_cam_x(void);
 int  field_cam_y(void);
 void field_cam_override(int on, int cx, int cy);
 void field_hide_player(int on);
+void field_set_hero(int objt);   /* class walker sheet for the avatar */
 
 void field_npc_patrol(int idx, int radius_px);
 
