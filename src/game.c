@@ -266,7 +266,8 @@ MemberLook member_look(int face, int cls) {
 #if defined(POR_TAV_BARD)
     static const s8 tavpor[CLS_COUNT] = {
         POR_TAV_BARD, POR_TAV_ROGUE, POR_TAV_RANGER, POR_TAV_WIZARD,
-        -1, -1, -1, -1, -1, -1, -1, -1 };
+        POR_TAV_FIGHTER, POR_TAV_CLERIC, POR_TAV_BARBARIAN, POR_TAV_DRUID,
+        POR_TAV_MONK, POR_TAV_PALADIN, POR_TAV_SORCERER, POR_TAV_WARLOCK };
 #else
     static const s8 tavpor[CLS_COUNT] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 };
 #endif
