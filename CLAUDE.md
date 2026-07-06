@@ -23,10 +23,17 @@ Best Simple System for Now (dannorth.net/blog/best-simple-system-for-now):
 move stepping-stone to stepping-stone; each commit a checkpoint we'd proudly
 call "best for what it's trying to do." Replace rather than retrofit when
 understanding changes (the FF4 battle system was deleted, not wrapped).
-Invest rigor where the substrate is stable (rules/ sits at 100% line+branch
-coverage under a ratcheted floor — the SRD never changes under us); keep
-content layers (events.c) cheap to rewrite. Deletion is healthy. No
-speculative generality.
+Deletion is healthy. No speculative generality.
+
+Rigor follows stability, in three named tiers: rules/ is proven ground —
+total coverage is the standing bar, ratcheted at COV_FLOOR, because the
+SRD never changes under us; the game layer (encounter, menu, game, data,
+party5) is load-bearing system — host-tested behaviorally under
+sanitizers, ratcheted at HOST_COV_FLOOR; events.c stays cheap-to-rewrite
+content, covered end-to-end by the scenario fleet. When code graduates a tier — content hardening into
+system — its tests graduate in the same commit, not "later": Character 2.0
+landed twelve classes of battle logic on scenario slots alone, and the
+behavioral tests had to be back-filled in bulk. Don't repeat that.
 
 ## Verification architecture
 
@@ -38,8 +45,14 @@ speculative generality.
   from wiping the block. `test/scenario.py setup()` pokes all of it.
 - Never redirect runner output to a file during crash hunts (a crashed ROM
   firehoses the log); pipe through `awk '/Illegal opcode/...'` instead.
-- New features get a canned scenario in test/scenario.py and a slot in
-  test/gate.sh, not an ad-hoc script.
+- The testing ladder: new game LOGIC lands with a host test that pins its
+  behavior — test/host is the default home for verification (native,
+  deterministic, sanitized). A scenario slot is for what only the ROM can
+  prove: input and frame timing, room transitions, demo-flag plumbing, the
+  crash screen. Scenarios assert structure, so they are the integration
+  net, never the behavior spec — a feature with only a scenario isn't
+  tested, it's merely not crashing. Either way: canned and in the gate,
+  never an ad-hoc script.
 - `test/host/` compiles the REAL game logic (menu, encounter, data, game)
   natively against a fake engine under ASan/UBSan: `make -C test/host sim`
   (real-path tests + seeded menu fuzz), `make -C test/host cov` for llvm-cov.
@@ -54,6 +67,12 @@ speculative generality.
   the gate: `make coverage` holds rules/ lines at COV_FLOOR, and
   `make -C test/host cov` holds the five game sources at HOST_COV_FLOOR —
   raise them, never lower.
+- Docs state law, never state: no test counts, no coverage percentages, no
+  scenario tallies in prose — the gate prints the live numbers every run,
+  and the ratchet floors in the Makefiles are the only numbers docs may
+  cite (they're enforced, so they can't lie). Design docs carry a Status
+  line that gets flipped the day reality changes. (This file said "seven
+  scripted playthroughs" while the gate ran twenty-nine.)
 
 ## Music
 

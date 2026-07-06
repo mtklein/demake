@@ -135,8 +135,9 @@ src/            bare-metal GBA C + the game
   data.c        party stats, class kits, enemy definitions
   menu.c        Start menu: status sheets, equipment, items, tactics
 rules/          pure C 5e SRD combat core -- dual-target: compiled into the
-                ROM and natively for `make test-rules` (247k property checks,
-                closed-form expectations validated against Monte Carlo)
+                ROM and natively for `make test-rules` (property tests:
+                closed-form expectations validated against Monte Carlo,
+                held to a ratcheted coverage floor)
 tools/          Python asset pipeline (no binary art in the repo)
   mkassets.py   compiles art/music sources -> build/gen/assets.{c,h}
   mksrd.py      generates C tables from extracted SRD 5.1/5.2.1 data
@@ -147,6 +148,8 @@ tools/          Python asset pipeline (no binary art in the repo)
 test/           headless mGBA test harness
   runner.c      libmgba driver: scripted input, screenshots, memory peek/poke
   scenario.py   deterministic full playthroughs for verification
+  host/         the real game logic compiled natively against a fake engine,
+                run under ASan/UBSan with its own ratcheted coverage floor
 gba.ld          linker script (ROM / IWRAM / EWRAM)
 Makefile
 ```
@@ -164,12 +167,19 @@ end to end, plus living-encounter scenarios: sneaking a backstab on a patroller
 (`sneak_strike`), getting run down by one (`cone_ambush`), and the helm's
 sleepers (`helm_sleepz`).
 
+Underneath the playthroughs, the game logic itself -- menus, character
+sheets, and full 5e battles -- also compiles natively against a fake engine
+(`test/host/`) and runs under AddressSanitizer/UBSan, with battles driven
+through the real tactic AI so spellcasting, concentration, wild shape, and
+the helm's allies are asserted behaviorally, not just observed not to crash.
+
 `make gate` runs the whole ritual in one command -- ROM and runner builds, the
-rules and division-helper suites, the counterpoint linter, and every scripted
-playthrough (the four class paths, stealth/ambush encounters, and targeted
-checks for wild shape, the level-up subclass pick, spell preparation, origins,
-the Dark Urge, field skill checks, and the crash screen) with structural
-pass/fail assertions. A built-in crash reporter (`src/panic.c`) draws a panic
+rules and division-helper suites, the sanitizer-clad host suite, the
+counterpoint linter, every scripted playthrough (the four class paths,
+stealth/ambush encounters, and targeted checks for wild shape, the level-up
+subclass pick, spell preparation, origins, the Dark Urge, field skill checks,
+and the crash screen) with structural pass/fail assertions, and two ratcheted
+coverage floors. A built-in crash reporter (`src/panic.c`) draws a panic
 screen with breadcrumbs and a git build id, mirrors it to the mGBA log at FATAL,
 and a VBlank watchdog reports the exact PC of any main-loop hang.
 

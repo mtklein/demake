@@ -26,6 +26,23 @@ Where SRD 5.1 and 5.2.1 disagree, the difference is noted; the game's data
 baseline (see `srd_data.py`) is 5.1 mechanics with 5.2.1 winning on weapon
 numbers.
 
+## Scope at the prologue
+
+The engine is prologue-scoped; an invariant about a mechanic the game does
+not have is **dormant** — it binds the day the mechanic lands, and no
+dormant item below is an oversight:
+
+- **Death saves (25, 27–35): deliberate deviation, not a gap.** PCs at
+  0 HP are downed-unconscious with no dying track (docs/battle2.md,
+  standing law). Item 23 is the half we keep; 24 holds for monsters.
+- Dormant until their mechanics exist: grapple (41), standalone prone
+  (44), exhaustion (45), two-weapon fighting (51), Ready/Help flags (in
+  50), legendary actions (63), multiattack dispatch (64), upcasting (68),
+  readied spells (78).
+
+The rest is live law for rules/ and the encounter engine, asserted by the
+rules suite and the host battles.
+
 ## Dice and d20 mechanics
 
 1. Advantage rolls two d20 and keeps the higher; disadvantage keeps the lower.

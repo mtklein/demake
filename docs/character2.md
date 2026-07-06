@@ -1,8 +1,13 @@
 # Character 2.0 — twelve classes, subclasses, choices, origins
 
-> **Status: IN PROGRESS.** This doc pins the scope and architecture; the
-> stones land bottom-up (data → rules → creation/level-up UI → origins → art
-> → gate). Main stays finishable after every stone.
+> **Status: SHIPPED, with named deferrals.** Live: twelve classes,
+> subclasses with level-up choices, the 83-spell table, prepared casters,
+> origins + The Dark Urge, skills and field checks, racial trait MECHANICS
+> in rules/ (Lucky, Relentless Endurance, Savage Attacks). Deferred, socket
+> named but nothing built: race/background pickers at creation,
+> standard-array stat assignment UI, the movement doctrine (Pace/Jump), and
+> darkvision rooms. The deferred sections below are kept because they are
+> the binding design for when those land — not because they're coming soon.
 
 The player character grows from "pick one of four classes" to the full BG3
 prologue promise: **all twelve classes, at least three subclasses each,
@@ -76,6 +81,10 @@ than to anything else in the 16-bit canon, and staged like a summon
 
 ## Races, backgrounds, stats, skills
 
+*(Shipped: skills + field checks, and the racial trait mechanics in
+rules/. Deferred: the race and background pickers and the standard-array
+UI — the doctrine below binds when they land.)*
+
 The rest of the character sheet, same doctrine:
 
 - **Races:** the nine SRD 5.1 races with their SRD subraces (hill dwarf,
@@ -107,6 +116,9 @@ The rest of the character sheet, same doctrine:
   choice-buffer determinism as dialogs for the gate.
 
 ## Movement translation doctrine
+
+*(Deferred socket — none of this is built. It is the binding translation
+for when movement-flavored traits ship.)*
 
 Movement never becomes literal field pixels (walk pace is a game-feel and
 scenario-determinism constant) and never becomes fake battle tiles. It
@@ -188,19 +200,11 @@ consumes records, not special cases (the Everburn rider pattern).
 
 ## Verification
 
-The 7 story scenarios stay. New: one deck-fight smoke per class (12) that
-exercises the kit's signature mechanic (rage damage, smite rider, wild
-shape swap, pact-slot EB…), plus creation-flow scenarios for one origin and
-a Dark Urge custom. All in `make gate`. Choice flows get poked-buffer demo
-coverage exactly like dialog choices do today (G_CHOICE_BUF pattern).
-
-## Stones, in order
-
-1. Data: six new classes + 12 SRD subclasses + spell list (agent-extracted,
-   staged, merged with provenance notes).
-2. Homebrew subclass drafts (staged → overrides.py after review).
-3. Rules core: resources + mechanics + tests (native suite grows).
-4. PMember/creation/level-up/prepare UI.
-5. Origins + Dark Urge content pass.
-6. Art fan-out (class sprites, origin portraits).
-7. Gate expansion; README; release when player-visible.
+Shipped as planned — per-class deck-brawl smokes, origin and Dark Urge
+scenarios, poked choice-buffer determinism — and then extended past the
+plan: the battle mechanics themselves are pinned behaviorally in
+test/host (see docs/testing.md and the testing ladder in CLAUDE.md).
+The plan's mistake, recorded so it stays made once: it treated scenario
+slots as the verification story, and structural scenario checks let
+twelve classes of battle logic ship untested underneath. The stones-list
+that used to close this doc was executed in full; git history has it.
