@@ -7,6 +7,8 @@
 # legitimately whenever timing (music length, dialog text) moves the
 # tick-seeded RNG.
 set -e
+# (callers: never pipe `make gate` through tail/grep without pipefail --
+#  a laundered exit status once let two broken commits land)
 cd "$(dirname "$0")/.."
 
 echo "== build (ROM + runner) =="

@@ -213,19 +213,34 @@ void game_crawl(void) {
     fade_out(20);
 }
 
-static const char* const cls_names[4] = { "Bard", "Rogue", "Ranger", "Wizard" };
-static const char* const cls_blurb[4] = {
+static const char* const cls_names[CLS_COUNT] = {
+    "Bard", "Rogue", "Ranger", "Wizard", "Fighter", "Cleric",
+    "Barbarian", "Druid", "Monk", "Paladin", "Sorcerer", "Warlock" };
+static const char* const cls_blurb[CLS_COUNT] = {
     "Mocks foes,\nmends allies.\nA cutting\nwit.",
     "Strikes from\nshadow for\ntriple\ndamage.",
     "Marks prey,\nsets snares.\nSteady and\nbrutal.",
     "Fire bolt,\nmissiles,\nsleep.\nBrilliant.",
+    "Second wind,\nsurging\nsteel.\nUnbroken.",
+    "Bless, mend,\nsmite. The\ngods answer\nyou.",
+    "RAGE. Shrug\noff blades.\nHit very\nhard.",
+    "Wild shape:\nbecome the\nbeast. Green\nmagic.",
+    "Ki-fueled\nflurries.\nFists like\nhammers.",
+    "Smite evil,\nlay hands,\nswear the\noath.",
+    "Magic in\nthe blood.\nBends every\nrule.",
+    "A patron\nwhispers.\nEldritch\npower, owed.",
 };
+/* class-select preview: sheet + palette source (-1 = Tav palette slot) */
+static const u16 csel_objt[CLS_COUNT] = {
+    OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
+    OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
+static const s8 csel_tavpal[CLS_COUNT] = { 0,1,2,3, -1,-2, 2,2,0,3, 0,3 };
 
 static void blurb_draw(const char* s) {
     for (int j = 0; j < 4; j++) {
         char line[16];
         int k = 0;
-        while (*s && *s != '\n' && k < 12) line[k++] = *s++;
+        while (*s && *s != '\n' && k < 11) line[k++] = *s++;
         if (*s == '\n') s++;
         line[k] = 0;
         txt_put_n(SCR_CLASSSEL_B0_X, SCR_CLASSSEL_B0_Y + j, line, 2, SCR_CLASSSEL_B0_W);
@@ -239,22 +254,24 @@ int game_class_select(void) {
     fade_in(10);
 
     scr_classsel();
-    for (int i = 0; i < 4; i++)
-        txt_put_n(SCR_CLASSSEL_C0_X, SCR_CLASSSEL_C0_Y + i * 2,
+    for (int i = 0; i < CLS_COUNT; i++)
+        txt_put_n(SCR_CLASSSEL_C0_X, SCR_CLASSSEL_C0_Y + i,
                   cls_names[i], 0, SCR_CLASSSEL_C0_W);
 
     int sel = 0;
     int demo_hold = G_DEMO ? 60 : 0;
     for (;;) {
         blurb_draw(cls_blurb[sel]);
-        memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);
+        int pv = csel_tavpal[sel], pal = 0;
+        if (pv >= 0) memcpy16(PAL_OBJ, pal_tav_classes[pv], 16);
+        else pal = -pv;                       /* companion sheets: own palettes */
         obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
-                1, OBJT_HERO, 0, 0);
+                1, csel_objt[sel], pal, 0);
 
         int done = 0;
         for (;;) {
             obj_set(OBJ_CURSOR, SCR_CLASSSEL_LIST_X * 8 - 6,
-                    (SCR_CLASSSEL_C0_Y + sel * 2) * 8 - 4, 1, OBJT_HAND, 7, 0);
+                    (SCR_CLASSSEL_C0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
             frame();
             if (demo_hold) {
                 if (--demo_hold == 0) {
@@ -265,7 +282,7 @@ int game_class_select(void) {
             }
             u16 k = key_hit();
             if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
-            if (k & KEY_DOWN && sel < 3) { sel++; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_DOWN && sel < CLS_COUNT - 1) { sel++; sfx_play(SFX_CURSOR); break; }
             if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
         }
         if (done) break;

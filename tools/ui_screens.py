@@ -67,20 +67,14 @@ SCREENS = [
                 row("c", l("Who were you, before", 0)),
                 row("c", l("the nautiloid took you?", 0)),
             ]},
-            {"id": "list", "x": 2, "y": 6, "rows": [
-                row("l", g(2), s("c0", 6)),
-                BLANK,
-                row("l", g(2), s("c1", 6)),
-                BLANK,
-                row("l", g(2), s("c2", 6)),
-                BLANK,
-                row("l", g(2), s("c3", 6)),
+            {"id": "list", "x": 0, "y": 5, "rows": [
+                row("l", g(2), s("c%d" % i, 9)) for i in range(12)
             ]},
-            {"id": "blurb", "x": 14, "y": 6, "rows": [
-                row("l", s("b0", 12)),
-                row("l", s("b1", 12)),
-                row("l", s("b2", 12)),
-                row("l", s("b3", 12)),
+            {"id": "blurb", "x": 15, "y": 6, "rows": [
+                row("l", s("b0", 11)),
+                row("l", s("b1", 11)),
+                row("l", s("b2", 11)),
+                row("l", s("b3", 11)),
                 BLANK,
                 row("c", m("hero")),
                 BLANK,

@@ -61,7 +61,8 @@ void party_init(int cls, const char* name) {
         static const u16 hobj[CLS_COUNT] = {
             OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_LAEZEL, OBJT_SHADOW,
             OBJT_BARB, OBJT_DRUID, OBJT_MONK, OBJT_PALADIN, OBJT_SORC, OBJT_WARLOCK };
-        field_set_hero(hobj[cls]);
+        static const u8 hpal[CLS_COUNT] = { 0,0,0,0, 1,2, 0,0,0,0,0,0 };
+        field_set_hero(hobj[cls], hpal[cls]);
     }
 
     G.nparty = 1;
