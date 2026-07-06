@@ -10,32 +10,46 @@ R5Creature party5[3];
 static u8 built[3];
 
 /*                              str dex con int wis cha   ac  weapon */
-static const s8 gen_ab[6][6] = {
+static const s8 gen_ab[CLS_COUNT][6] = {
     [CLS_BARD]    = { 8, 14, 13, 10, 12, 15 },
     [CLS_ROGUE]   = { 8, 15, 13, 14, 10, 12 },
     [CLS_RANGER]  = { 12, 15, 13, 8, 14, 10 },
     [CLS_WIZARD]  = { 8, 13, 14, 15, 12, 10 },
     [CLS_FIGHTER] = { 15, 13, 14, 10, 12, 8 },
     [CLS_CLERIC]  = { 13, 10, 14, 8, 15, 12 },
+    /*                str dex con int wis cha  (standard array spreads) */
+    [CLS_BARBARIAN] = { 15, 13, 14, 8, 12, 10 },
+    [CLS_DRUID]     = { 10, 13, 14, 8, 15, 12 },
+    [CLS_MONK]      = { 10, 15, 13, 8, 14, 12 },
+    [CLS_PALADIN]   = { 15, 10, 13, 8, 12, 14 },
+    [CLS_SORCERER]  = { 8, 13, 14, 10, 12, 15 },
+    [CLS_WARLOCK]   = { 8, 13, 14, 12, 10, 15 },
 };
 /* leather 11+DEX / none 10+DEX / chain mail 16 / chain shirt+shield 15 */
 static u8 class_ac(int cls, int dexmod) {
     switch (cls) {
-        case CLS_WIZARD:  return (u8)(10 + dexmod);
-        case CLS_FIGHTER: return 16;
-        case CLS_CLERIC:  return 15;
-        default:          return (u8)(11 + dexmod);
+        case CLS_WIZARD:
+        case CLS_SORCERER: return (u8)(10 + dexmod);
+        case CLS_FIGHTER:  return 16;
+        case CLS_CLERIC:
+        case CLS_PALADIN:  return 15;
+        default:           return (u8)(11 + dexmod);   /* leather-ish */
     }
 }
-static const u8 gen_weapon[6] = {
+static const u8 gen_weapon[CLS_COUNT] = {
     [CLS_BARD] = R5W_DAGGER,   /* the rapier is out there, on a duelist */
     [CLS_ROGUE] = R5W_DAGGER,
     [CLS_RANGER] = R5W_LONGBOW, [CLS_WIZARD] = R5W_QUARTERSTAFF,
     [CLS_FIGHTER] = R5W_GREATSWORD, [CLS_CLERIC] = R5W_MACE,
+    [CLS_BARBARIAN] = R5W_GREATSWORD, [CLS_DRUID] = R5W_QUARTERSTAFF,
+    [CLS_MONK] = R5W_QUARTERSTAFF, [CLS_PALADIN] = R5W_LONGSWORD,
+    [CLS_SORCERER] = R5W_DAGGER, [CLS_WARLOCK] = R5W_DAGGER,
 };
-static const u8 cast_ab_tab[6] = {
+static const u8 cast_ab_tab[CLS_COUNT] = {
     [CLS_BARD] = R5_CHA, [CLS_ROGUE] = R5_INT, [CLS_RANGER] = R5_WIS,
     [CLS_WIZARD] = R5_INT, [CLS_FIGHTER] = R5_STR, [CLS_CLERIC] = R5_WIS,
+    [CLS_BARBARIAN] = R5_STR, [CLS_DRUID] = R5_WIS, [CLS_MONK] = R5_WIS,
+    [CLS_PALADIN] = R5_CHA, [CLS_SORCERER] = R5_CHA, [CLS_WARLOCK] = R5_CHA,
 };
 
 int party5_weapon(int i) { return G.weapon[i]; }

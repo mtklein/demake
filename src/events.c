@@ -736,7 +736,9 @@ static void crash_sequence(int flayer_did_it) {
     /* tally */
     scr_tally();
     {
-        static const char* const clsn[6] = { "Bard", "Rogue", "Ranger", "Wizard", "", "" };
+        static const char* const clsn[CLS_COUNT] = { "Bard", "Rogue", "Ranger",
+            "Wizard", "Fighter", "Cleric", "Barbarian", "Druid", "Monk",
+            "Paladin", "Sorcerer", "Warlock" };
         txt_put_n(SCR_TALLY_WHO_X, SCR_TALLY_WHO_Y, G.pm[0].name, 0, SCR_TALLY_WHO_W);
         txt_put_n(SCR_TALLY_CLS_X, SCR_TALLY_CLS_Y, clsn[G.pm[0].cls], 0, SCR_TALLY_CLS_W);
     }

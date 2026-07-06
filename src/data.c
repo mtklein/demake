@@ -5,21 +5,33 @@
 Game G;
 
 /*                         hp  mp atk def mag spd */
-static const u8 base[6][6] = {
+static const u8 base[CLS_COUNT][6] = {
     [CLS_BARD]    = { 12, 10,  7,  5,  7, 30 },
     [CLS_ROGUE]   = { 13,  0,  8,  5,  3, 34 },
     [CLS_RANGER]  = { 14,  4,  8,  6,  5, 31 },
     [CLS_WIZARD]  = { 10, 14,  5,  4,  9, 28 },
     [CLS_FIGHTER] = { 16,  0,  9,  7,  2, 29 },
     [CLS_CLERIC]  = { 13, 10,  7,  6,  7, 27 },
+    [CLS_BARBARIAN] = { 17,  0, 10,  6,  1, 28 },
+    [CLS_DRUID]     = { 13,  9,  7,  6,  7, 28 },
+    [CLS_MONK]      = { 13,  2,  8,  5,  4, 35 },
+    [CLS_PALADIN]   = { 15,  4,  8,  7,  4, 26 },
+    [CLS_SORCERER]  = {  9, 15,  4,  4, 10, 29 },
+    [CLS_WARLOCK]   = { 11, 12,  6,  5,  8, 29 }
 };
-static const u8 grow[6][6] = {   /* per level: hp mp atk def mag spd */
+static const u8 grow[CLS_COUNT][6] = {   /* per level: hp mp atk def mag spd */
     [CLS_BARD]    = { 5, 4, 1, 1, 2, 2 },
     [CLS_ROGUE]   = { 6, 0, 2, 1, 0, 3 },
     [CLS_RANGER]  = { 6, 2, 2, 1, 1, 2 },
     [CLS_WIZARD]  = { 4, 5, 1, 1, 3, 2 },
     [CLS_FIGHTER] = { 7, 0, 2, 2, 0, 2 },
     [CLS_CLERIC]  = { 5, 4, 1, 1, 2, 2 },
+    [CLS_BARBARIAN] = { 8, 0, 2, 1, 0, 2 },
+    [CLS_DRUID]     = { 5, 4, 1, 1, 2, 2 },
+    [CLS_MONK]      = { 6, 1, 2, 1, 1, 3 },
+    [CLS_PALADIN]   = { 7, 2, 2, 2, 1, 1 },
+    [CLS_SORCERER]  = { 4, 5, 1, 1, 3, 2 },
+    [CLS_WARLOCK]   = { 5, 4, 1, 1, 3, 2 },
 };
 static const u16 xp_next[4] = { 0, 100, 400, 65535 };
 

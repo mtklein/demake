@@ -83,6 +83,8 @@ def gen_weapons(o):
 CLASS_MAP = [  # rules.h R5C_ order
     ("R5C_BARD", "bard"), ("R5C_ROGUE", "rogue"), ("R5C_RANGER", "ranger"),
     ("R5C_WIZARD", "wizard"), ("R5C_FIGHTER", "fighter"), ("R5C_CLERIC", "cleric"),
+    ("R5C_BARBARIAN", "barbarian"), ("R5C_DRUID", "druid"), ("R5C_MONK", "monk"),
+    ("R5C_PALADIN", "paladin"), ("R5C_SORCERER", "sorcerer"), ("R5C_WARLOCK", "warlock"),
 ]
 
 def gen_classes(o):

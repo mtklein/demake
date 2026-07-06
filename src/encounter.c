@@ -256,10 +256,12 @@ static int sneak_ok(EC* a, EC* t) {
 
 /* downed PCs lie where they fell; sleepers snore visibly */
 static void garnish_draw(void) {
-    static const u16 pko[6] = { OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO,
-                                OBJT_HERO_KO, OBJT_LAEZEL_KO, OBJT_SHADOW_KO };
-    static const u16 pup[6] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
-                                OBJT_LAEZEL, OBJT_SHADOW };
+    static const u16 pko[CLS_COUNT] = { OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO,
+                                OBJT_HERO_KO, OBJT_LAEZEL_KO, OBJT_SHADOW_KO,
+                                OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO, OBJT_HERO_KO };
+    static const u16 pup[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
+                                OBJT_LAEZEL, OBJT_SHADOW,
+                                OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO };
     int zs = 0;
     for (int i = 0; i < nec; i++) {
         EC* e = &ec[i];
@@ -1134,9 +1136,10 @@ retry:
     int px = field_player_x(), py = field_player_y();
     field_hide_player(1);
     static const s8 form[3][2] = { { 0, 0 }, { -20, 16 }, { 20, 16 } };
-    static const u16 pobj[6] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
-                                 OBJT_LAEZEL, OBJT_SHADOW };
-    static const u8 ppal[6] = { 0, 0, 0, 0, 1, 2 };
+    static const u16 pobj[CLS_COUNT] = { OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO,
+                                 OBJT_LAEZEL, OBJT_SHADOW,
+                                 OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO, OBJT_HERO };
+    static const u8 ppal[CLS_COUNT] = { 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < G.nparty; i++) {
         int cls = G.pm[i].cls;
         party_npc[i] = field_add_npc(0, 0, pobj[cls], ppal[cls], 1, 0);

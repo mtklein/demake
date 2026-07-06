@@ -87,7 +87,8 @@ enum {
 
 /* classes (index into r5_classes) */
 enum { R5C_BARD, R5C_ROGUE, R5C_RANGER, R5C_WIZARD, R5C_FIGHTER, R5C_CLERIC,
-       R5C_COUNT, R5C_MONSTER = 255 };
+       R5C_BARBARIAN, R5C_DRUID, R5C_MONK, R5C_PALADIN, R5C_SORCERER,
+       R5C_WARLOCK, R5C_COUNT, R5C_MONSTER = 255 };
 
 /* ---------------------------------------------------------------- tables */
 
