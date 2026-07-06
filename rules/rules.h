@@ -261,6 +261,8 @@ typedef struct {
     uint32_t prepared;     /* always-prepared spells: bitmask into r5_spells */
 } R5Subclass;
 extern const R5Subclass r5_subclasses[];
+extern const uint8_t r5_subclass_of_class[R5C_COUNT][4];
+extern const uint8_t r5_subclass_level[R5C_COUNT];
 
 /* spells (prologue set, generated from SRD data) */
 typedef struct {

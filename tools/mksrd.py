@@ -332,6 +332,26 @@ def gen_subclasses(o):
             sub_enum(name), disp, cls, s["level"], pf, srd, prepared))
     o.append("};")
 
+
+def gen_subclass_menu(o):
+    """per-class arrays of subclass ids + their choose-level, for the UI"""
+    order = all_subclasses()
+    bycls = {}
+    for i, (name, s) in enumerate(order):
+        bycls.setdefault(CLS_ORDER.index(s["class"]), []).append((i, name, s))
+    o.append("const uint8_t r5_subclass_of_class[R5C_COUNT][4] = {")
+    for cls in range(12):
+        ids = [str(i) for i, n, s in bycls.get(cls, [])][:3]
+        while len(ids) < 4: ids.append("255")
+        o.append("    { %s }," % ", ".join(ids))
+    o.append("};")
+    o.append("const uint8_t r5_subclass_level[R5C_COUNT] = {")
+    for cls in range(12):
+        lst = bycls.get(cls, [])
+        lvl = lst[0][2]["level"] if lst else 3
+        o.append("    %d," % lvl)
+    o.append("};")
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     o = [
@@ -344,7 +364,8 @@ def main():
     gen_classes(o); o.append("")
     gen_spells(o); o.append("")
     gen_monsters(o); o.append("")
-    gen_subclasses(o)
+    gen_subclasses(o); o.append("")
+    gen_subclass_menu(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
     h = []

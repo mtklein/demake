@@ -34,7 +34,7 @@ static const u8 grow[CLS_COUNT][6] = {   /* per level: hp mp atk def mag spd */
     [CLS_SORCERER]  = { 4, 5, 1, 1, 3, 2 },
     [CLS_WARLOCK]   = { 5, 4, 1, 1, 3, 2 },
 };
-static const u16 xp_next[4] = { 0, 100, 400, 65535 };
+static const u16 xp_next[4] = { 0, 300, 900, 65535 };   /* 5e: L2 300, L3 900 */
 
 static void set_stats(PMember* p) {
     const u8* b = base[p->cls];

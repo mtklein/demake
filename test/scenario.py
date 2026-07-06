@@ -160,6 +160,18 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def levelup_check():
+    """wizard poked to level 2 without a subclass picks one on deck victory"""
+    setup(3, [0, 1, 0, 0, 2])
+    for k in range(16): poke(0x0203FF10 + k, 0)
+    intro()
+    poke(0x03000061, 2); poke(0x03000062, 255)   # level 2, no subclass
+    nursery(); surgery()
+    walk("DOWN", 1)
+    wait(1500); shot("levelup")
+    w(f"until {IDLE:08x} 01 24000")
+
+@scn
 def wildshape_check():
     """druid poked to level 2 wild-shapes into the boar (Aeon moment)"""
     setup(7, [0, 1, 0, 0, 2])            # CLS_DRUID

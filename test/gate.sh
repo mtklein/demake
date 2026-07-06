@@ -28,7 +28,7 @@ echo "== scenarios =="
 fail=0
 for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            sneak_strike cone_ambush helm_sleepz tether_check panic_check \
-           wildshape_check; do
+           wildshape_check levelup_check; do
     python3 test/scenario.py "$scn" > build/gate.script
     if ! out=$(./build/runner build/nautiloid.gba build/gate.script 2>&1); then
         echo "FAIL $scn (runner exited nonzero)"; fail=1; continue
@@ -38,12 +38,13 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         tether_check)                         want="tether"          ;;
         panic_check)                          want="PANIC poked"     ;;
         wildshape_check)                      want="wildshape boar"  ;;
+        levelup_check)                        want="subclass pick"   ;;
         *)                                    want="enc result=WIN"  ;;
     esac
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
     echo "$out" | grep -q "$want"          || bad="${bad:+$bad,}missing:$want"

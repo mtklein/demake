@@ -1125,13 +1125,7 @@ static int pc_turn(EC* a) {
                 a->shaped = 1;
                 a->c = &a->store;
                 c = a->c;
-                if (a->npc >= 0) {
-#ifdef OBJT_BOARW
-                    npcs[a->npc].objt = OBJT_BOARW;
-#else
-                    npcs[a->npc].objt = OBJT_US;     /* placeholder til boar art */
-#endif
-                }
+                if (a->npc >= 0) npcs[a->npc].objt = OBJT_BOARW;   /* the beast */
                 sfx_noise(20);
                 mgba_logf("wildshape boar pi=%d", a->pi);
                 bar_wait("The beast takes you: BOAR!");
@@ -1422,6 +1416,8 @@ victory:
             party5_refresh_all();
             bar_wait("A new level!");
         }
+        void level_up_choices(void);
+        level_up_choices();            /* idempotent: fires pending subclass picks */
         mgba_logf("enc result=WIN xp=%d", xp);
     crumb(CR_RESULT, 1);
     }

@@ -582,6 +582,31 @@ static void helm_interact(int mx, int my, int m) {
 
 /* ------------------------------------------------------------ dispatch */
 
+/* subclass selection when a member reaches its subclass level (Char 2.0) */
+void level_up_choices(void) {
+    for (int i = 0; i < G.nparty; i++) {
+        PMember* p = &G.pm[i];
+        if (p->subclass != 255) continue;                 /* already chosen */
+        if (p->level < r5_subclass_level[p->cls]) continue;
+        const u8* ids = r5_subclass_of_class[p->cls];
+        const char* opts[3]; int map[3], n = 0;
+        for (int k = 0; k < 3; k++)
+            if (ids[k] != 255) { opts[n] = r5_subclasses[ids[k]].name; map[n] = ids[k]; n++; }
+        if (!n) continue;
+        {
+            char m[40]; char* d = m;
+            const char* s = p->name; while (*s) *d++ = *s++;
+            s = " walks a new path:"; while (*s) *d++ = *s++; *d = 0;
+            say(m);
+        }
+        int c = choose(n, opts);
+        p->subclass = (u8)map[c];
+        party5_refresh(i);
+        mgba_logf("subclass pick %s -> %d", p->name, p->subclass);
+        dlg_close();
+    }
+}
+
 void ev_interact(int mx, int my) {
     int m = field_meta_at(mx, my);
     switch (cur_room) {
