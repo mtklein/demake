@@ -22,6 +22,7 @@ MONSTERS = {
                        "dmg_type": "poison", "half_on_save": True}},
         ],
         "resistances": ["cold"], "immunities": ["fire", "poison"],
+        "senses": {"darkvision": 120, "passive_perception": 11},   # devil's sight
     },
     "lesser hellsboar": {
         "display": "Boar", "srd": False, "ac": 11, "hp": 9,
@@ -32,6 +33,7 @@ MONSTERS = {
              "dmg_type": "slashing"},
         ],
         "resistances": ["poison"], "immunities": [],
+        "senses": {"passive_perception": 9},
     },
     "intellect devourer": {
         "display": "Devourer", "srd": False, "ac": 12, "hp": 21,
@@ -44,6 +46,7 @@ MONSTERS = {
              "dmg_type": "psychic"},
         ],
         "resistances": [], "immunities": [],
+        "senses": {"blindsight": 60, "passive_perception": 12},
     },
     "lesser cambion": {
         "display": "Cambion", "srd": False, "ac": 15, "hp": 40,
@@ -58,6 +61,7 @@ MONSTERS = {
              "dmg_type": "fire"},
         ],
         "resistances": ["cold", "fire", "poison"], "immunities": [],
+        "senses": {"darkvision": 60, "passive_perception": 12},
     },
     "mind flayer ally": {
         "display": "Flayer", "srd": False, "ac": 15, "hp": 85,
@@ -70,6 +74,7 @@ MONSTERS = {
              "dmg_type": "psychic"},
         ],
         "resistances": [], "immunities": [],
+        "senses": {"darkvision": 120, "passive_perception": 16},
     },
     "awakened thrall": {
         "display": "Thrall", "srd": False, "ac": 10, "hp": 9,
@@ -80,6 +85,7 @@ MONSTERS = {
              "dmg_type": "bludgeoning"},
         ],
         "resistances": ["psychic"], "immunities": [],
+        "senses": {"passive_perception": 8},   # human eyes: the dark bites
     },
     "commander zhalk": {
         "display": "Zhalk", "srd": False, "ac": 16, "hp": 150,
@@ -94,6 +100,7 @@ MONSTERS = {
              "dmg_type": "fire"},
         ],
         "resistances": ["cold", "fire", "poison"], "immunities": [],
+        "senses": {"darkvision": 60, "passive_perception": 13},
     },
 }
 

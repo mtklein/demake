@@ -180,9 +180,11 @@ typedef struct {
     uint8_t ac;
     int16_t hp;
     int8_t ab[6];
-    uint16_t resist, immune;         /* damage-type bitmasks (1<<DT_x) */
+    uint16_t resist, immune, vulnerable;   /* damage-type bitmasks (1<<DT_x) */
     R5MAttack attacks[2];
     uint8_t n_attacks;
+    uint8_t traits;    /* TR_* bits the stat block carries (TR_DARKVISION,
+                        * from the senses line: darkvision or blindsight) */
 } R5Monster;
 
 /* ---------------------------------------------------------------- creature */
@@ -331,9 +333,11 @@ extern const R5Spell r5_spells[];
 #include "srd_ids.h"            /* generated R5S_* ids, legacy 13 first */
 
 extern const R5Monster r5_monsters[];
-/* IMP/BOAR are true SRD stat blocks (test-validated); the rest are our
- * prologue homebrew from tools/srd/overrides.py */
+/* IMP/BOAR/SKELETON/BANDIT are true SRD stat blocks (test-validated); the
+ * rest are our prologue homebrew from tools/srd/overrides.py */
 enum { R5M_IMP, R5M_BOAR, R5M_DEVOURER, R5M_CAMBION, R5M_FLAYER, R5M_ZHALK,
-       R5M_LESSER_IMP, R5M_LESSER_BOAR, R5M_THRALL, R5M_COUNT };
+       R5M_LESSER_IMP, R5M_LESSER_BOAR, R5M_THRALL,
+       R5M_SKELETON, R5M_BANDIT,       /* the beach arc's crypt + chapel */
+       R5M_COUNT };
 
 #endif

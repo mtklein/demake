@@ -47,6 +47,20 @@ static int warp_npc[2], nwarp;
 static R5RNG rng;
 static int party_npc[3];         /* temp npcs for the party sprites */
 
+/* ---------------------------------------------------------------- the dark
+ * Darkvision doctrine (docs/character2.md): events.c flags DARK rooms here;
+ * the equipped Everburn Blade lights the room outright -- the fighter's
+ * trophy becomes the party's torch. Everything else (per-actor disadvantage)
+ * keys off encounter_dark() at the attack-flag choke point. */
+static int enc_dark_room;
+void encounter_set_dark(int on) { enc_dark_room = on; }
+int encounter_dark(void) {
+    if (!enc_dark_room) return 0;
+    for (int i = 0; i < G.nparty; i++)
+        if (G.weapon[i] == R5W_EVERBURN) return 0;
+    return 1;
+}
+
 /* ------------------------------------------------------------------ ui */
 
 static void rnd_show(void) {
@@ -486,6 +500,12 @@ static int atk_flags(EC* a, EC* t, int melee) {
     }
     if (!melee && a->engaged >= 0 && conscious(&ec[a->engaged]))
         f |= R5F_DIS;                       /* ranged while in melee */
+    if (!melee && encounter_dark() && !(a->c->traits & TR_DARKVISION)) {
+        f |= R5F_DIS;      /* the dark (doctrine): ranged and spell attacks
+                            * at disadvantage without darkvision -- melee
+                            * exempt, per actor, both sides */
+        mgba_logf("dark dis %s", a->c->name);
+    }
     if (t->marked_by == (s8)(a - ec)) f |= R5F_MARK;
     if (a->side == 0 && G.pm[a->pi].cls == CLS_ROGUE) {
         int adv = (f & R5F_ADV) && !(f & R5F_DIS);
@@ -1301,10 +1321,10 @@ static void mon_to_creature(int mon, R5Creature* c) {
     c->level = 1; c->cls = R5C_MONSTER;
     c->save_prof = 0;
     c->conds = 0;
-    c->resist = m->resist; c->immune = m->immune; c->vulnerable = 0;
+    c->resist = m->resist; c->immune = m->immune; c->vulnerable = m->vulnerable;
     c->slots[0] = c->slots[1] = c->slots[2] = 0;
     c->used = 0; c->concentrating = 0;
-    c->traits = 0;
+    c->traits = m->traits;           /* darkvision rides the stat block */
     for (int i = 0; i < R5R_COUNT; i++) c->rsrc[i] = 0;
 }
 

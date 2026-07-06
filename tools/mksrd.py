@@ -232,6 +232,8 @@ MONSTER_MAP = [  # (enum, source dict, key) in rules.h R5M_ order
     ("R5M_LESSER_IMP", "ovr", "lesser imp"),
     ("R5M_LESSER_BOAR", "ovr", "lesser hellsboar"),
     ("R5M_THRALL", "ovr", "awakened thrall"),
+    ("R5M_SKELETON", "srd", "skeleton"),
+    ("R5M_BANDIT", "srd", "bandit"),
 ]
 
 def attack_init(a):
@@ -256,13 +258,19 @@ def gen_monsters(o):
         m = (SRD.MONSTERS if src == "srd" else OVR.MONSTERS)[key]
         ab = m["abilities"]
         attacks = m["attacks"][:2]
-        o.append("    [%s] = { \"%s\", %d, %d, { %s }, %s, %s,\n"
-                 "        { %s }, %d }," % (
+        # darkvision doctrine (character2.md): the trait bit rides the stat
+        # block's senses line; blindsight sees without eyes at all
+        senses = m.get("senses", {})
+        traits = "TR_DARKVISION" if (senses.get("darkvision") or
+                                     senses.get("blindsight")) else "0"
+        o.append("    [%s] = { \"%s\", %d, %d, { %s }, %s, %s, %s,\n"
+                 "        { %s }, %d, %s }," % (
             enum, m.get("display", key.title()), m["ac"], m["hp"],
             ", ".join(str(ab[k]) for k in ("str", "dex", "con", "int", "wis", "cha")),
             dmg_mask(m.get("resistances")), dmg_mask(m.get("immunities")),
+            dmg_mask(m.get("vulnerabilities")),
             ",\n          ".join(attack_init(a) for a in attacks),
-            len(attacks)))
+            len(attacks), traits))
     o.append("};")
 
 

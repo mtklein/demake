@@ -1145,6 +1145,118 @@ static void t_battle_ranger_conc(void) {
     T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
 }
 
+/* ------------------------------------------------- the dark (stone 4)
+ * The darkvision doctrine (docs/character2.md), pinned at the attack-flag
+ * choke point through REAL battles: in a DARK encounter, actors WITHOUT
+ * TR_DARKVISION roll ranged and spell attacks at disadvantage -- melee
+ * exempt, per actor, both sides; devils and the crypt's dead see fine; the
+ * equipped Everburn Blade lights the room outright. Expectations are
+ * written against the doctrine, not the code. */
+
+static void t_battle_dark_caster_disadvantage(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 2);           /* race none: no darkvision */
+    party_add_laezel();                /* melee escort: her swings stay clean */
+    G_DEMO = 1;
+    encounter_set_dark(1);
+    T_ASSERT(encounter_dark(), "DARK room reads lit with no Everburn equipped");
+    /* the SRD skeleton: darkvision 60, and bludgeoning vulnerability rides
+     * the stat block into the creature */
+    T_ASSERT(r5_monsters[R5M_SKELETON].vulnerable == (1u << DT_BLUDGEONING),
+             "skeleton lost its bludgeoning vulnerability");
+    /* two skeletons: the escort's opener can't end round 1, so the wizard
+     * always gets a cast -- and 2 foes stays under the WISELY Sleep gate */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = { { R5M_SKELETON, (s8)n0, 30, 1 },
+                       { R5M_SKELETON, (s8)n1, 30, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    encounter_set_dark(0);
+    T_ASSERT(log_contains("spell Fire Bolt"), "the wizard never cast in the dark");
+    T_ASSERT(log_contains("dark dis TAV"),
+             "no-darkvision caster's spell attack not disadvantaged in the dark");
+    T_ASSERT(!log_contains("dark dis LAE'ZEL"),
+             "a melee attacker was taxed by the dark (melee is exempt)");
+    T_ASSERT(!log_contains("dark dis Skeleton"),
+             "the darkvision skeleton was taxed by the dark");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_dark_darkvision_race_clean(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 2);
+    party_set_identity(R5RACE_HIGH_ELF, R5BG_SAGE, 0);   /* fey eyes */
+    T_ASSERT(party5[0].traits & TR_DARKVISION, "high elf lost darkvision");
+    party_add_laezel();
+    G_DEMO = 1;
+    encounter_set_dark(1);
+    /* two skeletons: the escort's opener can't end round 1, so the wizard
+     * always gets a cast -- and 2 foes stays under the WISELY Sleep gate */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = { { R5M_SKELETON, (s8)n0, 30, 1 },
+                       { R5M_SKELETON, (s8)n1, 30, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    encounter_set_dark(0);
+    T_ASSERT(log_contains("spell Fire Bolt"), "the elf wizard never cast");
+    T_ASSERT(!log_contains("dark dis"),
+             "a darkvision caster was taxed by the dark");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_dark_imp_exempt(void) {
+    sim_reset();
+    /* devils see 120 ft and are never blinded: the bit rides the senses
+     * line of the stat block, human thralls stay blind (monster lore) */
+    T_ASSERT(r5_monsters[R5M_IMP].traits & TR_DARKVISION,
+             "the SRD imp lost devil's sight");
+    T_ASSERT(r5_monsters[R5M_LESSER_IMP].traits & TR_DARKVISION,
+             "the lesser imp lost devil's sight");
+    T_ASSERT(r5_monsters[R5M_SKELETON].traits & TR_DARKVISION,
+             "the skeleton lost its darkvision");
+    T_ASSERT(!(r5_monsters[R5M_THRALL].traits & TR_DARKVISION),
+             "the human thrall grew darkvision");
+    mk_party(CLS_FIGHTER, 2);
+    G_DEMO = 1;
+    encounter_set_dark(1);
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    EncSpawn es[1] = { { R5M_LESSER_IMP, (s8)n0, 40, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 1, 0, 0);
+    encounter_set_dark(0);
+    T_ASSERT(!log_contains("dark dis"),
+             "someone was taxed in a fighter-vs-imp dark fight");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+}
+
+static void t_battle_dark_everburn_lights(void) {
+    sim_reset();
+    mk_party(CLS_WIZARD, 2);
+    party_add_laezel();
+    G.weapon[1] = R5W_EVERBURN;          /* the trophy, equipped and burning */
+    encounter_set_dark(1);
+    T_ASSERT(!encounter_dark(), "the equipped Everburn failed to light the room");
+    G_DEMO = 1;
+    /* two skeletons: the escort's opener can't end round 1, so the wizard
+     * always gets a cast -- and 2 foes stays under the WISELY Sleep gate */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = { { R5M_SKELETON, (s8)n0, 30, 1 },
+                       { R5M_SKELETON, (s8)n1, 30, 1 } };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    T_ASSERT(log_contains("spell Fire Bolt"), "the wizard never cast");
+    T_ASSERT(!log_contains("dark dis"),
+             "an Everburn-lit room still taxed the caster");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+    /* stow the blade and the dark closes back in */
+    G.weapon[1] = (u8)party5_default_weapon(CLS_FIGHTER);
+    T_ASSERT(encounter_dark(), "stowing the blade failed to re-darken the room");
+    encounter_set_dark(0);
+}
+
 /* ------------------------------------------------- races + backgrounds
  * The compatibility law first: race 0 ("none") leaves every sheet exactly
  * classful -- the state every pre-Character-2.0 flow still runs in. Then
@@ -1868,6 +1980,10 @@ static const Test tests[] = {
     { "battle_druid_wildshape",    t_battle_druid_wildshape },
     { "battle_rogue_pick",         t_battle_rogue_pick },
     { "battle_ranger_conc",        t_battle_ranger_conc },
+    { "battle_dark_caster_disadvantage", t_battle_dark_caster_disadvantage },
+    { "battle_dark_darkvision_race_clean", t_battle_dark_darkvision_race_clean },
+    { "battle_dark_imp_exempt",    t_battle_dark_imp_exempt },
+    { "battle_dark_everburn_lights", t_battle_dark_everburn_lights },
     { "race_none_baseline",        t_race_none_baseline },
     { "race_mechanics_sheet",      t_race_mechanics_sheet },
     { "origin_sheet_identities",   t_origin_sheet_identities },

@@ -585,6 +585,49 @@ MONSTERS = {
         "condition_immunities": [],
         "senses": {"darkvision": 120, "passive_perception": 16},
     },
+    "skeleton": {
+        "srd": True,   # SRD 5.1 stat block, verbatim
+        "ac": 13, "hp": 13, "hp_dice": "2d8+4",
+        "abilities": {"str": 10, "dex": 14, "con": 15,
+                      "int": 6, "wis": 8, "cha": 5},
+        "speed": 30,
+        "cr": 0.25,
+        "attacks": [
+            {"name": "Shortsword", "to_hit": 4, "dice": "1d6", "plus": 2,
+             "dmg_type": "piercing"},
+            {"name": "Shortbow", "ranged": True, "to_hit": 4,
+             "dice": "1d6", "plus": 2, "dmg_type": "piercing",
+             "note": "range 80/320"},
+        ],
+        "traits": [],
+        "trait_notes": {},
+        "vulnerabilities": ["bludgeoning"],
+        "resistances": [],
+        "immunities": ["poison"],
+        "condition_immunities": ["exhaustion", "poisoned"],
+        "senses": {"darkvision": 60, "passive_perception": 9},
+    },
+    "bandit": {
+        "srd": True,   # SRD 5.1 stat block, verbatim
+        "ac": 12, "hp": 11, "hp_dice": "2d6+4",
+        "abilities": {"str": 11, "dex": 12, "con": 12,
+                      "int": 10, "wis": 10, "cha": 10},
+        "speed": 30,
+        "cr": 0.125,
+        "attacks": [
+            {"name": "Scimitar", "to_hit": 3, "dice": "1d6", "plus": 1,
+             "dmg_type": "slashing"},
+            {"name": "Lt.Xbow", "ranged": True, "to_hit": 3,
+             "dice": "1d8", "plus": 1, "dmg_type": "piercing",
+             "note": "light crossbow, range 80/320"},
+        ],
+        "traits": [],
+        "trait_notes": {},
+        "resistances": [],
+        "immunities": [],
+        "condition_immunities": [],
+        "senses": {"passive_perception": 10},
+    },
 }
 
 # --------------------------------------------------------------------------
