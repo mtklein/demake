@@ -110,11 +110,33 @@ def gen_classes(o):
         feats = "; ".join(f"L{l}: {', '.join(v)}"
                           for l, v in sorted(c["features"].items()))
         o.append(f"    /* {key}: {feats} */")
-        o.append("    [%s] = { %d, %s, { %s }, { %s }, { %s } }," % (
+        def lv(tab, lvl):
+            v = (tab or {}).get(lvl, 0)
+            return v if isinstance(v, int) else (v.get("uses", 0) if v else 0)
+        rsrc = []
+        for l in (0, 1, 2, 3):
+            if l == 0: rsrc.append([0] * 6); continue
+            lay = c.get("lay_on_hands")
+            pact = c.get("pact_slots", {}).get(l, {})
+            rsrc.append([
+                lv(c.get("rages"), l),
+                lv(c.get("ki_points"), l),
+                lv(c.get("sorcery_points"), l),
+                (5 * l) if lay else 0,
+                lv(c.get("wild_shape"), l),
+                sum(pact.values()) if pact else 0,
+            ])
+        pact_lvl = [0] + [max(c.get("pact_slots", {}).get(l, {0: 0}).keys() or [0])
+                          for l in (1, 2, 3)]
+        o.append("    [%s] = { %d, %s, { %s }, { %s }, { %s },\n"
+                 ""
+                 "             { %s }, { %s } }," % (
             enum, c["hit_die"], saves,
             ", ".join(map(str, prof)),
             ", ".join("{ %s }" % ", ".join(map(str, r)) for r in slots),
-            ", ".join(map(str, sneak))))
+            ", ".join(map(str, sneak)),
+            ", ".join("{ %s }" % ", ".join(map(str, r)) for r in rsrc),
+            ", ".join(map(str, pact_lvl))))
     o.append("};")
 
 # ---------------------------------------------------------------- spells

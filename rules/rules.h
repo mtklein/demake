@@ -72,6 +72,7 @@ enum {
     C_INVISIBLE = 1 << 6, C_PARALYZED = 1 << 7, C_PETRIFIED = 1 << 8,
     C_POISONED = 1 << 9, C_PRONE = 1 << 10, C_RESTRAINED = 1 << 11,
     C_STUNNED = 1 << 12, C_UNCONSCIOUS = 1 << 13,
+    C_RAGING = 1 << 14,              /* engine condition, not SRD */
 };
 
 /* paralyzed/petrified/stunned/unconscious imply incapacitated */
@@ -103,12 +104,17 @@ typedef struct {
     uint8_t rider_save_ab, rider_dc;   /* dc 0 = no save, full damage */
 } R5Weapon;
 
+/* per-level class resource pools, generator-emitted (0 where N/A) */
+enum { R5R_RAGE, R5R_KI, R5R_SORC, R5R_LAY, R5R_SHAPE, R5R_PACT, R5R_COUNT };
+
 typedef struct {
     uint8_t hit_die;
     uint8_t save_prof;               /* bit per ability */
     uint8_t prof_bonus[4];           /* [level], level 1..3 used */
     uint8_t slots[4][3];             /* [level][slot_level-1]    */
     uint8_t sneak_d6[4];             /* rogue only, else 0       */
+    uint8_t rsrc[4][R5R_COUNT];      /* [level][pool]: rage/ki/sorc/lay/shape/pact */
+    uint8_t pact_lvl[4];             /* warlock: the slot level of pact slots */
 } R5Class;
 
 /* a monster's attack: fixed to-hit, optional save-rider (imp sting) */
@@ -145,6 +151,7 @@ typedef struct {
     uint16_t resist, immune, vulnerable;
     uint8_t slots[3];
     uint8_t used;                    /* USED_* resource bits */
+    uint8_t rsrc[R5R_COUNT];         /* live pools (see R5R_) */
     uint8_t concentrating;           /* spell id + 1, or 0 */
 } R5Creature;
 
@@ -206,6 +213,17 @@ void   r5_use_action_surge(R5Creature*);
 int    r5_sneak_dice(const R5Creature*);         /* count of d6, 0 if none */
 int    r5_spend_slot(R5Creature*, int slot_level);
 void   r5_short_rest(R5Creature*);               /* reset per-rest resources */
+void r5_refill(R5Creature*);             /* long rest: pools from class table */
+int  r5_spend(R5Creature*, int pool, int n);
+int  r5_can_rage(const R5Creature*);
+void r5_start_rage(R5Creature*);
+void r5_end_rage(R5Creature*);
+int  r5_rage_bonus(const R5Creature*);   /* +2 STR melee dmg while C_RAGING */
+int  r5_martial_die(const R5Creature*);
+R5DiceSpec r5_smite_dice(int slot_level);
+int  r5_lay_hands(R5Creature* pal, R5Creature* t, int amt);
+int  r5_pact_cast(R5Creature*);
+void r5_pact_rest(R5Creature*);
 
 /* ---------------------------------------------------------------- data */
 

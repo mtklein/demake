@@ -121,7 +121,11 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
     int extra = 0;
     if (flags & R5F_MARK) extra += 1;                       /* hunter's mark */
     if (flags & R5F_SNEAK) extra += r5_sneak_dice(a);
-    out.dmg = damage_roll(r, spec, abil, out.crit, extra);
+    int flat = 0;                                      /* rage: +2 STR melee */
+    if ((a->conds & C_RAGING) && !(w->props & WP_RANGED) &&
+        !((w->props & WP_FINESSE) && r5_mod(a->ab[R5_DEX]) > r5_mod(a->ab[R5_STR])))
+        flat = 2;
+    out.dmg = damage_roll(r, spec, abil + flat, out.crit, extra);
     out.damage = (int16_t)scale_damage(t, out.dmg.total, w->dmg_type);
 
     if (w->rider_dmg.n) {                                   /* magic weapon rider */

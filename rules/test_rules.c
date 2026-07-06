@@ -389,6 +389,64 @@ static void test_weapon_rider(void) {
     if (at.hit) CHECK(at.rider_dmg.n == 0);
 }
 
+
+/* ---------------------------------------------------- Character 2.0 pools */
+static void test_char2_pools(void) {
+    R5Creature b = { 0 };
+    b.cls = R5C_BARBARIAN; b.level = 3; b.hp = b.hpmax = 30;
+    b.ab[R5_STR] = 16; b.ab[R5_DEX] = 10;
+    r5_refill(&b);
+    CHECK(b.rsrc[R5R_RAGE] == 3);                 /* SRD: 3 rages at level 3 */
+    CHECK(r5_can_rage(&b));
+    r5_start_rage(&b);
+    CHECK(b.conds & C_RAGING);
+    CHECK(b.resist & (1u << DT_SLASHING));
+    CHECK(!r5_can_rage(&b));                      /* not while raging */
+    r5_end_rage(&b);
+    CHECK(!(b.resist & (1u << DT_SLASHING)));
+    CHECK(b.rsrc[R5R_RAGE] == 2);
+
+    /* rage adds exactly +2 to STR melee damage: EV check via direct rolls */
+    R5RNG rng = { 12345 };
+    const R5Weapon* gs = &r5_weapons[R5W_GREATSWORD];
+    long base = 0, raged = 0; int hits1 = 0, hits2 = 0;
+    R5Creature dummy = { 0 }; dummy.ac = 10; dummy.hp = dummy.hpmax = 1000;
+    for (int i = 0; i < 20000; i++) {
+        R5Attack at = r5_weapon_attack(&rng, &b, &dummy, gs, 0);
+        if (at.hit && !at.crit) { base += at.dmg.total; hits1++; }
+    }
+    b.conds |= C_RAGING;
+    for (int i = 0; i < 20000; i++) {
+        R5Attack at = r5_weapon_attack(&rng, &b, &dummy, gs, 0);
+        if (at.hit && !at.crit) { raged += at.dmg.total; hits2++; }
+    }
+    b.conds &= (uint16_t)~C_RAGING;
+    double d = (double)raged / hits2 - (double)base / hits1;
+    CHECK(d > 1.7 && d < 2.3);                    /* +2 flat, sampled */
+
+    R5Creature p = { 0 };
+    p.cls = R5C_PALADIN; p.level = 2; p.hp = 4; p.hpmax = 30;
+    r5_refill(&p);
+    CHECK(p.rsrc[R5R_LAY] == 10);                 /* 5 x level */
+    CHECK(r5_lay_hands(&p, &p, 6));
+    CHECK(p.hp == 10 && p.rsrc[R5R_LAY] == 4);
+    CHECK(!r5_lay_hands(&p, &p, 5));              /* pool short */
+    R5DiceSpec sm = r5_smite_dice(2);
+    CHECK(sm.n == 3 && sm.sides == 8);            /* 2nd-level smite = 3d8 */
+
+    R5Creature w = { 0 };
+    w.cls = R5C_WARLOCK; w.level = 3; w.hp = w.hpmax = 20;
+    r5_refill(&w);
+    CHECK(w.rsrc[R5R_PACT] == 2);
+    CHECK(r5_pact_cast(&w) && r5_pact_cast(&w) && !r5_pact_cast(&w));
+    r5_short_rest(&w);                             /* pact returns on short rest */
+    CHECK(w.rsrc[R5R_PACT] == 2);
+
+    R5Creature mk = { 0 };
+    mk.cls = R5C_MONK; mk.level = 2; r5_refill(&mk);
+    CHECK(mk.rsrc[R5R_KI] == 2 && r5_martial_die(&mk) == 4);
+}
+
 int main(void) {
     test_weapon_rider();
     test_expectations();
@@ -410,6 +468,8 @@ int main(void) {
     test_slots();
     test_save_proficiency();
     test_bless();
+        test_char2_pools();
+
     printf("%d checks, %d failures\n", checks, fails);
     return fails != 0;
 }
