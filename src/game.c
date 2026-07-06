@@ -5,6 +5,7 @@
 #include "assets.h"
 #include "engine.h"
 #include "game.h"
+#include "party5.h"
 #include "rules.h"
 #include "screens.h"
 
@@ -503,4 +504,382 @@ void game_name_entry(char* out) {
     fade_out(10);
     txt_clear(0, 0, 30, 20);
     memset16(SCREENBLOCK(31), 0, 1024);
+}
+
+/* ------------------------------------------------------------ creation
+ * Race -> background -> standard-array screens for custom Tav and the
+ * Dark Urge; fixed origins skip the whole flow (their sheets are canon).
+ * Layout is generated (tools/ui_screens.py); every screen auto-advances
+ * under G_DEMO and takes poked choices (G_DEMO_RACE / G_DEMO_BG /
+ * G_DEMO_AB + G_AB_BUF) so scenarios stay deterministic. */
+
+static char* cnum(char* d, int v) {
+    if (v < 0) { *d++ = '-'; v = -v; }
+    char t[6]; int n = 0;
+    do { t[n++] = (char)('0' + v % 10); v /= 10; } while (v);
+    while (n) *d++ = t[--n];
+    return d;
+}
+
+/* word-wrap into rows of w cells, never splitting mid-word (the
+ * class-blurb lesson); clears every row it owns first */
+static void wrap_put(int x, int y, int w, int rows, const char* s, int pal) {
+    txt_clear(x, y, w, rows);
+    for (int r = 0; r < rows && *s; r++) {
+        while (*s == ' ') s++;
+        int n = 0, brk = 0;
+        while (s[n] && n <= w) {
+            if (s[n] == ' ') brk = n;
+            n++;
+        }
+        if (n <= w) brk = n;             /* the whole tail fits */
+        else if (!brk) brk = w;          /* single overlong word: hard cut */
+        char line[28];
+        int cut = brk < 27 ? brk : 27;
+        for (int k = 0; k < cut; k++) line[k] = s[k];
+        line[cut] = 0;
+        txt_put_n(x, y + r, line, pal, w);
+        s += brk;
+    }
+}
+
+static void creation_chrome(void) {
+    memset16(SCREENBLOCK(30), 0, 1024);
+    memset16(SCREENBLOCK(31), 0, 1024);
+    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
+}
+
+static void creation_out(void) {
+    obj_hide(OBJ_CURSOR);
+    fade_out(10);
+    txt_clear(0, 0, 30, 20);
+    memset16(SCREENBLOCK(31), 0, 1024);
+}
+
+/* card copy, ours (SRD race prose is not quoted); each wraps to at most
+ * three rows of SCR_RACESEL_RB0_W -- the host picker test proves the
+ * words land whole on the grid */
+static const char* const race_blurb[R5RACE_BASE_COUNT] = {
+    "Stone-patient folk. They shrug off poison; every level digs in deeper.",
+    "Fey blood: sharp eyes, and no magic can sing them to sleep.",
+    "Small, unhurried, and impossibly lucky: their worst rolls try again.",
+    "A little better at everything, remarkable at nothing. Yet.",
+    "Dragon blood waits in the lungs. One day it remembers how to burn.",
+    "A quick mind is armor: hostile magic slides off gnomish cunning.",
+    "Two worlds, neither home. Charm enough for both, and fey-proof dreams.",
+    "Too stubborn to die: once a day, death simply misses. Crits hit harder.",
+    "The hells left their mark, and their gift: fire finds no purchase here.",
+    "Sword-drilled exiles of a stolen people. They trust steel, and little else.",
+};
+
+static const char* const ab_names[6] = { "STR", "DEX", "CON", "INT", "WIS", "CHA" };
+
+/* name + fixed-ASI card for the highlighted entry */
+static void race_card(int entry) {
+    const R5Race* rr = &r5_races[entry];
+    txt_put_n(SCR_RACESEL_RNAME_X, SCR_RACESEL_RNAME_Y, rr->name, 1,
+              SCR_RACESEL_RNAME_W);
+    txt_clear(SCR_RACESEL_RASI0_X, SCR_RACESEL_RASI0_Y, SCR_RACESEL_RASI0_W, 3);
+    int all1 = 1;
+    for (int a = 0; a < 6; a++) all1 &= (rr->asi[a] == 1);
+    if (all1) {
+        txt_put(SCR_RACESEL_RASI0_X, SCR_RACESEL_RASI0_Y, "+1 ALL", 0);
+        return;
+    }
+    int line = 0;
+    for (int v = 2; v >= 1; v--)                 /* headline bonus first */
+        for (int a = 0; a < 6 && line < 3; a++)
+            if (rr->asi[a] == v) {
+                char b[8]; char* d = b;
+                *d++ = '+'; d = cnum(d, v); *d++ = ' ';
+                for (const char* s = ab_names[a]; *s; ) *d++ = *s++;
+                *d = 0;
+                txt_put(SCR_RACESEL_RASI0_X, SCR_RACESEL_RASI0_Y + line, b, 0);
+                line++;
+            }
+}
+
+static void race_list_draw(const char* const* names, int n) {
+    for (int i = 0; i < 10; i++)
+        txt_put_n(SCR_RACESEL_R0_X, SCR_RACESEL_R0_Y + i,
+                  i < n ? names[i] : "", 0, SCR_RACESEL_R0_W);
+}
+
+/* Base-race list; where a base carries named subraces, a second list of
+ * them (B returns to the bases). Returns the picked R5RACE_* entry.
+ * Demo: G_DEMO_RACE = entry to walk to and take; 0 keeps race-none, the
+ * pre-Character-2.0 sheet every legacy scenario runs in. */
+int game_race_pick(int origin) {
+    creation_chrome();
+    fade_in(10);
+    scr_racesel();
+
+    const char* base_names[R5RACE_BASE_COUNT];
+    for (int b = 0; b < R5RACE_BASE_COUNT; b++)
+        base_names[b] = r5_race_bases[b].name;
+    race_list_draw(base_names, R5RACE_BASE_COUNT);
+
+    int want = G_DEMO ? G_DEMO_RACE : -1;        /* poked target entry */
+    if (want >= R5RACE_COUNT) want = 0;
+    int wb = 0, wk = 0;                          /* its base + sub row */
+    for (int b = 0; b < R5RACE_BASE_COUNT; b++) {
+        const R5RaceBase* rb = &r5_race_bases[b];
+        if (want >= rb->first && want < rb->first + rb->n) {
+            wb = b;
+            wk = want - rb->first;
+        }
+    }
+
+    int sel = 0;
+    if (origin == ORIG_DURGE)                    /* the Urge wakes draconic */
+        for (int b = 0; b < R5RACE_BASE_COUNT; b++)
+            if (r5_race_bases[b].first == origin_race(ORIG_DURGE)) sel = b;
+    int sub = -1;                    /* -1 = base list, else base index */
+    int picked = R5RACE_NONE;
+    int demo_hold = G_DEMO ? 45 : 0;
+
+    for (;;) {
+        const R5RaceBase* rb = &r5_race_bases[sub < 0 ? sel : sub];
+        int n = sub < 0 ? R5RACE_BASE_COUNT : rb->n;
+        int entry = sub < 0 ? r5_race_bases[sel].first : rb->first + sel;
+        race_card(entry);
+        wrap_put(SCR_RACESEL_RB0_X, SCR_RACESEL_RB0_Y, SCR_RACESEL_RB0_W, 3,
+                 race_blurb[sub < 0 ? sel : sub], 2);
+        int done = 0;
+        for (;;) {
+            obj_set(OBJ_CURSOR, SCR_RACESEL_R0_X * 8 - 14,
+                    (SCR_RACESEL_R0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame();
+            if (demo_hold) {
+                if (--demo_hold == 0) {
+                    if (want <= 0) { done = 2; break; }    /* race-none out */
+                    int target = sub < 0 ? wb : wk;
+                    if (sel < target) { sel++; demo_hold = 8; break; }
+                    if (sel > target) { sel--; demo_hold = 8; break; }
+                    sfx_play(SFX_CONFIRM); demo_hold = 20; done = 1; break;
+                }
+                continue;
+            }
+            u16 k = key_hit();
+            if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_DOWN && sel < n - 1) { sel++; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
+            if ((k & KEY_B) && sub >= 0) { sfx_play(SFX_CANCEL); done = 3; break; }
+        }
+        if (done == 2) break;                              /* demo: keep none */
+        if (done == 3) {                                   /* back to bases */
+            sel = sub;
+            sub = -1;
+            race_list_draw(base_names, R5RACE_BASE_COUNT);
+            continue;
+        }
+        if (done == 1) {
+            if (sub < 0 && r5_race_bases[sel].sub) {       /* descend */
+                sub = sel;
+                const char* sub_names[4];
+                for (int k2 = 0; k2 < r5_race_bases[sub].n && k2 < 4; k2++)
+                    sub_names[k2] = r5_races[r5_race_bases[sub].first + k2].name;
+                race_list_draw(sub_names, r5_race_bases[sub].n);
+                sel = 0;
+                continue;
+            }
+            picked = entry;
+            break;
+        }
+    }
+    creation_out();
+    return picked;
+}
+
+/* Background list; the strip below names the two granted skills and the
+ * flavor line. Returns R5BG_*, or -1 on B (back to the race picker).
+ * Demo: G_DEMO_BG = background to take; 0 keeps none. */
+int game_bg_pick(int origin) {
+    creation_chrome();
+    fade_in(10);
+    scr_bgsel();
+    for (int i = 0; i + 1 < R5BG_COUNT; i++)
+        txt_put_n(SCR_BGSEL_G0_X, SCR_BGSEL_G0_Y + i,
+                  r5_backgrounds[i + 1].name, 0, SCR_BGSEL_G0_W);
+
+    int want = G_DEMO ? G_DEMO_BG : -1;
+    if (want >= R5BG_COUNT) want = 0;
+    int sel = 0;
+    if (origin == ORIG_DURGE)                    /* haunted by default */
+        sel = origin_background(ORIG_DURGE) - 1;
+    int demo_hold = G_DEMO ? 45 : 0;
+    int picked = R5BG_NONE;
+
+    for (;;) {
+        const R5Background* bg = &r5_backgrounds[sel + 1];
+        {   /* "Insight, Religion" from the skill mask */
+            char b[32]; char* d = b;
+            for (int s = 0; s < SK_COUNT; s++)
+                if (bg->skills & (1u << s)) {
+                    if (d != b) { *d++ = ','; *d++ = ' '; }
+                    for (const char* p = r5_skill_name[s]; *p; ) *d++ = *p++;
+                }
+            *d = 0;
+            txt_put_n(SCR_BGSEL_GSK_X, SCR_BGSEL_GSK_Y, b, 1, SCR_BGSEL_GSK_W);
+        }
+        wrap_put(SCR_BGSEL_GB0_X, SCR_BGSEL_GB0_Y, SCR_BGSEL_GB0_W, 3,
+                 bg->blurb, 2);
+        int done = 0;
+        for (;;) {
+            obj_set(OBJ_CURSOR, SCR_BGSEL_G0_X * 8 - 14,
+                    (SCR_BGSEL_G0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame();
+            if (demo_hold) {
+                if (--demo_hold == 0) {
+                    if (want <= 0) { done = 2; break; }    /* keep none */
+                    if (sel < want - 1) { sel++; demo_hold = 8; break; }
+                    if (sel > want - 1) { sel--; demo_hold = 8; break; }
+                    sfx_play(SFX_CONFIRM); done = 1; break;
+                }
+                continue;
+            }
+            u16 k = key_hit();
+            if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_DOWN && sel < R5BG_COUNT - 2) { sel++; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
+            if (k & KEY_B) { sfx_play(SFX_CANCEL); done = 3; break; }
+        }
+        if (done == 1) picked = sel + 1;
+        if (done == 3) picked = -1;
+        if (done) break;
+    }
+    creation_out();
+    return picked;
+}
+
+/* Standard-array assignment: the class preset (that array permuted) is
+ * offered; A takes a score, A again swaps it into place; racial ASIs and
+ * the resulting mods show live. Returns 1 on Begin, 0 on B (back).
+ * Demo: G_DEMO_AB = 1 arranges from G_AB_BUF (must be the preset
+ * permuted -- anything else is rejected and logged), then confirms. */
+int game_stats_assign(int cls, int race, s8 out[6]) {
+    creation_chrome();
+    fade_in(10);
+    scr_statsel();
+    txt_put_n(SCR_STATSEL_GO_X, SCR_STATSEL_GO_Y, "Begin", 1, SCR_STATSEL_GO_W);
+
+    s8 arr[6];
+    for (int a = 0; a < 6; a++) arr[a] = (s8)party5_preset(cls, a);
+    if (G_DEMO && G_DEMO_AB == 1) {
+        s8 pk[6], sa[6], sb[6];
+        for (int a = 0; a < 6; a++) { pk[a] = (s8)G_AB_BUF[a]; sa[a] = pk[a]; sb[a] = arr[a]; }
+        for (int i = 0; i < 6; i++)              /* sort both, compare */
+            for (int j = i + 1; j < 6; j++) {
+                if (sa[j] < sa[i]) { s8 t = sa[i]; sa[i] = sa[j]; sa[j] = t; }
+                if (sb[j] < sb[i]) { s8 t = sb[i]; sb[i] = sb[j]; sb[j] = t; }
+            }
+        int same = 1;
+        for (int a = 0; a < 6; a++) same &= (sa[a] == sb[a]);
+        if (same) for (int a = 0; a < 6; a++) arr[a] = pk[a];
+        else mgba_log("spread rejected: not the class array");
+    }
+
+    const R5Race* rr = &r5_races[race];
+    int sel = 0, grab = -1, dirty = 1, ret = -1;
+    int demo_hold = G_DEMO ? 60 : 0;
+    while (ret < 0) {
+        if (dirty) {
+            for (int a = 0; a < 6; a++) {
+                char b[24]; char* d = b;
+                for (const char* s = ab_names[a]; *s; ) *d++ = *s++;
+                *d++ = ' ';
+                if (arr[a] < 10) *d++ = ' ';
+                d = cnum(d, arr[a]);
+                *d++ = ' '; *d++ = ' ';
+                if (rr->asi[a]) { *d++ = '+'; d = cnum(d, rr->asi[a]); }
+                else { *d++ = ' '; *d++ = ' '; }
+                *d++ = ' '; *d++ = ' ';
+                int tot = arr[a] + rr->asi[a];
+                if (tot < 10) *d++ = ' ';
+                d = cnum(d, tot);
+                int m = r5_mod(tot);
+                *d++ = ' '; *d++ = '(';
+                *d++ = (char)(m < 0 ? '-' : '+');
+                d = cnum(d, m < 0 ? -m : m);
+                *d++ = ')'; *d = 0;
+                txt_put_n(SCR_STATSEL_A0_X, SCR_STATSEL_A0_Y + a, b,
+                          grab == a ? 1 : 0, SCR_STATSEL_A0_W);
+            }
+            dirty = 0;
+        }
+        int cy = sel < 6 ? SCR_STATSEL_A0_Y + sel : SCR_STATSEL_GO_Y;
+        obj_set(OBJ_CURSOR, SCR_STATSEL_A0_X * 8 - 14, cy * 8 - 4, 1,
+                OBJT_HAND, 7, 0);
+        frame();
+        if (demo_hold) {
+            if (--demo_hold == 0) { sfx_play(SFX_CONFIRM); ret = 1; }
+            continue;
+        }
+        u16 k = key_hit();
+        if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); }
+        if (k & KEY_DOWN && sel < 6) { sel++; sfx_play(SFX_CURSOR); }
+        if (k & KEY_A) {
+            if (sel == 6) {
+                if (grab < 0) { sfx_play(SFX_CONFIRM); ret = 1; }
+                else sfx_play(SFX_CANCEL);       /* set the score down first */
+            } else if (grab < 0) {
+                grab = sel; dirty = 1; sfx_play(SFX_CONFIRM);
+            } else {
+                s8 t = arr[grab]; arr[grab] = arr[sel]; arr[sel] = t;
+                grab = -1; dirty = 1; sfx_play(SFX_CONFIRM);
+            }
+        }
+        if (k & KEY_B) {
+            if (grab >= 0) { grab = -1; dirty = 1; sfx_play(SFX_CANCEL); }
+            else { sfx_play(SFX_CANCEL); ret = 0; }
+        }
+    }
+    if (ret == 1)
+        for (int a = 0; a < 6; a++) out[a] = arr[a];
+    creation_out();
+    return ret;
+}
+
+/* The whole creation flow behind class + origin: fixed origins take
+ * their canon sheet and name; custom Tav and the Urge walk race ->
+ * background -> array -> name (B backs out one step). Ends with the
+ * party built and the 5e twin refreshed. */
+void game_creation(int cls, int origin) {
+    char nm[8];
+    G.origin = (u8)origin;
+    int race = R5RACE_NONE, bg = R5BG_NONE;
+    s8 ab6[6] = { 0, 0, 0, 0, 0, 0 };
+    if (origin_class(origin) >= 0) {             /* fixed sheet: skip */
+        const char* on = origin_name(origin);
+        int i = 0;
+        for (; on[i] && i < 7; i++) nm[i] = on[i];
+        nm[i] = 0;
+    } else {
+        for (int step = 0; step < 3; ) {
+            if (step == 0) {
+                race = game_race_pick(origin);
+                step = 1;
+            } else if (step == 1) {
+                int r = game_bg_pick(origin);
+                if (r < 0) step = 0;
+                else { bg = r; step = 2; }
+            } else {
+                step = game_stats_assign(cls, race, ab6) ? 3 : 1;
+            }
+        }
+        game_name_entry(nm);
+    }
+    party_init(cls, nm);
+    if (origin_class(origin) < 0)
+        party_set_identity(race, bg, ab6);
+    party5_refresh_all();
+    /* only the four launch classes have a tav palette (the class-select
+     * preview guards the same way); the old unguarded copy in main.c read
+     * past pal_tav_classes[4] for eight classes -- UBSan caught it the
+     * moment this line moved into the host build */
+    if (cls < 4) memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
+    mgba_logf("create race=%d bg=%d ab=%d/%d/%d/%d/%d/%d",
+              G.pm[0].race, G.pm[0].background,
+              party5[0].ab[0], party5[0].ab[1], party5[0].ab[2],
+              party5[0].ab[3], party5[0].ab[4], party5[0].ab[5]);
 }

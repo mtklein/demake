@@ -1196,6 +1196,214 @@ static void t_background_skill_union(void) {
              (unsigned)G.pm[0].skills, (unsigned)want);
 }
 
+/* ------------------------------------------------- creation UI (game.c)
+ * The real screens, driven by real keys: race picker (with the subrace
+ * step), background picker, the standard-array swap UI, and the whole
+ * game_creation flow -- manual, demo-poked, and origin-skipped. */
+
+static void t_race_picker_reaches_all(void) {
+    /* every playable entry is reachable by cursor; sub lists confirm once
+     * more (all four SRD subrace groups hold exactly one subrace today) */
+    for (int b = 0; b < R5RACE_BASE_COUNT; b++) {
+        sim_reset();
+        G_DEMO = 0;
+        sim_budget(200000, 0);
+        char script[160] = "";
+        for (int i = 0; i < b; i++) strcat(script, "DOWN ");
+        strcat(script, r5_race_bases[b].sub ? "A A" : "A");
+        script_keys(script);
+        int e = game_race_pick(ORIG_CUSTOM);
+        T_ASSERT(e == r5_race_bases[b].first,
+                 "base %d picked entry %d, want %d", b, e, r5_race_bases[b].first);
+    }
+    /* the Urge's cursor wakes on Dragonborn */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("A");
+    int e = game_race_pick(ORIG_DURGE);
+    T_ASSERT(e == R5RACE_DRAGONBORN, "durge default pick %d, want dragonborn", e);
+}
+
+static void t_race_picker_card_and_back(void) {
+    /* the dwarf card: merged entry name, fixed ASIs, and a blurb that
+     * wraps on word boundaries ("shrug" starting a row proves no
+     * mid-word split -- a naive 26-cut would render "hrug...") */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("SNAP A SNAP B DOWN A SNAP A");
+    int e = game_race_pick(ORIG_CUSTOM);
+    T_ASSERT(snap_count() == 3, "race picker: %d snaps", snap_count());
+    T_ASSERT(snap_contains(0, "Hill Dwarf"), "card lacks the merged entry name");
+    T_ASSERT(snap_contains(0, "+2 CON"), "card lacks the headline ASI");
+    T_ASSERT(snap_contains(0, "+1 WIS"), "card lacks the subrace ASI");
+    T_ASSERT(snap_contains(0, "shrug off poison; every"),
+             "dwarf blurb wrapped mid-word");
+    /* snap 1: the subrace list after A on Dwarf */
+    T_ASSERT(snap_contains(1, "Hill Dwarf"), "subrace list missing");
+    /* B returned to the bases; DOWN A A landed the high elf */
+    T_ASSERT(snap_contains(2, "High Elf"), "post-back card should show High Elf");
+    T_ASSERT(e == R5RACE_HIGH_ELF, "picked %d after back-out, want high elf", e);
+    /* human: the +1 ALL card and a subrace-free confirm */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("DOWN DOWN DOWN SNAP A");
+    e = game_race_pick(ORIG_CUSTOM);
+    T_ASSERT(e == R5RACE_HUMAN, "picked %d, want human", e);
+    T_ASSERT(snap_contains(0, "+1 ALL"), "human card lacks +1 ALL");
+}
+
+static void t_bg_picker_flow(void) {
+    /* row 0 = Acolyte: skills line + flavor line land whole */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("SNAP A");
+    int bg = game_bg_pick(ORIG_CUSTOM);
+    T_ASSERT(bg == R5BG_ACOLYTE, "picked %d, want acolyte", bg);
+    T_ASSERT(snap_contains(0, "Insight, Religion"), "skills line missing");
+    T_ASSERT(snap_contains(0, "Temple-raised; the rites"),
+             "acolyte blurb wrapped mid-word");
+    /* B backs out to the race picker */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("B");
+    bg = game_bg_pick(ORIG_CUSTOM);
+    T_ASSERT(bg == -1, "B gave %d, want -1 (back)", bg);
+    /* the Urge's cursor wakes on Haunted One */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("SNAP A");
+    bg = game_bg_pick(ORIG_DURGE);
+    T_ASSERT(bg == R5BG_HAUNTED_ONE, "durge default %d, want haunted one", bg);
+    T_ASSERT(snap_contains(0, "Investigation, Survival"),
+             "haunted one skills line missing");
+}
+
+static void t_stat_swap_ui(void) {
+    /* wizard preset 8/13/14/15/12/10: grab STR, drop on INT, Begin */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    s8 out[6] = { 0 };
+    script_keys("A DOWN DOWN DOWN A DOWN DOWN DOWN A");
+    int r = game_stats_assign(CLS_WIZARD, R5RACE_NONE, out);
+    T_ASSERT(r == 1, "stat screen returned %d, want 1", r);
+    static const s8 want[6] = { 15, 13, 14, 8, 12, 10 };
+    for (int a = 0; a < 6; a++)
+        T_ASSERT(out[a] == want[a], "swapped ab[%d] %d, want %d",
+                 a, out[a], want[a]);
+    /* live ASI display: high-elf wizard shows base, bonus, total, mod */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("SNAP DOWN DOWN DOWN DOWN DOWN DOWN A");
+    r = game_stats_assign(CLS_WIZARD, R5RACE_HIGH_ELF, out);
+    T_ASSERT(r == 1, "asi stat screen returned %d", r);
+    T_ASSERT(snap_contains(0, "DEX 13  +2  15 (+2)"), "DEX row misrendered");
+    T_ASSERT(snap_contains(0, "INT 15  +1  16 (+3)"), "INT row misrendered");
+    T_ASSERT(snap_contains(0, "STR  8       8 (-1)"), "STR row misrendered");
+    T_ASSERT(snap_contains(0, "Begin"), "Begin row missing");
+    /* B with a score in hand releases it; B empty-handed backs out */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    script_keys("A B B");
+    r = game_stats_assign(CLS_WIZARD, R5RACE_NONE, out);
+    T_ASSERT(r == 0, "B-back returned %d, want 0", r);
+}
+
+static void t_creation_flow_custom(void) {
+    /* the whole flow, manual: hill-dwarf sage wizard, preset spread,
+     * default name (grid END row) */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(400000, 0);
+    script_keys("A A "                                   /* Dwarf -> Hill Dwarf */
+                "DOWN DOWN A "                           /* Sage */
+                "DOWN DOWN DOWN DOWN DOWN DOWN A "       /* Begin (preset) */
+                "DOWN DOWN DOWN DOWN A");                /* name: END -> TAV */
+    game_creation(CLS_WIZARD, ORIG_CUSTOM);
+    T_ASSERT(G.pm[0].race == R5RACE_HILL_DWARF, "race %d", G.pm[0].race);
+    T_ASSERT(G.pm[0].background == R5BG_SAGE, "bg %d", G.pm[0].background);
+    T_ASSERT(!strcmp(G.pm[0].name, "TAV"), "name '%s'", G.pm[0].name);
+    T_ASSERT(party5[0].ab[R5_CON] == 16 && party5[0].ab[R5_WIS] == 13,
+             "dwarf wizard CON %d WIS %d, want 16/13",
+             party5[0].ab[R5_CON], party5[0].ab[R5_WIS]);
+    T_ASSERT(party5[0].hpmax == 10,      /* d6 + CON 16 (+3) + toughness 1 */
+             "dwarf wizard hpmax %d, want 10", party5[0].hpmax);
+    /* sage duplicates the wizard picks: the union stays the class pair */
+    T_ASSERT(G.pm[0].skills == ((1u << SK_ARCANA) | (1u << SK_HISTORY)),
+             "skills %x", (unsigned)G.pm[0].skills);
+    T_ASSERT(log_contains("create race=1 bg=3"), "create log line missing");
+}
+
+static void t_creation_flow_origin_skips(void) {
+    /* a fixed origin walks straight through: no picker consumes a key
+     * (an empty queue would hang a shown screen into the frame budget) */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    game_creation(CLS_CLERIC, ORIG_SHADOW);
+    T_ASSERT(!strcmp(G.pm[0].name, "Shadowh"), "name '%s'", G.pm[0].name);
+    T_ASSERT(G.pm[0].race == R5RACE_HALF_ELF && G.pm[0].background == R5BG_ACOLYTE,
+             "shadowheart identity race %d bg %d", G.pm[0].race, G.pm[0].background);
+    T_ASSERT(party5[0].ab[R5_WIS] == 16, "WIS %d, want 16", party5[0].ab[R5_WIS]);
+    T_ASSERT(G.pm[0].subclass == R5SUB_DOMAIN_OF_MASKS, "subclass %d",
+             G.pm[0].subclass);
+    T_ASSERT(log_contains("create race=7 bg=1"), "create log line missing");
+}
+
+static void t_creation_demo_paths(void) {
+    /* unpoked demo: the legacy race-none/preset sheet, auto-advanced */
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(400000, 0);
+    game_creation(CLS_BARD, ORIG_CUSTOM);
+    T_ASSERT(G.pm[0].race == R5RACE_NONE && G.pm[0].background == R5BG_NONE,
+             "unpoked demo race %d bg %d", G.pm[0].race, G.pm[0].background);
+    T_ASSERT(party5[0].ab[R5_CHA] == 15, "unpoked demo CHA %d, want preset 15",
+             party5[0].ab[R5_CHA]);
+    T_ASSERT(!strcmp(G.pm[0].name, "TAV"), "demo name '%s'", G.pm[0].name);
+    /* ...the Urge included (durge_check compatibility) */
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(400000, 0);
+    game_creation(CLS_ROGUE, ORIG_DURGE);
+    T_ASSERT(G.pm[0].race == R5RACE_NONE, "unpoked durge race %d", G.pm[0].race);
+    /* poked demo: race, background, and a rearranged (legal) spread land */
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(400000, 0);
+    G_DEMO_RACE = R5RACE_HILL_DWARF;
+    G_DEMO_BG = R5BG_SAGE;
+    G_DEMO_AB = 1;
+    static const u8 spread[6] = { 8, 13, 15, 14, 12, 10 };   /* CON/INT swap */
+    for (int a = 0; a < 6; a++) G_AB_BUF[a] = spread[a];
+    game_creation(CLS_WIZARD, ORIG_CUSTOM);
+    T_ASSERT(G.pm[0].race == R5RACE_HILL_DWARF && G.pm[0].background == R5BG_SAGE,
+             "poked demo race %d bg %d", G.pm[0].race, G.pm[0].background);
+    T_ASSERT(party5[0].ab[R5_CON] == 17 && party5[0].ab[R5_INT] == 14,
+             "poked demo CON %d INT %d, want 17/14",
+             party5[0].ab[R5_CON], party5[0].ab[R5_INT]);
+    T_ASSERT(log_contains("create race=1 bg=3 ab=8/13/17/14/13/10"),
+             "poked demo create log missing");
+    /* a poke that is NOT the class array is rejected, loudly */
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(400000, 0);
+    G_DEMO_AB = 1;
+    for (int a = 0; a < 6; a++) G_AB_BUF[a] = 18;
+    game_creation(CLS_WIZARD, ORIG_CUSTOM);
+    T_ASSERT(log_contains("spread rejected"), "illegal spread not rejected");
+    T_ASSERT(party5[0].ab[R5_INT] == 15, "rejected spread INT %d, want preset 15",
+             party5[0].ab[R5_INT]);
+}
+
 /* ------------------------------------------------- party5 + audit units */
 
 static void t_spell_dc_math(void) {
@@ -1431,6 +1639,13 @@ static const Test tests[] = {
     { "race_mechanics_sheet",      t_race_mechanics_sheet },
     { "origin_sheet_identities",   t_origin_sheet_identities },
     { "background_skill_union",    t_background_skill_union },
+    { "race_picker_reaches_all",   t_race_picker_reaches_all },
+    { "race_picker_card_and_back", t_race_picker_card_and_back },
+    { "bg_picker_flow",            t_bg_picker_flow },
+    { "stat_swap_ui",              t_stat_swap_ui },
+    { "creation_flow_custom",      t_creation_flow_custom },
+    { "creation_flow_origin_skips", t_creation_flow_origin_skips },
+    { "creation_demo_paths",       t_creation_demo_paths },
     { "spell_dc_math",             t_spell_dc_math },
     { "heal_full_rest",            t_heal_full_rest },
     { "audit_native",              t_audit_native },

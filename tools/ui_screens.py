@@ -82,6 +82,72 @@ SCREENS = [
         ],
     },
     {
+        # race picker: base-race list left, name+ASI card right, blurb
+        # strip below. The subrace step redraws the same list slots.
+        "name": "racesel",
+        "wins": [
+            {"id": "list", "x": 0, "y": 2, "rows": [
+                row("l", g(2), s("r%d" % i, 10)) for i in range(10)
+            ]},
+            {"id": "card", "x": 16, "y": 2, "rows": [
+                row("l", s("rname", 10)),
+                BLANK,
+                row("l", l("Scores:", 2)),
+                row("l", s("rasi0", 7)),
+                row("l", s("rasi1", 7)),
+                row("l", s("rasi2", 7)),
+            ]},
+            {"id": "blurb", "y": 14, "rows": [
+                row("l", s("rb0", 26)),
+                row("l", s("rb1", 26)),
+                row("l", s("rb2", 26)),
+            ]},
+        ],
+        "floats": [
+            {"y": 0, "align": "c", "items": [l("Whose blood wakes here?", 0)]},
+        ],
+    },
+    {
+        # background picker: list left; the strip below names the two
+        # granted skills and carries the flavor line
+        "name": "bgsel",
+        "wins": [
+            {"id": "list", "x": 0, "y": 2, "rows": [
+                row("l", g(2), s("g%d" % i, 11)) for i in range(10)
+            ]},
+            {"id": "blurb", "y": 14, "rows": [
+                row("l", s("gsk", 26)),
+                row("l", s("gb0", 26)),
+                row("l", s("gb1", 26)),
+                row("l", s("gb2", 26)),
+            ]},
+        ],
+        "floats": [
+            {"y": 0, "align": "c", "items": [l("And before all this?", 0)]},
+        ],
+    },
+    {
+        # standard-array assignment: six score rows + a Begin row; the
+        # D-pad swap UI fills the a* slots live (base, ASI, total, mod)
+        "name": "statsel",
+        "wins": [
+            {"id": "arr", "y": 2, "rows": [
+                row("l", g(2), s("a0", 20)),
+                row("l", g(2), s("a1", 20)),
+                row("l", g(2), s("a2", 20)),
+                row("l", g(2), s("a3", 20)),
+                row("l", g(2), s("a4", 20)),
+                row("l", g(2), s("a5", 20)),
+                BLANK,
+                row("l", g(2), s("go", 12)),
+            ]},
+        ],
+        "floats": [
+            {"y": 0, "align": "c", "items": [l("Arrange your scores", 0)]},
+            {"y": 14, "align": "c", "items": [l("A: take/swap   B: back", 2)]},
+        ],
+    },
+    {
         "name": "namehdr",
         "wins": [
             {"id": "hdr", "y": 1, "rows": [

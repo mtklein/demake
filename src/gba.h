@@ -121,6 +121,14 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define G_FIELD_IDLE  (*(vu8*)0x0203FF05)   /* 1 = field_run looping (input ok) */
 #define G_DONE        (*(vu8*)0x0203FF06)   /* 1 = ending tally on screen */
 #define G_MANUAL_BAT  (*(vu8*)0x0203FF07)   /* 1 = interactive battle even in demo */
+/* creation-flow pokes: 0 keeps the legacy race-none/preset sheet every
+ * pre-Character-2.0 scenario runs in; the screens still show and
+ * auto-advance under G_DEMO either way */
+#define G_DEMO_RACE   (*(vu8*)0x0203FF08)   /* poke: R5RACE_* entry to pick */
+#define G_DEMO_BG     (*(vu8*)0x0203FF09)   /* poke: R5BG_* to pick */
+#define G_DEMO_AB     (*(vu8*)0x0203FF0A)   /* poke 1: arrange scores from G_AB_BUF */
+#define G_AB_BUF ((vu8*)0x0203FF20)         /* poked spread, 6 bytes (STR..CHA); must
+                                               be the class preset permuted */
 /* EWRAM is garbage at power-on: the flag block only counts when the magic
  * cookie is present (set by the test runner's pokes or the title toggle). */
 #define G_FLAGS_MAGIC (*(vu32*)0x0203FF38)

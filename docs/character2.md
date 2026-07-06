@@ -2,12 +2,16 @@
 
 > **Status: SHIPPED, with named deferrals.** Live: twelve classes,
 > subclasses with level-up choices, the 83-spell table, prepared casters,
-> origins + The Dark Urge, skills and field checks, racial trait MECHANICS
-> in rules/ (Lucky, Relentless Endurance, Savage Attacks). Deferred, socket
-> named but nothing built: race/background pickers at creation,
-> standard-array stat assignment UI, the movement doctrine (Pace/Jump), and
-> darkvision rooms. The deferred sections below are kept because they are
-> the binding design for when those land — not because they're coming soon.
+> origins + The Dark Urge, skills and field checks, races and backgrounds
+> (nine SRD races + homebrew gith, fixed 5.1 ASIs, canon origin sheets),
+> the race/background pickers and standard-array assignment at creation,
+> and racial trait mechanics in rules/ (Lucky, Relentless Endurance,
+> Savage Attacks, poison resilience). Deferred, socket named but nothing
+> built: the movement doctrine (Pace/Jump), darkvision rooms (the
+> TR_DARKVISION bit is data-carried and inert), breath weapon / Hellish
+> Rebuke / high-elf cantrip / Skill Versatility. The deferred sections
+> below are kept because they are the binding design for when those
+> land — not because they're coming soon.
 
 The player character grows from "pick one of four classes" to the full BG3
 prologue promise: **all twelve classes, at least three subclasses each,
@@ -81,9 +85,11 @@ than to anything else in the 16-bit canon, and staged like a summon
 
 ## Races, backgrounds, stats, skills
 
-*(Shipped: skills + field checks, and the racial trait mechanics in
-rules/. Deferred: the race and background pickers and the standard-array
-UI — the doctrine below binds when they land.)*
+*(Shipped: all of it — races and backgrounds as generated data with the
+pickers and standard-array UI at creation, skills + field checks, racial
+trait mechanics in rules/. Still deferred inside this section: the traits
+named as sockets below (breath weapon, Hellish Rebuke, high-elf cantrip,
+Skill Versatility) and darkvision consumption.)*
 
 The rest of the character sheet, same doctrine:
 

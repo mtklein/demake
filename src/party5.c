@@ -56,6 +56,9 @@ static const u8 cast_ab_tab[CLS_COUNT] = {
 int party5_weapon(int i) { return G.weapon[i]; }
 int party5_default_weapon(int cls) { return gen_weapon[cls]; }
 int party5_cast_ab(int cls) { return cast_ab_tab[cls]; }
+/* the class preset spread: the standard array permuted; the stat screen
+ * offers it and the player may rearrange (PMember.ab6) */
+int party5_preset(int cls, int a) { return gen_ab[cls][a]; }
 int party5_spell_dc(const R5Creature* c) {
     return 8 + r5_prof(c) + r5_mod(c->ab[cast_ab_tab[c->cls]]);
 }
@@ -94,8 +97,14 @@ static void build(const PMember* p, R5Creature* c, int carry) {
     c->name = p->name;
     c->cls = p->cls;
     c->level = p->level;
-    for (int a = 0; a < 6; a++)
-        c->ab[a] = (s8)(gen_ab[p->cls][a] + rr->asi[a]);   /* fixed 5.1 ASIs */
+    {   /* base scores: the player's arrangement if one was assigned
+         * (any nonzero byte), else the class preset; ASIs ride on top */
+        int assigned = 0;
+        for (int a = 0; a < 6; a++) assigned |= p->ab6[a];
+        const s8* base = assigned ? p->ab6 : gen_ab[p->cls];
+        for (int a = 0; a < 6; a++)
+            c->ab[a] = (s8)(base[a] + rr->asi[a]);         /* fixed 5.1 ASIs */
+    }
     c->hpmax = (s16)(max_hp(p->cls, p->level, r5_mod(c->ab[R5_CON]))
                      + rr->hp_per_level * p->level);       /* hill dwarf */
     c->hp = (s16)(c->hpmax - missing);

@@ -9,9 +9,6 @@ void game_title(void);
 void game_crawl(void);
 int  game_class_select(void);
 int  game_origin_choose(int cls);
-int  origin_class(int o);
-const char* origin_name(int o);
-void game_name_entry(char* out);
 
 int main(void) {
     gba_init();
@@ -25,22 +22,10 @@ int main(void) {
     int cls = game_class_select();          /* class first: all twelve */
     int origin = game_origin_choose(cls);   /* then who wears it: Tav, the
                                                class's origin, or the Urge */
-    char nm[8];
-    if (origin_class(origin) >= 0) {                     /* fixed origin: its name */
-        const char* on = origin_name(origin);
-        int i = 0; for (; on[i] && i < 7; i++) nm[i] = on[i]; nm[i] = 0;
-    } else {
-        game_name_entry(nm);                 /* Tav and the Urge name themselves */
-    }
-    G.origin = (u8)origin;
-    party_init(cls, nm);
-    {
-        void party5_refresh_all(void);
-        party5_refresh_all();
-    }
-    memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
+    game_creation(cls, origin);             /* race/background/array + name;
+                                               fixed origins skip the flow */
     mgba_logf("start: origin=%d class=%d sub=%d name=%s", origin, cls,
-              G.pm[0].subclass, nm);
+              G.pm[0].subclass, G.pm[0].name);
 
     room_enter(RM_NURSERY, 3, 6, 0);
     field_draw();

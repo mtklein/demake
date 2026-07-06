@@ -14,6 +14,7 @@ typedef struct {
     u8 face;              /* art identity: ORIG_* (companions too) */
     u8 race;              /* R5RACE_*; 0 = none, every racial delta zero */
     u8 background;        /* R5BG_*;   0 = none, no extra skills */
+    s8 ab6[6];            /* assigned base scores, pre-ASI; all-zero = class preset */
     s16 hp, hpmax, mp, mpmax;
     u8 atk, def, mag, spd;
     u16 xp;
@@ -72,7 +73,13 @@ enum {
 int origin_race(int o);          /* canon blood (character2.md identities) */
 int origin_background(int o);    /* canon background */
 
+void game_creation(int cls, int origin);   /* pickers + name + party build */
+int  game_race_pick(int origin);           /* -> R5RACE_* entry */
+int  game_bg_pick(int origin);             /* -> R5BG_*, -1 = back */
+int  game_stats_assign(int cls, int race, s8 out[6]);  /* 1 done, 0 = back */
+
 void party_init(int cls, const char* name);
+void party_set_identity(int race, int bg, const s8* ab6);  /* hero, post-init */
 void party_add_laezel(void);
 void party_add_shadowheart(void);
 void party_add_astarion(void);

@@ -142,6 +142,10 @@ void* host_map(u32 addr, u32 len);
 #define G_FIELD_IDLE  (*(vu8*)host_map(0x0203FF05, 1))
 #define G_DONE        (*(vu8*)host_map(0x0203FF06, 1))
 #define G_MANUAL_BAT  (*(vu8*)host_map(0x0203FF07, 1))
+#define G_DEMO_RACE   (*(vu8*)host_map(0x0203FF08, 1))
+#define G_DEMO_BG     (*(vu8*)host_map(0x0203FF09, 1))
+#define G_DEMO_AB     (*(vu8*)host_map(0x0203FF0A, 1))
+#define G_AB_BUF ((vu8*)host_map(0x0203FF20, 6))
 #define G_FLAGS_MAGIC (*(vu32*)host_map(0x0203FF38, (u32)sizeof(vu32)))
 #define G_FLAGS_COOKIE 0xC0FFEE01u
 #define G_CHOICE_BUF ((vu8*)host_map(0x0203FF10, 16))

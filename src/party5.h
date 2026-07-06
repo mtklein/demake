@@ -13,6 +13,7 @@ void party5_swap(int i, int r);  /* exchange creature state after party_swap */
 int  party5_weapon(int i);
 int  party5_default_weapon(int cls);
 int  party5_cast_ab(int cls);
+int  party5_preset(int cls, int a);
 int  party5_spell_dc(const R5Creature*);
 int  party5_spell_atk(const R5Creature*);
 

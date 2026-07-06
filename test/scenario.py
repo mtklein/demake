@@ -42,6 +42,9 @@ def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
 def setup(cls, choices, battle_mode=0):
     poke(DEMO, 1); poke(BATTLE, battle_mode); poke(CLASS, cls)
     poke(0x0203FF0E, 7)   # origin = custom Tav (fixed origins override in their own scenarios)
+    # creation screens: 0 = keep the legacy race-none/preset sheet
+    # (creation_check pokes real values)
+    poke(0x0203FF08, 0); poke(0x0203FF09, 0); poke(0x0203FF0A, 0)
     poke(IDLE, 0); poke(DONE, 0)
     for i, c in enumerate(choices):
         poke(CHOICE + i, c)
@@ -159,6 +162,20 @@ def _mk_smoke(cls):
 
 for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
+
+@scn
+def creation_check():
+    """custom wizard walks the creation screens with poked choices: hill
+    dwarf, sage, and the class array with CON/INT swapped. The gate greps
+    the create line -- race, background, and the ASI'd spread all landed --
+    and the run reaches the nursery field-ready."""
+    setup(3, [0, 1, 0, 0, 2])
+    poke(0x0203FF08, 1)                    # G_DEMO_RACE = hill dwarf
+    poke(0x0203FF09, 3)                    # G_DEMO_BG   = sage
+    poke(0x0203FF0A, 1)                    # arrange from the poked buffer:
+    for i, v in enumerate((8, 13, 15, 14, 12, 10)):   # preset, CON/INT swapped
+        poke(0x0203FF20 + i, v)
+    intro()
 
 @scn
 def skill_check():

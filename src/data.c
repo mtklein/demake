@@ -86,6 +86,7 @@ void party_init(int cls, const char* name) {
          * custom Tav and the Urge start race-none -- the creation flow
          * (or a test) writes theirs afterward and re-refreshes */
         p->race = p->background = 0;
+        for (int a = 0; a < 6; a++) p->ab6[a] = 0;   /* class preset spread */
         if (G.origin < ORIG_DURGE) {
             p->race = (u8)origin_race(G.origin);
             p->background = (u8)origin_background(G.origin);
@@ -111,6 +112,17 @@ void party_init(int cls, const char* name) {
 
 void loot_weapon(int w) {
     if (G.nwinv < 8) G.winv[G.nwinv++] = (u8)w;
+}
+
+/* the creation flow's write-back for custom Tav / the Urge: race,
+ * background, and the arranged spread land on the hero after party_init */
+void party_set_identity(int race, int bg, const s8* ab6) {
+    PMember* p = &G.pm[0];
+    p->race = (u8)race;
+    p->background = (u8)bg;
+    for (int a = 0; a < 6; a++) p->ab6[a] = ab6 ? ab6[a] : 0;
+    p->skills |= r5_races[p->race].skills | r5_backgrounds[p->background].skills;
+    party5_refresh(0);
 }
 
 /* level as far as xp allows (prologue cap 3); returns levels gained */
