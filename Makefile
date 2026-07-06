@@ -55,9 +55,19 @@ $(BUILD)/r_%.o: rules/%.c rules/rules.h | $(BUILD)
 $(SRDTAB): tools/mksrd.py tools/srd/srd_data.py tools/srd/overrides.py | $(BUILD)
 	$(PY) tools/mksrd.py
 
-.PHONY: test-rules
+.PHONY: test-rules test-aeabi gate
 test-rules: $(BUILD)/test_rules
 	$(BUILD)/test_rules
+
+test-aeabi: $(BUILD)/test_aeabi
+	$(BUILD)/test_aeabi
+
+$(BUILD)/test_aeabi: src/aeabi.c test/test_aeabi.c | $(BUILD)
+	$(HOSTCC) -O2 -fno-builtin -Wall -Wextra -o $@ src/aeabi.c test/test_aeabi.c
+
+# the whole pre-commit ritual: build, native suites, lint, 7 playthroughs
+gate:
+	test/gate.sh
 
 $(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) rules/rules.h rules/test_rules.c | $(BUILD)
 	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules \

@@ -141,6 +141,10 @@ end to end, plus living-encounter scenarios: sneaking a backstab on a patroller
 (`sneak_strike`), getting run down by one (`cone_ambush`), and the helm's
 sleepers (`helm_sleepz`).
 
+`make gate` runs the whole ritual in one command -- ROM and runner builds, the
+rules and division-helper suites, the counterpoint linter, and all seven
+scripted playthroughs with structural pass/fail assertions.
+
 ## Debug flags (CodeBreaker cheats)
 
 The engine's demo flags live at fixed EWRAM addresses; mGBA's cheat interface
