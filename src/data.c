@@ -80,8 +80,18 @@ void party_init(int cls, const char* name) {
             [CLS_MONK]={SK_ACROBATICS,SK_STEALTH},[CLS_PALADIN]={SK_RELIGION,SK_PERSUASION},
             [CLS_SORCERER]={SK_ARCANA,SK_DECEPTION},[CLS_WARLOCK]={SK_ARCANA,SK_DECEPTION},
         };
-        p->skills = (1u << sk2[cls][0]) | (1u << sk2[cls][1]);
-        p->expert = (cls == CLS_ROGUE) ? p->skills : 0;   /* rogue Expertise */
+        u32 cls_sk = (1u << sk2[cls][0]) | (1u << sk2[cls][1]);
+        p->expert = (cls == CLS_ROGUE) ? cls_sk : 0;   /* Expertise: the class picks only */
+        /* fixed origins wear their canon blood + background (character2.md);
+         * custom Tav and the Urge start race-none -- the creation flow
+         * (or a test) writes theirs afterward and re-refreshes */
+        p->race = p->background = 0;
+        if (G.origin < ORIG_DURGE) {
+            p->race = (u8)origin_race(G.origin);
+            p->background = (u8)origin_background(G.origin);
+        }
+        p->skills = cls_sk | r5_races[p->race].skills
+                           | r5_backgrounds[p->background].skills;
     }
     if (G.origin == ORIG_SHADOW) p->subclass = R5SUB_DOMAIN_OF_MASKS;
     else if (G.origin == ORIG_WYLL) p->subclass = R5SUB_FIEND;
@@ -121,7 +131,8 @@ static int level_ups(PMember* p) {
 
 /* recruit a soul at the party's level: a walking slot if one is open,
  * else the reserve (the walking party never exceeds three -- battle and
- * menu code count on it) */
+ * menu code count on it). Canon blood rides the face (character2.md
+ * origin identities), walking or benched alike. */
 static void party_add(const char* name, int cls, int face) {
     int walk = G.nparty < 3;
     PMember* p;
@@ -130,6 +141,9 @@ static void party_add(const char* name, int cls, int face) {
     else return;                    /* the arc caps the roster at 5 souls */
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = G.pm[0].xp; p->face = (u8)face;
+    p->race = (u8)origin_race(face);
+    p->background = (u8)origin_background(face);
+    p->skills = r5_races[p->race].skills | r5_backgrounds[p->background].skills;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     if (walk) {

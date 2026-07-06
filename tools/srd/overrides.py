@@ -1277,6 +1277,12 @@ SUBCLASSES_HB = {'path of the spirit beast': {'class': 'barbarian',
 # Homebrew githyanki for origin Lae'zel: our numbers, our text.
 # --------------------------------------------------------------------------
 
+# 5.1 half-elf RAW grants "+1 to two other ability scores of your choice" --
+# a floating pick, and fixed ASIs are doctrine (character2.md: "Racial ASIs
+# are FIXED per 5.1"). This pin is OUR game decision, one per race, chosen
+# for the half-elf the game actually casts: Shadowheart, a trickery cleric.
+RACE_ASI_PINS = {'half-elf': {'dex': 1, 'wis': 1}}
+
 RACES_HB = {'githyanki': {'srd': False,
                'blurb': 'Sword-drilled exiles of a stolen people: they trust '
                         'steel, discipline, and very little else.',

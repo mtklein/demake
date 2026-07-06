@@ -5,6 +5,7 @@
 #include "assets.h"
 #include "engine.h"
 #include "game.h"
+#include "rules.h"
 #include "screens.h"
 
 static void sky_full(void) {
@@ -246,17 +247,30 @@ static void blurb_draw(const char* s) {
 }
 
 /* origin identity: class (-1 = any), portrait, default subclass or 255,
- * and a short blurb. Fixed origins live under their class in the chooser. */
-typedef struct { const char* name; s8 cls; s8 por; u8 sub; const char* blurb; } Origin;
+ * canon race + background (character2.md "Origin sheet identities"; BG3's
+ * Charlatan Astarion maps to our Criminal -- nearest of the ten staged),
+ * and a short blurb. Fixed origins live under their class in the chooser.
+ * The Urge and custom Tav row 0s are the PICKER DEFAULTS, not fixed sheets:
+ * both walk the full creation flow. */
+typedef struct { const char* name; s8 cls; s8 por; u8 sub;
+                 u8 race, bg; const char* blurb; } Origin;
 static const Origin origins[ORIG_COUNT] = {
-    { "Astarion",  CLS_ROGUE,   POR_ASTARION, 255, "Pale elf. A hunger\nhe hides too well." },
-    { "Gale",      CLS_WIZARD,  POR_GALE,     255, "A wizard nursing\na very bad secret." },
-    { "Karlach",   CLS_BARBARIAN,POR_KARLACH, 255, "A tiefling: infernal\nengine for a heart." },
-    { "Lae'zel",   CLS_FIGHTER, POR_LAEZEL,   255, "Githyanki warrior.\nContempt as armor." },
-    { "Shadowheart",CLS_CLERIC, POR_SHADOW,   255, "Cleric of Shar.\nMemories missing." },
-    { "Wyll",      CLS_WARLOCK, POR_WYLL,     255, "Blade of Frontiers.\nA pact regretted." },
-    { "Dark Urge", -1,          POR_DURGE,    255, "You wake knowing\nsomething used your\nhands, and liked it." },
-    { "Custom Tav",-1,          -1,           255, "Someone new.\nChoose your path." },
+    { "Astarion",  CLS_ROGUE,   POR_ASTARION, 255, R5RACE_HIGH_ELF,  R5BG_CRIMINAL,
+      "Pale elf. A hunger\nhe hides too well." },
+    { "Gale",      CLS_WIZARD,  POR_GALE,     255, R5RACE_HUMAN,     R5BG_SAGE,
+      "A wizard nursing\na very bad secret." },
+    { "Karlach",   CLS_BARBARIAN,POR_KARLACH, 255, R5RACE_TIEFLING,  R5BG_OUTLANDER,
+      "A tiefling: infernal\nengine for a heart." },
+    { "Lae'zel",   CLS_FIGHTER, POR_LAEZEL,   255, R5RACE_GITHYANKI, R5BG_SOLDIER,
+      "Githyanki warrior.\nContempt as armor." },
+    { "Shadowheart",CLS_CLERIC, POR_SHADOW,   255, R5RACE_HALF_ELF,  R5BG_ACOLYTE,
+      "Cleric of Shar.\nMemories missing." },
+    { "Wyll",      CLS_WARLOCK, POR_WYLL,     255, R5RACE_HUMAN,     R5BG_FOLK_HERO,
+      "Blade of Frontiers.\nA pact regretted." },
+    { "Dark Urge", -1,          POR_DURGE,    255, R5RACE_DRAGONBORN, R5BG_HAUNTED_ONE,
+      "You wake knowing\nsomething used your\nhands, and liked it." },
+    { "Custom Tav",-1,          -1,           255, R5RACE_NONE,      R5BG_NONE,
+      "Someone new.\nChoose your path." },
 };
 
 /* THE single source of party art. Identity (origin/companion) wins; custom
@@ -295,6 +309,8 @@ MemberLook member_look(int face, int cls) {
 int origin_class(int o) { return origins[o].cls; }
 const char* origin_name(int o) { return origins[o].name; }
 int origin_portrait(int o) { return origins[o].por; }
+int origin_race(int o) { return origins[o].race; }
+int origin_background(int o) { return origins[o].bg; }
 
 int game_class_select(void) {
     memset16(SCREENBLOCK(30), 0, 1024);

@@ -108,15 +108,50 @@ typedef struct {
 /* per-level class resource pools, generator-emitted (0 where N/A) */
 enum { R5R_RAGE, R5R_KI, R5R_SORC, R5R_LAY, R5R_SHAPE, R5R_PACT, R5R_COUNT };
 
-/* racial trait bits (Character 2.0; set at creation from race data) */
+/* racial trait bits (Character 2.0; set at creation from race data).
+ * FEY and CUNNING are data-carried: their consumers (charm/sleep vs PCs,
+ * enemy spell saves) arrive with the beach arc. DARKVISION is data-carried
+ * and INERT by design -- DARK rooms consume it when the first dark room
+ * ships (character2.md, darkvision socket). */
 enum {
     TR_LUCKY      = 1 << 0,   /* halfling: reroll natural 1s, keep the new roll */
     TR_RELENTLESS = 1 << 1,   /* half-orc: drop to 1 hp instead of 0, 1/rest */
     TR_SAVAGE     = 1 << 2,   /* half-orc: +1 weapon die on a crit */
     TR_FEY        = 1 << 3,   /* elf-kin: advantage vs charm, sleep-immune */
     TR_CUNNING    = 1 << 4,   /* gnome: adv on INT/WIS/CHA saves vs magic */
+    TR_DARKVISION = 1 << 5,   /* see in the dark; no light economy exists yet */
+    TR_POISON_RESIL = 1 << 6, /* dwarf: adv on saves vs poison (resist rides race data) */
     TR_USED_RELENTLESS = 1 << 7,
 };
+
+/* racial identity: merged base+subrace entries, fixed 5.1 ASIs (floating
+ * BG3/Tasha's ASIs deliberately not adopted). Race 0 is "none": the
+ * pre-pick sheet, every delta zero. Generated from tools/srd data. */
+typedef struct {
+    const char* name;         /* display, <=10 chars */
+    int8_t asi[6];            /* fixed ability score increases, R5_ order */
+    uint8_t traits;           /* TR_* bits granted at creation */
+    uint16_t resist;          /* damage resistances (1 << DT_*) */
+    uint8_t hp_per_level;     /* hill dwarf Dwarven Toughness */
+    uint32_t skills;          /* fixed skill proficiencies (SK_* bits) */
+    uint8_t srd;              /* 1 = SRD 5.1 text behind it (CC-BY-4.0) */
+} R5Race;
+extern const R5Race r5_races[];
+
+/* race picker grouping: base races in display order; sub=1 means the
+ * entries are named subraces (the picker shows a subrace screen) */
+typedef struct { const char* name; uint8_t first, n, sub; } R5RaceBase;
+extern const R5RaceBase r5_race_bases[];
+
+/* background: a name, two fixed skill proficiencies, one flavor line --
+ * mechanically that IS a 5.1 background at prologue scope */
+typedef struct {
+    const char* name;         /* display, <=11 chars */
+    uint32_t skills;          /* exactly two SK_* bits (zero for R5BG_NONE) */
+    const char* blurb;
+    uint8_t srd;
+} R5Background;
+extern const R5Background r5_backgrounds[];
 
 typedef struct {
     uint8_t hit_die;

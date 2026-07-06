@@ -114,6 +114,14 @@ static R5Dice damage_roll(R5RNG* r, R5DiceSpec spec, int mod, int crit,
     return w;
 }
 
+/* Dwarven Resilience: advantage on saving throws against poison. The only
+ * poison saves in the game are rider saves (imp sting, stinger venom), so
+ * this is where the trait bites; the resistance half rides R5Race.resist. */
+static int rider_save_flags(const R5Creature* t, uint8_t rider_type) {
+    return (rider_type == DT_POISON && (t->traits & TR_POISON_RESIL))
+               ? R5F_ADV : 0;
+}
+
 R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
                           const R5Weapon* w, int flags) {
     R5Attack out = { 0 };
@@ -142,7 +150,8 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
         out.rider_dmg = r5_roll(r, rs.n, rs.sides, rs.mod);
         int amt = out.rider_dmg.total;
         if (w->rider_dc) {
-            R5Save sv = r5_save(r, t, w->rider_save_ab, w->rider_dc, 0);
+            R5Save sv = r5_save(r, t, w->rider_save_ab, w->rider_dc,
+                                rider_save_flags(t, w->rider_type));
             out.rider_save = sv.d20;
             out.rider_saved = sv.success;
             if (sv.success) amt /= 2;
@@ -168,7 +177,8 @@ R5Attack r5_monster_attack(R5RNG* r, const R5Creature* a, const R5MAttack* ma,
         R5DiceSpec rs = ma->rider_dmg;
         if (out.crit) rs.n = (uint8_t)(rs.n * 2);           /* crits double riders too */
         out.rider_dmg = r5_roll(r, rs.n, rs.sides, rs.mod);
-        R5Save sv = r5_save(r, t, ma->rider_save_ab, ma->rider_dc, 0);
+        R5Save sv = r5_save(r, t, ma->rider_save_ab, ma->rider_dc,
+                            rider_save_flags(t, ma->rider_type));
         out.rider_save = sv.d20;
         out.rider_saved = sv.success;
         int amt = sv.success ? out.rider_dmg.total / 2 : out.rider_dmg.total;

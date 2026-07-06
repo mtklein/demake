@@ -389,6 +389,137 @@ static void test_weapon_rider(void) {
     if (at.hit) CHECK(at.rider_dmg.n == 0);
 }
 
+/* ------------------------------------------------- races + backgrounds
+ * Expectations restated from SRD 5.1 race/background text (CC-BY-4.0) and
+ * character2.md identities -- never read out of the generator. */
+
+static void test_races_table(void) {
+    /* race 0 is "none": the pre-pick compatibility sheet, all deltas zero */
+    const R5Race* nn = &r5_races[R5RACE_NONE];
+    for (int a = 0; a < 6; a++) CHECK(nn->asi[a] == 0);
+    CHECK(nn->traits == 0 && nn->resist == 0 && nn->hp_per_level == 0 &&
+          nn->skills == 0);
+
+    static const struct {
+        int id; int8_t asi[6]; uint8_t traits; uint16_t resist;
+        uint8_t hp_lvl; uint32_t skills; uint8_t srd;
+    } want[] = {
+        /* hill dwarf: CON+2 WIS+1, Resilience, Toughness (+1 hp/level) */
+        { R5RACE_HILL_DWARF, { 0, 0, 2, 0, 1, 0 },
+          TR_DARKVISION | TR_POISON_RESIL, 1u << DT_POISON, 1, 0, 1 },
+        /* high elf: DEX+2 INT+1, Keen Senses, Fey Ancestry */
+        { R5RACE_HIGH_ELF, { 0, 2, 0, 1, 0, 0 }, TR_DARKVISION | TR_FEY,
+          0, 0, 1u << SK_PERCEPTION, 1 },
+        /* lightfoot: DEX+2 CHA+1, Lucky; halflings see no better in the dark */
+        { R5RACE_LIGHTFOOT, { 0, 2, 0, 0, 0, 1 }, TR_LUCKY, 0, 0, 0, 1 },
+        { R5RACE_HUMAN, { 1, 1, 1, 1, 1, 1 }, 0, 0, 0, 0, 1 },
+        /* dragonborn: STR+2 CHA+1; ancestry/breath/resistance are one
+         * named socket, so no bits and no resist land today */
+        { R5RACE_DRAGONBORN, { 2, 0, 0, 0, 0, 1 }, 0, 0, 0, 0, 1 },
+        { R5RACE_ROCK_GNOME, { 0, 0, 1, 2, 0, 0 },
+          TR_DARKVISION | TR_CUNNING, 0, 0, 0, 1 },
+        /* half-elf: CHA+2 plus the fixed DEX/WIS pin (no floating ASIs) */
+        { R5RACE_HALF_ELF, { 0, 1, 0, 0, 1, 2 }, TR_DARKVISION | TR_FEY,
+          0, 0, 0, 1 },
+        { R5RACE_HALF_ORC, { 2, 0, 1, 0, 0, 0 },
+          TR_DARKVISION | TR_RELENTLESS | TR_SAVAGE, 0, 0,
+          1u << SK_INTIMIDATION, 1 },
+        { R5RACE_TIEFLING, { 0, 0, 0, 1, 0, 2 }, TR_DARKVISION,
+          1u << DT_FIRE, 0, 0, 1 },
+        /* githyanki: homebrew stat block, never an SRD claim */
+        { R5RACE_GITHYANKI, { 2, 0, 0, 1, 0, 0 }, 0, 0, 0, 0, 0 },
+    };
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++) {
+        const R5Race* rr = &r5_races[want[i].id];
+        for (int a = 0; a < 6; a++)
+            CHECKI(rr->asi[a] == want[i].asi[a], "%s asi[%d]=%d",
+                   rr->name, a, rr->asi[a]);
+        CHECKI(rr->traits == want[i].traits, "%s traits %02x", rr->name, rr->traits);
+        CHECKI(rr->resist == want[i].resist, "%s resist %04x", rr->name, rr->resist);
+        CHECK(rr->hp_per_level == want[i].hp_lvl);
+        CHECKI(rr->skills == want[i].skills, "%s skills %x",
+               rr->name, (unsigned)rr->skills);
+        CHECK(rr->srd == want[i].srd);
+    }
+    /* the picker grouping covers each playable race exactly once */
+    uint32_t seen = 0;
+    for (int b = 0; b < R5RACE_BASE_COUNT; b++)
+        for (int k = 0; k < r5_race_bases[b].n; k++) {
+            int e = r5_race_bases[b].first + k;
+            CHECK(!(seen & (1u << e)));
+            seen |= 1u << e;
+        }
+    CHECK(seen == 0x7FEu);                          /* entries 1..10, no NONE */
+}
+
+static void test_backgrounds_table(void) {
+    CHECK(r5_backgrounds[R5BG_NONE].skills == 0);
+    static const struct { int id; uint32_t skills; uint8_t srd; } want[] = {
+        { R5BG_ACOLYTE,     (1u << SK_INSIGHT) | (1u << SK_RELIGION), 1 },
+        { R5BG_CRIMINAL,    (1u << SK_DECEPTION) | (1u << SK_STEALTH), 0 },
+        { R5BG_SAGE,        (1u << SK_ARCANA) | (1u << SK_HISTORY), 0 },
+        { R5BG_SOLDIER,     (1u << SK_ATHLETICS) | (1u << SK_INTIMIDATION), 0 },
+        { R5BG_ENTERTAINER, (1u << SK_ACROBATICS) | (1u << SK_PERFORMANCE), 0 },
+        { R5BG_FOLK_HERO,   (1u << SK_ANIMAL_HANDLING) | (1u << SK_SURVIVAL), 0 },
+        { R5BG_NOBLE,       (1u << SK_HISTORY) | (1u << SK_PERSUASION), 0 },
+        { R5BG_OUTLANDER,   (1u << SK_ATHLETICS) | (1u << SK_SURVIVAL), 0 },
+        { R5BG_URCHIN,      (1u << SK_SLEIGHT_OF_HAND) | (1u << SK_STEALTH), 0 },
+        { R5BG_HAUNTED_ONE, (1u << SK_INVESTIGATION) | (1u << SK_SURVIVAL), 0 },
+    };
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++) {
+        const R5Background* b = &r5_backgrounds[want[i].id];
+        CHECKI(b->skills == want[i].skills, "%s skills %x",
+               b->name, (unsigned)b->skills);
+        CHECK(b->srd == want[i].srd);
+        int bits = 0;
+        for (int s = 0; s < SK_COUNT; s++) bits += (int)((b->skills >> s) & 1);
+        CHECK(bits == 2);                    /* a background IS two skills */
+        CHECK(b->blurb[0] != 0);             /* ...and one flavor line */
+    }
+}
+
+/* Dwarven Resilience: advantage on the save against poison riders (imp
+ * sting, stinger venom); other damage types get no such grace. */
+static void test_poison_resilience(void) {
+    R5RNG r; r5_seed(&r, 77);
+    const R5MAttack* sting = &r5_monsters[R5M_IMP].attacks[0];
+    R5Creature t = pc(R5C_FIGHTER, 1, 16, 10, 14);
+    t.hpmax = t.hp = 30000;
+    t.traits = TR_POISON_RESIL;
+    int hits = 0;
+    for (int i = 0; i < 600; i++) {
+        R5Attack at = r5_monster_attack(&r, 0, sting, &t, 0);
+        if (!at.hit) continue;
+        hits++;
+        CHECK(at.rider_type == DT_POISON);
+        CHECK(at.rider_save.n == 2);         /* advantage: two dice thrown */
+    }
+    CHECK(hits > 150);
+    /* without the trait the same save is a single die */
+    t.traits = 0;
+    for (int i = 0; i < 200; i++) {
+        R5Attack at = r5_monster_attack(&r, 0, sting, &t, 0);
+        if (at.hit) CHECK(at.rider_save.n == 1);
+    }
+    /* the weapon path honors it too (stinger venom)... */
+    R5Creature a = pc(R5C_FIGHTER, 2, 16, 10, 14);
+    R5Creature vt = monster(1, 30000);
+    vt.traits = TR_POISON_RESIL;
+    int vhits = 0;
+    for (int i = 0; i < 200; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &vt, &r5_weapons[R5W_STINGER], 0);
+        if (!at.hit) continue;
+        vhits++;
+        CHECK(at.rider_type == DT_POISON);
+        CHECK(at.rider_save.n == 2);
+    }
+    CHECK(vhits > 150);
+    /* ...but a FIRE rider against the same dwarf stays a straight roll */
+    for (int i = 0; i < 200; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &vt, &r5_weapons[R5W_EVERBURN], 0);
+        if (at.hit) CHECK(at.rider_save.n == 1);
+    }
+}
 
 /* ---------------------------------------------------- Character 2.0 pools */
 static void test_char2_pools(void) {
@@ -787,6 +918,9 @@ typedef struct { const char* name; void (*fn)(void); } R5Test;
 #define T(f) { #f, f }
 static const R5Test tests[] = {
     T(test_weapon_rider),
+    T(test_races_table),
+    T(test_backgrounds_table),
+    T(test_poison_resilience),
     T(test_expectations),
     T(test_dice),
     T(test_advantage),

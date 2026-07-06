@@ -366,6 +366,184 @@ def gen_class_spells(o):
     o.append("};")
 
 
+# ---------------------------------------------------------------- races
+
+RACE_MAP = [  # (enum, base key, subrace key, source) in R5RACE_ order.
+    # NONE first: race 0 is the pre-pick sheet, every delta zero -- the
+    # compatibility state all pre-Character-2.0 flows keep running in.
+    ("R5RACE_NONE", None, None, None),
+    ("R5RACE_HILL_DWARF", "dwarf", "hill dwarf", "srd"),
+    ("R5RACE_HIGH_ELF", "elf", "high elf", "srd"),
+    ("R5RACE_LIGHTFOOT", "halfling", "lightfoot halfling", "srd"),
+    ("R5RACE_HUMAN", "human", None, "srd"),
+    ("R5RACE_DRAGONBORN", "dragonborn", None, "srd"),
+    ("R5RACE_ROCK_GNOME", "gnome", "rock gnome", "srd"),
+    ("R5RACE_HALF_ELF", "half-elf", None, "srd"),
+    ("R5RACE_HALF_ORC", "half-orc", None, "srd"),
+    ("R5RACE_TIEFLING", "tiefling", None, "srd"),
+    ("R5RACE_GITHYANKI", "githyanki", None, "hb"),
+]
+
+RACE_DISPLAY = {  # entry display names, <= 10 chars (picker card / sheet)
+    "R5RACE_NONE": "--", "R5RACE_HILL_DWARF": "Hill Dwarf",
+    "R5RACE_HIGH_ELF": "High Elf", "R5RACE_LIGHTFOOT": "Lightfoot",
+    "R5RACE_HUMAN": "Human", "R5RACE_DRAGONBORN": "Dragonborn",
+    "R5RACE_ROCK_GNOME": "Rock Gnome", "R5RACE_HALF_ELF": "Half-Elf",
+    "R5RACE_HALF_ORC": "Half-Orc", "R5RACE_TIEFLING": "Tiefling",
+    "R5RACE_GITHYANKI": "Githyanki",
+}
+
+# Trait names that distill to engine primitives today (rules.h TR_* bits).
+# Dwarven Resilience is the bit (advantage on saves vs poison) PLUS the
+# poison resistance its 'also' mech carries, picked up by the resist walk.
+TRAIT_BITS = {
+    "Lucky": "TR_LUCKY",
+    "Relentless Endurance": "TR_RELENTLESS",
+    "Savage Attacks": "TR_SAVAGE",
+    "Fey Ancestry": "TR_FEY",
+    "Gnome Cunning": "TR_CUNNING",
+    "Darkvision": "TR_DARKVISION",
+    "Dwarven Resilience": "TR_POISON_RESIL",
+}
+
+# Named sockets: real SRD/homebrew mechanics that can NOT land as engine
+# primitives yet. Emitted into the table comment so the deferral ships in
+# the artifact; nothing here gets half-mechanics.
+RACE_SOCKETS = {
+    "Draconic Ancestry":   "element pick",
+    "Breath Weapon":       "save AoE, 1/short rest",
+    "Damage Resistance":   "typed by ancestry",
+    "Infernal Legacy":     "Hellish Rebuke at L3",
+    "High Elf Cantrip":    "needs member-keyed cantrip plumbing",
+    "Skill Versatility":   "floating 2-skill pick, no pick UI",
+    "Brave":               "nothing frightens at prologue scope",
+    "Silver Reach":        "1/rest field-check advantage",
+}
+
+# Flavor at our scope: proficiency lists the engine does not model (any PC
+# may wield any staged weapon) and pure-color traits without a mech kind
+# of 'flavor'. Everything else must classify above or generation fails.
+RACE_FLAVOR = {
+    "Dwarven Combat Training", "Tool Proficiency", "Elf Weapon Training",
+    "Warrior-Caste Schooling",
+}
+
+def sk_bit(skill):
+    assert skill in SRD.SKILLS, f"unknown skill {skill!r}"
+    return "SK_" + skill.upper().replace(" ", "_")
+
+def race_entry(base_key, sub_key, src):
+    """merge base+subrace into one playable entry: asi/traits/resist/hp/skills"""
+    table = SRD.RACES if src == "srd" else OVR.RACES_HB
+    base = table[base_key]
+    layers = [base] + ([base["subraces"][sub_key]] if sub_key else [])
+    asi = {}
+    for lyr in layers:
+        for ab, v in lyr.get("asi", {}).items():
+            asi[ab] = asi.get(ab, 0) + v
+    for ab, v in OVR.RACE_ASI_PINS.get(base_key, {}).items():
+        asi[ab] = asi.get(ab, 0) + v          # our fixed pick for RAW choices
+    bits, resist, skills, hp_lvl, sockets = set(), set(), set(), 0, []
+
+    def walk_resist(mech):
+        out = set()
+        if mech.get("kind") == "resist" and mech.get("dmg_type") in DT:
+            out.add(mech["dmg_type"])
+        if isinstance(mech.get("also"), dict):
+            out |= walk_resist(mech["also"])
+        return out
+
+    for lyr in layers:
+        for t in lyr.get("traits", []):
+            name, mech = t["name"], t["mech"]
+            resist |= walk_resist(mech)
+            if name in TRAIT_BITS:
+                bits.add(TRAIT_BITS[name])
+            elif name in RACE_SOCKETS:
+                sockets.append(name)
+            elif name in RACE_FLAVOR or mech.get("kind") == "flavor":
+                pass
+            elif mech.get("kind") == "resist" and mech.get("dmg_type") in DT:
+                pass                          # collected by the resist walk
+            elif mech.get("kind") == "passive_bonus" and mech.get("what") == "skills" \
+                    and mech.get("value"):
+                skills |= {sk_bit(s) for s in mech["value"]}
+            elif mech.get("kind") == "passive_bonus" and mech.get("what") == "hp":
+                hp_lvl = 1                    # hill dwarf: +1 per character level
+            else:
+                assert False, f"{base_key}: undistilled trait {name!r}"
+    return asi, bits, resist, skills, hp_lvl, sockets
+
+def gen_race_ids(h):
+    h.append("/* generated: R5RACE_* / R5BG_* identity ids */")
+    for i, (enum, *_rest) in enumerate(RACE_MAP):
+        h.append(f"#define {enum} {i}")
+    h.append(f"#define R5RACE_COUNT {len(RACE_MAP)}")
+    bases = [m for m in RACE_MAP if m[1]]
+    h.append(f"#define R5RACE_BASE_COUNT {len(bases)}")
+    for i, key in enumerate(bg_order()):
+        h.append(f"#define {bg_enum(key)} {i + 1}")
+    h.append("#define R5BG_NONE 0")
+    h.append(f"#define R5BG_COUNT {len(bg_order()) + 1}")
+
+def gen_races(o):
+    # load-bearing SRD facts, validated before anything is emitted
+    hd = race_entry("dwarf", "hill dwarf", "srd")
+    assert hd[0] == {"con": 2, "wis": 1} and hd[4] == 1, "hill dwarf drifted"
+    assert "poison" in hd[2], "Dwarven Resilience must carry poison resistance"
+    ho = race_entry("half-orc", None, "srd")
+    assert {"TR_RELENTLESS", "TR_SAVAGE"} <= ho[1], "half-orc trait bits missing"
+    assert "Lucky" in [t["name"] for t in SRD.RACES["halfling"]["traits"]]
+    assert race_entry("human", None, "srd")[0] == \
+        {a: 1 for a in ("str", "dex", "con", "int", "wis", "cha")}
+    assert "fire" in race_entry("tiefling", None, "srd")[2]
+    assert not OVR.RACES_HB["githyanki"]["srd"], "gith ships as homebrew only"
+
+    o.append("const R5Race r5_races[R5RACE_COUNT] = {")
+    o.append('    [R5RACE_NONE] = { "--", { 0, 0, 0, 0, 0, 0 }, 0, 0, 0, 0, 0 },')
+    for enum, base_key, sub_key, src in RACE_MAP[1:]:
+        asi, bits, resist, skills, hp_lvl, sockets = race_entry(base_key, sub_key, src)
+        if sockets:
+            o.append("    /* %s sockets: %s */" % (
+                base_key, "; ".join(f"{s} ({RACE_SOCKETS[s]})" for s in sockets)))
+        asis = ", ".join(str(asi.get(a, 0)) for a in ("str", "dex", "con", "int", "wis", "cha"))
+        rz = " | ".join(f"(1 << {DT[d]})" for d in sorted(resist)) or "0"
+        sk = " | ".join(f"(1u << {b})" for b in sorted(skills)) or "0"
+        assert all(0 <= asi.get(a, 0) <= 2 for a in asi), f"{base_key}: wild ASI"
+        o.append('    [%s] = { "%s", { %s }, %s, %s, %d, %s, %d },' % (
+            enum, RACE_DISPLAY[enum], asis,
+            " | ".join(sorted(bits)) or "0", rz, hp_lvl, sk,
+            1 if src == "srd" else 0))
+    o.append("};")
+    # picker grouping: base races in display order; sub=1 -> entries are
+    # named subraces and the picker shows a subrace screen
+    o.append("const R5RaceBase r5_race_bases[R5RACE_BASE_COUNT] = {")
+    for i, (enum, base_key, sub_key, src) in enumerate(RACE_MAP[1:]):
+        o.append('    { "%s", %s, 1, %d },' % (
+            base_key.title(), enum, 1 if sub_key else 0))
+    o.append("};")
+
+# ---------------------------------------------------------------- backgrounds
+
+def bg_order():
+    return list(SRD.BACKGROUNDS)          # file order, stable
+
+def bg_enum(key):
+    return "R5BG_" + key.upper().replace(" ", "_").replace("-", "_")
+
+def gen_backgrounds(o):
+    assert "haunted one" in SRD.BACKGROUNDS, "the Dark Urge default must exist"
+    o.append("const R5Background r5_backgrounds[R5BG_COUNT] = {")
+    o.append('    [R5BG_NONE] = { "--", 0, "", 0 },')
+    for key in bg_order():
+        b = SRD.BACKGROUNDS[key]
+        assert len(b["skills"]) == 2, f"{key}: a background is exactly 2 skills"
+        mask = " | ".join(f"(1u << {sk_bit(s)})" for s in sorted(b["skills"]))
+        o.append('    [%s] = { "%s", %s, "%s", %d },' % (
+            bg_enum(key), key.title(), mask, b["blurb"],
+            1 if b.get("srd") else 0))
+    o.append("};")
+
 def gen_skill_ids(h):
     names = sorted(SRD.SKILLS)          # alphabetical = bitmask order (pinned)
     for i, k in enumerate(names):
@@ -398,17 +576,21 @@ def main():
     gen_subclasses(o); o.append("")
     gen_subclass_menu(o); o.append("")
     gen_class_spells(o); o.append("")
-    gen_skills(o)
+    gen_skills(o); o.append("")
+    gen_races(o); o.append("")
+    gen_backgrounds(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
     h = []
     gen_spell_ids(h)
     gen_sub_ids(h)
     gen_skill_ids(h)
+    gen_race_ids(h)
     with open(os.path.join(os.path.dirname(OUT), "srd_ids.h"), "w") as f:
         f.write("\n".join(h) + "\n")
     print(f"srd tables: {len(WEAPON_MAP)} weapons, {len(CLASS_MAP)} classes, "
-          f"{len(spell_order())} spells, {len(MONSTER_MAP)} monsters -> {OUT}")
+          f"{len(spell_order())} spells, {len(MONSTER_MAP)} monsters, "
+          f"{len(RACE_MAP)} races, {len(bg_order()) + 1} backgrounds -> {OUT}")
 
 if __name__ == "__main__":
     main()

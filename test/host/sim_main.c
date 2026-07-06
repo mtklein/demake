@@ -548,10 +548,11 @@ static void t_party_swap_menu(void) {
              "party5[1] is %s cls %d", party5[1].name, party5[1].cls);
     T_ASSERT(party5[1].hp == 9 && party5[1].hpmax == 9,
              "swapped-in rogue hp %d/%d, want 9/9", party5[1].hp, party5[1].hpmax);
-    T_ASSERT(party5[1].ac == 13, "rogue AC %d, want 13 (leather + DEX 15)",
+    /* canon blood: Astarion is a high elf (+2 DEX +1 INT on the rogue spread) */
+    T_ASSERT(party5[1].ac == 14, "rogue AC %d, want 14 (leather + DEX 17)",
              party5[1].ac);
-    T_ASSERT(party5[1].ab[R5_DEX] == 15 && party5[1].ab[R5_INT] == 14,
-             "rogue spread DEX %d INT %d, want 15/14",
+    T_ASSERT(party5[1].ab[R5_DEX] == 17 && party5[1].ab[R5_INT] == 15,
+             "rogue spread DEX %d INT %d, want 17/15 (high elf ASIs)",
              party5[1].ab[R5_DEX], party5[1].ab[R5_INT]);
     /* her wound went with her */
     T_ASSERT(bench5[0].cls == CLS_FIGHTER, "bench5[0] cls %d", bench5[0].cls);
@@ -992,6 +993,209 @@ static void t_battle_ranger_conc(void) {
     T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
 }
 
+/* ------------------------------------------------- races + backgrounds
+ * The compatibility law first: race 0 ("none") leaves every sheet exactly
+ * classful -- the state every pre-Character-2.0 flow still runs in. Then
+ * the mechanics: fixed 5.1 ASIs, Dwarven Toughness hp, resistances, trait
+ * bits. Expected numbers are derived from the SRD by hand, per class
+ * preset (the standard-array spreads the design blesses as presets). */
+
+static const s8 preset_ab[CLS_COUNT][6] = {
+    [CLS_BARD]      = { 8, 14, 13, 10, 12, 15 },
+    [CLS_ROGUE]     = { 8, 15, 13, 14, 10, 12 },
+    [CLS_RANGER]    = { 12, 15, 13, 8, 14, 10 },
+    [CLS_WIZARD]    = { 8, 13, 14, 15, 12, 10 },
+    [CLS_FIGHTER]   = { 15, 13, 14, 10, 12, 8 },
+    [CLS_CLERIC]    = { 13, 10, 14, 8, 15, 12 },
+    [CLS_BARBARIAN] = { 15, 13, 14, 8, 12, 10 },
+    [CLS_DRUID]     = { 10, 13, 14, 8, 15, 12 },
+    [CLS_MONK]      = { 10, 15, 13, 8, 14, 12 },
+    [CLS_PALADIN]   = { 15, 10, 13, 8, 12, 14 },
+    [CLS_SORCERER]  = { 8, 13, 14, 10, 12, 15 },
+    [CLS_WARLOCK]   = { 8, 13, 14, 12, 10, 15 },
+};
+
+static void t_race_none_baseline(void) {
+    for (int cls = 0; cls < CLS_COUNT; cls++) {
+        sim_reset();
+        mk_party(cls, 1);       /* sim_reset leaves G.origin = ORIG_CUSTOM */
+        T_ASSERT(G.pm[0].race == R5RACE_NONE && G.pm[0].background == R5BG_NONE,
+                 "%s: custom Tav booted with race %d bg %d",
+                 cls_display[cls], G.pm[0].race, G.pm[0].background);
+        for (int a = 0; a < 6; a++)
+            T_ASSERT(party5[0].ab[a] == preset_ab[cls][a],
+                     "%s ab[%d] %d, want the classful preset %d",
+                     cls_display[cls], a, party5[0].ab[a], preset_ab[cls][a]);
+        T_ASSERT(party5[0].traits == 0, "%s: race-none sheet carries traits %02x",
+                 cls_display[cls], party5[0].traits);
+        T_ASSERT(party5[0].resist == 0, "%s: race-none sheet resists %04x",
+                 cls_display[cls], party5[0].resist);
+        /* SRD hp at level 1: max hit die + CON mod, nothing racial */
+        int want_hp = r5_classes[cls].hit_die + r5_mod(preset_ab[cls][R5_CON]);
+        T_ASSERT(party5[0].hpmax == want_hp, "%s hpmax %d, want %d",
+                 cls_display[cls], party5[0].hpmax, want_hp);
+    }
+}
+
+static void t_race_mechanics_sheet(void) {
+    /* half-orc fighter: STR 17 CON 15, the half-orc trait bits */
+    sim_reset();
+    mk_party(CLS_FIGHTER, 1);
+    G.pm[0].race = R5RACE_HALF_ORC;
+    party5_refresh(0);
+    T_ASSERT(party5[0].ab[R5_STR] == 17 && party5[0].ab[R5_CON] == 15,
+             "half-orc fighter STR %d CON %d, want 17/15",
+             party5[0].ab[R5_STR], party5[0].ab[R5_CON]);
+    T_ASSERT(party5[0].traits == (TR_DARKVISION | TR_RELENTLESS | TR_SAVAGE),
+             "half-orc traits %02x", party5[0].traits);
+    T_ASSERT(party5[0].hpmax == 12,          /* d10 + CON 15 (+2) */
+             "half-orc fighter hpmax %d, want 12", party5[0].hpmax);
+
+    /* hill-dwarf fighter: Toughness pays +1 per level, at 1 and at 3 */
+    sim_reset();
+    mk_party(CLS_FIGHTER, 1);
+    G.pm[0].race = R5RACE_HILL_DWARF;
+    party5_refresh(0);
+    T_ASSERT(party5[0].hpmax == 14,          /* 10 + CON 16 (+3) + 1 */
+             "hill-dwarf fighter L1 hpmax %d, want 14", party5[0].hpmax);
+    T_ASSERT(party5[0].resist == (1u << DT_POISON),
+             "dwarf resist %04x, want poison", party5[0].resist);
+    T_ASSERT(party5[0].traits & TR_POISON_RESIL, "dwarf lost Resilience");
+    sim_reset();
+    mk_party(CLS_FIGHTER, 3);
+    G.pm[0].race = R5RACE_HILL_DWARF;
+    party5_refresh(0);
+    T_ASSERT(party5[0].hpmax == 34,          /* 13 + 2x(6+3) + 3 toughness */
+             "hill-dwarf fighter L3 hpmax %d, want 34", party5[0].hpmax);
+
+    /* tiefling barbarian (Karlach's shape): fire resistance on the sheet */
+    sim_reset();
+    mk_party(CLS_BARBARIAN, 1);
+    G.pm[0].race = R5RACE_TIEFLING;
+    party5_refresh(0);
+    T_ASSERT(party5[0].resist == (1u << DT_FIRE),
+             "tiefling resist %04x, want fire", party5[0].resist);
+    T_ASSERT(party5[0].ab[R5_CHA] == 12 && party5[0].ab[R5_INT] == 9,
+             "tiefling barb CHA %d INT %d, want 12/9",
+             party5[0].ab[R5_CHA], party5[0].ab[R5_INT]);
+
+    /* lightfoot bard: Lucky lands where the dice core reads it */
+    sim_reset();
+    mk_party(CLS_BARD, 1);
+    G.pm[0].race = R5RACE_LIGHTFOOT;
+    party5_refresh(0);
+    T_ASSERT(party5[0].traits == TR_LUCKY, "lightfoot traits %02x",
+             party5[0].traits);
+
+    /* human cleric: every score +1; WIS 16 lifts the spell DC to 13 */
+    sim_reset();
+    mk_party(CLS_CLERIC, 1);
+    G.pm[0].race = R5RACE_HUMAN;
+    party5_refresh(0);
+    T_ASSERT(party5_spell_dc(&party5[0]) == 13,
+             "human cleric DC %d, want 13", party5_spell_dc(&party5[0]));
+
+    /* high-elf rogue: DEX 17 raises leather AC to 14; refresh must be
+     * idempotent (a second pass may not stack the ASI again) */
+    sim_reset();
+    mk_party(CLS_ROGUE, 1);
+    G.pm[0].race = R5RACE_HIGH_ELF;
+    party5_refresh(0);
+    party5_refresh(0);
+    T_ASSERT(party5[0].ab[R5_DEX] == 17, "high-elf rogue DEX %d, want 17",
+             party5[0].ab[R5_DEX]);
+    T_ASSERT(party5[0].ac == 14, "high-elf rogue AC %d, want 14", party5[0].ac);
+}
+
+static void t_origin_sheet_identities(void) {
+    /* character2.md "Origin sheet identities", restated */
+    static const struct { int origin, cls, race, bg; } ident[] = {
+        { ORIG_ASTARION, CLS_ROGUE,     R5RACE_HIGH_ELF,  R5BG_CRIMINAL },
+        { ORIG_GALE,     CLS_WIZARD,    R5RACE_HUMAN,     R5BG_SAGE },
+        { ORIG_KARLACH,  CLS_BARBARIAN, R5RACE_TIEFLING,  R5BG_OUTLANDER },
+        { ORIG_LAEZEL,   CLS_FIGHTER,   R5RACE_GITHYANKI, R5BG_SOLDIER },
+        { ORIG_SHADOW,   CLS_CLERIC,    R5RACE_HALF_ELF,  R5BG_ACOLYTE },
+        { ORIG_WYLL,     CLS_WARLOCK,   R5RACE_HUMAN,     R5BG_FOLK_HERO },
+    };
+    for (unsigned i = 0; i < sizeof ident / sizeof *ident; i++) {
+        sim_reset();
+        G.origin = (u8)ident[i].origin;
+        mk_party(ident[i].cls, 1);
+        T_ASSERT(G.pm[0].race == ident[i].race,
+                 "origin %d race %d, want %d", ident[i].origin,
+                 G.pm[0].race, ident[i].race);
+        T_ASSERT(G.pm[0].background == ident[i].bg,
+                 "origin %d bg %d, want %d", ident[i].origin,
+                 G.pm[0].background, ident[i].bg);
+    }
+    /* spot the sheets: Lae'zel-as-hero swings STR 17 (gith +2)... */
+    sim_reset();
+    G.origin = ORIG_LAEZEL;
+    mk_party(CLS_FIGHTER, 1);
+    T_ASSERT(party5[0].ab[R5_STR] == 17, "origin Lae'zel STR %d, want 17",
+             party5[0].ab[R5_STR]);
+    /* ...Shadowheart heals off WIS 16 (half-elf pin) with fey ancestry... */
+    sim_reset();
+    G.origin = ORIG_SHADOW;
+    mk_party(CLS_CLERIC, 1);
+    T_ASSERT(party5[0].ab[R5_WIS] == 16 && party5_spell_dc(&party5[0]) == 13,
+             "origin Shadowheart WIS %d DC %d, want 16/13",
+             party5[0].ab[R5_WIS], party5_spell_dc(&party5[0]));
+    T_ASSERT(party5[0].traits == (TR_DARKVISION | TR_FEY),
+             "origin Shadowheart traits %02x", party5[0].traits);
+    /* ...and Gale is +1 across the board (INT 16, CON 15) */
+    sim_reset();
+    G.origin = ORIG_GALE;
+    mk_party(CLS_WIZARD, 1);
+    T_ASSERT(party5[0].ab[R5_INT] == 16 && party5[0].ab[R5_CON] == 15,
+             "origin Gale INT %d CON %d, want 16/15",
+             party5[0].ab[R5_INT], party5[0].ab[R5_CON]);
+    /* the Urge (like custom Tav) starts race-none: the pickers own its blood */
+    sim_reset();
+    G.origin = ORIG_DURGE;
+    mk_party(CLS_SORCERER, 1);
+    T_ASSERT(G.pm[0].race == R5RACE_NONE && G.pm[0].background == R5BG_NONE,
+             "the Urge pre-picker race %d bg %d", G.pm[0].race, G.pm[0].background);
+    /* companions carry canon identity in every flow */
+    sim_reset();
+    mk_party(CLS_BARD, 1);
+    party_add_laezel();
+    party_add_shadowheart();
+    T_ASSERT(G.pm[1].race == R5RACE_GITHYANKI && party5[1].ab[R5_STR] == 17,
+             "companion Lae'zel race %d STR %d", G.pm[1].race, party5[1].ab[R5_STR]);
+    T_ASSERT(G.pm[2].race == R5RACE_HALF_ELF && party5[2].ab[R5_WIS] == 16,
+             "companion Shadowheart race %d WIS %d", G.pm[2].race,
+             party5[2].ab[R5_WIS]);
+    T_ASSERT(party5[2].traits & TR_FEY, "companion Shadowheart lost fey ancestry");
+}
+
+static void t_background_skill_union(void) {
+    /* Astarion: rogue picks (Stealth+Sleight) + Criminal (Deception+Stealth)
+     * + high-elf Keen Senses (Perception); Expertise stays the CLASS pair */
+    sim_reset();
+    G.origin = ORIG_ASTARION;
+    mk_party(CLS_ROGUE, 1);
+    u32 cls_pair = (1u << SK_STEALTH) | (1u << SK_SLEIGHT_OF_HAND);
+    u32 want = cls_pair | (1u << SK_DECEPTION) | (1u << SK_PERCEPTION);
+    T_ASSERT(G.pm[0].skills == want, "Astarion skills %x, want %x",
+             (unsigned)G.pm[0].skills, (unsigned)want);
+    T_ASSERT(G.pm[0].expert == cls_pair, "Astarion expertise %x, want %x",
+             (unsigned)G.pm[0].expert, (unsigned)cls_pair);
+    /* Shadowheart: cleric Religion+Medicine + Acolyte Insight+Religion */
+    sim_reset();
+    G.origin = ORIG_SHADOW;
+    mk_party(CLS_CLERIC, 1);
+    want = (1u << SK_RELIGION) | (1u << SK_MEDICINE) | (1u << SK_INSIGHT);
+    T_ASSERT(G.pm[0].skills == want, "Shadowheart skills %x, want %x",
+             (unsigned)G.pm[0].skills, (unsigned)want);
+    /* custom Tav keeps exactly the class pair -- no phantom background */
+    sim_reset();
+    mk_party(CLS_WIZARD, 1);
+    want = (1u << SK_ARCANA) | (1u << SK_HISTORY);
+    T_ASSERT(G.pm[0].skills == want, "custom wizard skills %x, want %x",
+             (unsigned)G.pm[0].skills, (unsigned)want);
+}
+
 /* ------------------------------------------------- party5 + audit units */
 
 static void t_spell_dc_math(void) {
@@ -1223,6 +1427,10 @@ static const Test tests[] = {
     { "battle_druid_wildshape",    t_battle_druid_wildshape },
     { "battle_rogue_pick",         t_battle_rogue_pick },
     { "battle_ranger_conc",        t_battle_ranger_conc },
+    { "race_none_baseline",        t_race_none_baseline },
+    { "race_mechanics_sheet",      t_race_mechanics_sheet },
+    { "origin_sheet_identities",   t_origin_sheet_identities },
+    { "background_skill_union",    t_background_skill_union },
     { "spell_dc_math",             t_spell_dc_math },
     { "heal_full_rest",            t_heal_full_rest },
     { "audit_native",              t_audit_native },

@@ -12,6 +12,8 @@ typedef struct {
     u32 prepared;    /* prepared-caster spell bitmask into r5_class_spells */
     u32 skills, expert;   /* SK_* proficiency + expertise bitmasks */
     u8 face;              /* art identity: ORIG_* (companions too) */
+    u8 race;              /* R5RACE_*; 0 = none, every racial delta zero */
+    u8 background;        /* R5BG_*;   0 = none, no extra skills */
     s16 hp, hpmax, mp, mpmax;
     u8 atk, def, mag, spd;
     u16 xp;
@@ -66,6 +68,9 @@ enum {
 };
 
 #define HERO_CLS (G.pm[0].cls)
+
+int origin_race(int o);          /* canon blood (character2.md identities) */
+int origin_background(int o);    /* canon background */
 
 void party_init(int cls, const char* name);
 void party_add_laezel(void);

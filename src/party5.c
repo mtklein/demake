@@ -75,12 +75,14 @@ static s16 max_hp(int cls, int level, int conmod) {
  * missing hp / spent slots / spent pools, measured against the OLD
  * class+level so a rebuild across a level-up (or a bench swap) stays true */
 static void build(const PMember* p, R5Creature* c, int carry) {
+    const R5Race* rr = &r5_races[p->race];   /* race 0 = none: all zeros */
     int missing = 0, spent[3] = { 0, 0, 0 };
     int pspent[R5R_COUNT] = { 0 };
-    u8 used = 0, conds = 0;
+    u8 used = 0, conds = 0, tr_used = 0;
     if (carry) {
         missing = c->hpmax - c->hp;
         used = c->used;
+        tr_used = (u8)(c->traits & TR_USED_RELENTLESS);
         conds = (u8)(c->conds & C_UNCONSCIOUS);
         for (int s = 0; s < 3; s++) {
             int oldmax = r5_classes[c->cls].slots[c->level][s];
@@ -92,15 +94,19 @@ static void build(const PMember* p, R5Creature* c, int carry) {
     c->name = p->name;
     c->cls = p->cls;
     c->level = p->level;
-    for (int a = 0; a < 6; a++) c->ab[a] = gen_ab[p->cls][a];
-    c->hpmax = max_hp(p->cls, p->level, r5_mod(c->ab[R5_CON]));
+    for (int a = 0; a < 6; a++)
+        c->ab[a] = (s8)(gen_ab[p->cls][a] + rr->asi[a]);   /* fixed 5.1 ASIs */
+    c->hpmax = (s16)(max_hp(p->cls, p->level, r5_mod(c->ab[R5_CON]))
+                     + rr->hp_per_level * p->level);       /* hill dwarf */
     c->hp = (s16)(c->hpmax - missing);
     if (c->hp < 0) c->hp = 0;
     c->temp_hp = 0;
     c->ac = class_ac(p->cls, r5_mod(c->ab[R5_DEX]));
     c->save_prof = r5_classes[p->cls].save_prof;
     c->conds = conds;
-    c->resist = c->immune = c->vulnerable = 0;
+    c->resist = rr->resist;                  /* tiefling fire, dwarf poison */
+    c->immune = c->vulnerable = 0;
+    c->traits = (u8)(rr->traits | tr_used);
     for (int s = 0; s < 3; s++) {
         int mx = r5_classes[p->cls].slots[p->level][s];
         int v = mx - spent[s];
