@@ -9,6 +9,8 @@ MAPLEG = {
     "%": "mesh", "g": "gith_corpse", "f": "flayer_corpse", "t": "tank",
     "h": "helm_floor", "V": "viewport",
     "s": "sand", "S": "sand_d", "u": "surf", "U": "sea", "k": "wreck",
+    "G": "sand_g", "r": "rock", "n": "dune", "<": "wreck_l", ">": "wreck_r",
+    "y": "flayer_dying", "Z": "cage", "z": "cage_open",
 }
 
 MAPS = {
@@ -81,17 +83,39 @@ MAPS = {
         "#................#",
         "##################",
     ],
-    # The Ravaged Beach — crash-site epilogue.
+    # The Ravaged Beach, crash site — the arc's opening room. Landmarks the
+    # events layer points at: dune-gap exit (9,0)-(10,0), hull wreck (4,3)-
+    # (5,3), the dying mind flayer (5,4), Shadowheart ashore (4,7) / (11,6),
+    # devourer patrol (15,2), chest (18,5), Tav wakes at (10,6).
     "beach": [
-        "ssssssSsssssssssSs",
-        "ssSsssssskssssssss",
-        "ssssssssssssssSsss",
-        "sskssSssssssssssss",
-        "ssssssssssSsssksss",
-        "sssSssssssssssssSs",
-        "sSssssssssssSsssss",
-        "uuuuuuuuuuuuuuuuuu",
-        "UUUUUUUUUUUUUUUUUU",
-        "UUUUUUUUUUUUUUUUUU",
+        "nnnnnnnnnGGnnnnnnnnn",
+        "nsssssSsssssssssrssn",
+        "nsrssssssssssssssSGn",
+        "nsss<>ssssSssssssssn",
+        "nSsssyssssssrsssssGn",
+        "nsskssssssssssssksTn",
+        "nGssssssSsssssssssSn",
+        "nssSssssssssssSssssn",
+        "uuuuuuuuuuuuuuuuuuuu",
+        "UUUUUUUUUUUUUUUUUUUU",
+        "UUUUUUUUUUUUUUUUUUUU",
+    ],
+    # The dune path — inland toward the chapel bluff (stone 4's door).
+    # Landmarks: south gap (9,11)-(10,11) back to the crash site, blocked
+    # north pass (7,0)-(8,0), Lae'zel's cage (2,2) with scavengers at (1,3)
+    # and (3,3), cache chest (14,2), devourer patrols (12,7) and (5,9).
+    "dunes": [
+        "nnnnnnnrrnnnnnnnnn",
+        "nsssSssssssssssssn",
+        "nsZsssssssssssTssn",
+        "nssssssGsssSsssssn",
+        "nssssnnnnnnnnGsssn",
+        "nSssGnnnnnnnnssSsn",
+        "nssssssssssssssssn",
+        "nsssSssssGsssssssn",
+        "nrssssssssssSssrsn",
+        "nssssssSssssssssGn",
+        "nsGsssssssssSssssn",
+        "nnnnnnnnnssnnnnnnn",
     ],
 }
