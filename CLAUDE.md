@@ -17,6 +17,10 @@ operationally. Scenario checks assert structure (no crash/timeout, battles
 resolved, correct ending), never exact xp — xp shifts legitimately whenever
 timing changes move the tick-seeded RNG (even editing dialog text does this).
 
+Main history is linear: one committer controls main, so work lands by
+fast-forward from the working branch (rebase the branch first if main
+moved). No merge commits.
+
 ## Evolution philosophy
 
 Best Simple System for Now (dannorth.net/blog/best-simple-system-for-now):
