@@ -74,6 +74,43 @@ HP pool that hands back the druid at 0 — mechanically closer to FFX's Aeons
 than to anything else in the 16-bit canon, and staged like a summon
 (entrance flash when the form takes over).
 
+## Races, backgrounds, stats, skills
+
+The rest of the character sheet, same doctrine:
+
+- **Races:** the nine SRD 5.1 races with their SRD subraces (hill dwarf,
+  high elf, lightfoot halfling, rock gnome), traits distilled to engine
+  mechs: Lucky (nat-1 reroll, a dice-core flag), Relentless Endurance
+  (drop to 1 hp once per rest), Savage Attacks (extra crit die), breath
+  weapon (save AoE), Hellish Rebuke at 3 + fire resistance, poison
+  resilience, fey ancestry, gnome cunning, high-elf wizard cantrip,
+  hill-dwarf +1 hp/level. Darkvision/speed are flavor (no light or move
+  economy). **Githyanki is homebrew mechanics** (mage-hand legacy flavored
+  psionics, martial prof) — the name is fine, the stat block is ours.
+  Racial ASIs are FIXED per 5.1; BG3's floating +2/+1 is a Tasha's-ism we
+  do not adopt.
+- **Backgrounds:** ~10, each a name + two skill proficiencies + one flavor
+  line (mechanically that IS a 5.1 background at our scope). Dark Urge
+  default: Haunted One. Origins carry canon backgrounds.
+- **Stats:** standard-array assignment at creation (15/14/13/12/10/8,
+  D-pad swap UI). Origins and quick-start classes ship fixed spreads (the
+  current gen_ab tables become the presets).
+- **Skills:** 18 skills, u32 proficiency bitmask; sources: class picks (2,
+  from the class list, in the choice vector), background (2 fixed), race
+  bits. Rogue Expertise at 1 (2 doubled picks), bard at 3.
+- **Field checks — the new system this pays for:** `field_check(skill, dc)`
+  rolls a visible d20 + modifier through the existing dice tray, right over
+  the dialog. Retrofit targets: the rune slate (Arcana), Myrnath's skull
+  (Medicine), the console (Religion), persuading Us (Animal Handling),
+  and the patrol stealth radius keys off Stealth proficiency instead of
+  cls==ROGUE (Expertise shrinks it further). Checks use the same poked
+  choice-buffer determinism as dialogs for the gate.
+
+## Origin sheet identities
+
+Astarion high elf / Gale human / Karlach tiefling / Lae'zel githyanki /
+Shadowheart half-elf / Wyll human / Dark Urge default dragonborn.
+
 ## Data model
 
 - `PMember` grows: `u8 subclass;` `u8 choice[4];` (class-indexed meanings:
