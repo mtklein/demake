@@ -505,6 +505,279 @@ static void test_char2_pools(void) {
     CHECK(mk.rsrc[R5R_KI] == 2 && r5_martial_die(&mk) == 4);
 }
 
+/* ---------------------------------------------------------- skill checks
+ * r5_skill_check is live field code (src/events.c field_check) and was the
+ * one untested entry point into the rules engine. */
+
+static void test_skill_check_math(void) {
+    R5RNG r; r5_seed(&r, 14);
+    /* pin the generated SRD table before leaning on it */
+    CHECK(r5_skill_ability[SK_ATHLETICS] == R5_STR);
+    CHECK(r5_skill_ability[SK_STEALTH] == R5_DEX);
+    CHECK(r5_skill_ability[SK_PERCEPTION] == R5_WIS);
+    R5Creature c = pc(R5C_FIGHTER, 1, 16, 14, 10);     /* STR +3, DEX +2 */
+    c.ab[R5_WIS] = 8;                                  /* WIS -1 */
+    for (int i = 0; i < 500; i++) {
+        int d20;
+        int t = r5_skill_check(&r, &c, SK_ATHLETICS, 0, 0, &d20);
+        CHECK(d20 >= 1 && d20 <= 20);                  /* out-param = raw die */
+        CHECK(t == d20 + 3);
+        t = r5_skill_check(&r, &c, SK_STEALTH, 0, 0, &d20);
+        CHECK(t == d20 + 2);
+        t = r5_skill_check(&r, &c, SK_PERCEPTION, 0, 0, &d20);
+        CHECK(t == d20 - 1);                           /* negative mods too */
+    }
+    int t = r5_skill_check(&r, &c, SK_ATHLETICS, 0, 0, 0);   /* d20out optional */
+    CHECK(t >= 1 + 3 && t <= 20 + 3);
+}
+
+static void test_skill_check_prof_expertise(void) {
+    R5Creature c = pc(R5C_ROGUE, 3, 10, 16, 10);       /* DEX +3, prof +2 */
+    uint32_t bit = 1u << SK_STEALTH;
+    for (uint32_t seed = 1; seed <= 200; seed++) {
+        R5RNG r; int d0, d1, d2;
+        r5_seed(&r, seed);
+        int base = r5_skill_check(&r, &c, SK_STEALTH, 0, 0, &d0);
+        r5_seed(&r, seed);
+        int prof = r5_skill_check(&r, &c, SK_STEALTH, bit, 0, &d1);
+        r5_seed(&r, seed);
+        int expt = r5_skill_check(&r, &c, SK_STEALTH, bit, bit, &d2);
+        CHECK(d1 == d0 && d2 == d0);                   /* same seed, same die */
+        CHECK(base == d0 + 3);
+        CHECK(prof == base + 2);                       /* +prof */
+        CHECK(expt == base + 4);                       /* expertise: +prof again */
+    }
+}
+
+static void test_skill_check_lucky(void) {
+    R5RNG r; r5_seed(&r, 15);
+    R5Creature h = pc(R5C_ROGUE, 1, 10, 16, 10);
+    h.traits = TR_LUCKY;
+    R5Creature n = pc(R5C_ROGUE, 1, 10, 16, 10);
+    int lucky_ones = 0, plain_ones = 0, d20;
+    const int N = 20000;
+    for (int i = 0; i < N; i++) {
+        r5_skill_check(&r, &h, SK_STEALTH, 0, 0, &d20);
+        if (d20 == 1) lucky_ones++;
+        r5_skill_check(&r, &n, SK_STEALTH, 0, 0, &d20);
+        if (d20 == 1) plain_ones++;
+    }
+    /* Lucky rerolls nat 1s once on checks: P(1) = 1/400 vs 1/20 */
+    CHECKI(lucky_ones > 10 && lucky_ones < 120, "lucky ones %d", lucky_ones);
+    CHECKI(plain_ones > 800 && plain_ones < 1200, "plain ones %d", plain_ones);
+}
+
+/* --------------------------------------------------- uncovered rule edges */
+
+static void test_monster_crit_min_and_prof(void) {
+    R5RNG r; r5_seed(&r, 16);
+    R5Creature m = monster(10, 50);
+    CHECK(r5_prof(&m) == 2);                           /* monsters: flat +2 */
+    /* a monster attacker with a widened crit range drives the a->crit_min
+     * path in resolve_to_hit (previously only NULL attackers were tested) */
+    R5MAttack ma = { "Claw", 4, { 1, 6, 2 }, DT_SLASHING,
+                     { 0, 0, 0 }, 0, 0, 0, 0 };
+    R5Creature t = monster(1, 30000);
+    m.crit_min = 19;
+    int saw19 = 0, saw20 = 0;
+    for (int i = 0; i < 4000; i++) {
+        R5Attack at = r5_monster_attack(&r, &m, &ma, &t, 0);
+        CHECK(at.crit == (at.d20.total >= 19));        /* crit iff die >= 19 */
+        if (at.d20.total == 19) saw19 = 1;
+        if (at.d20.total == 20) saw20 = 1;
+    }
+    CHECK(saw19 && saw20);
+}
+
+static void test_rage_exclusions(void) {
+    R5RNG r; r5_seed(&r, 17);
+    /* dmg.mod records ability + rage flat exactly: no sampling needed */
+    R5Creature b = pc(R5C_BARBARIAN, 1, 16, 10, 14);   /* STR +3, DEX +0 */
+    b.conds |= C_RAGING;
+    R5Creature d = pc(R5C_BARBARIAN, 1, 10, 16, 14);   /* STR +0, DEX +3 */
+    d.conds |= C_RAGING;
+    R5Creature t = monster(1, 30000);
+    int seen = 0;
+    for (int i = 0; i < 400 && seen != 15; i++) {
+        R5Attack gs = r5_weapon_attack(&r, &b, &t, &r5_weapons[R5W_GREATSWORD], 0);
+        if (gs.hit) { CHECK(gs.dmg.mod == 3 + 2); seen |= 1; }  /* STR melee: +2 */
+        R5Attack lb = r5_weapon_attack(&r, &b, &t, &r5_weapons[R5W_LONGBOW], 0);
+        if (lb.hit) { CHECK(lb.dmg.mod == 0); seen |= 2; }      /* ranged: no rage */
+        R5Attack ds = r5_weapon_attack(&r, &b, &t, &r5_weapons[R5W_DAGGER], 0);
+        if (ds.hit) { CHECK(ds.dmg.mod == 3 + 2); seen |= 4; }  /* finesse, STR wins: +2 */
+        R5Attack dd = r5_weapon_attack(&r, &d, &t, &r5_weapons[R5W_DAGGER], 0);
+        if (dd.hit) { CHECK(dd.dmg.mod == 3); seen |= 8; }      /* DEX finesse: no rage */
+    }
+    CHECK(seen == 15);
+}
+
+static void test_lucky_attack_and_save(void) {
+    R5RNG r; r5_seed(&r, 18);
+    /* TR_LUCKY must flow through the full attack and save paths, not just
+     * bare r5_d20: final nat-1 rate drops from 1/20 to 1/400 */
+    R5Creature h = pc(R5C_FIGHTER, 1, 16, 10, 14);
+    h.traits = TR_LUCKY;
+    R5Creature t = monster(30, 1000);
+    int ones = 0;
+    const int N = 20000;
+    for (int i = 0; i < N; i++) {
+        R5Attack at = r5_weapon_attack(&r, &h, &t, &r5_weapons[R5W_LONGSWORD], 0);
+        if (at.d20.rolls[0] == 1) ones++;
+    }
+    CHECKI(ones > 10 && ones < 120, "lucky attack nat1s %d", ones);
+    ones = 0;
+    for (int i = 0; i < N; i++) {
+        R5Save sv = r5_save(&r, &h, R5_DEX, 15, 0);
+        if (sv.d20.rolls[0] == 1) ones++;
+    }
+    CHECKI(ones > 10 && ones < 120, "lucky save nat1s %d", ones);
+}
+
+static void test_apply_damage_edges(void) {
+    R5Creature t = monster(10, 50);
+    t.temp_hp = 10;
+    CHECK(r5_apply_damage(&t, 4, DT_SLASHING) == 0);   /* absorbed entirely */
+    CHECK(t.temp_hp == 6 && t.hp == 50);
+    /* Relentless never fires for monsters */
+    R5Creature m = monster(10, 5);
+    m.traits = TR_RELENTLESS;
+    r5_apply_damage(&m, 9, DT_SLASHING);
+    CHECK(m.hp == 0 && !(m.traits & TR_USED_RELENTLESS));
+    /* half-orc PC at 1 hp: Relentless holds the line, reports 0 lost */
+    R5Creature p = pc(R5C_FIGHTER, 1, 16, 10, 14);
+    p.hp = 1; p.traits = TR_RELENTLESS;
+    CHECK(r5_apply_damage(&p, 1, DT_SLASHING) == 0);
+    CHECK(p.hp == 1 && (p.traits & TR_USED_RELENTLESS));
+}
+
+static void test_extra_d6_merge(void) {
+    R5RNG r; r5_seed(&r, 19);
+    /* greatsword 2d6 + hunter's mark d6: same die size, one merged roll
+     * (the mixed-size path is covered by longbow+mark elsewhere) */
+    R5Creature a = pc(R5C_RANGER, 1, 16, 10, 12);
+    R5Creature t = monster(1, 30000);
+    int plain = 0, crit = 0;
+    for (int i = 0; i < 2000 && !(plain && crit); i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &t, &r5_weapons[R5W_GREATSWORD],
+                                       R5F_MARK);
+        if (!at.hit) continue;
+        CHECK(at.dmg.sides == 6);
+        if (at.crit) { crit = 1; CHECK(at.dmg.n == 6); }   /* (2+1) doubled */
+        else { plain = 1; CHECK(at.dmg.n == 3); }
+        int sum = 0;
+        for (int j = 0; j < at.dmg.n; j++) sum += at.dmg.rolls[j];
+        CHECK(at.dmg.total == sum + at.dmg.mod);
+    }
+    CHECK(plain && crit);
+}
+
+static void test_feature_denials(void) {
+    R5Creature f = pc(R5C_FIGHTER, 2, 16, 10, 14);
+    f.hp = 0;
+    CHECK(!r5_can_second_wind(&f));                    /* downed fighter */
+    R5Creature w = pc(R5C_WIZARD, 2, 8, 14, 12);
+    CHECK(!r5_can_action_surge(&w));                   /* wrong class */
+    CHECK(!r5_can_rage(&w));
+    R5Creature b = pc(R5C_BARBARIAN, 1, 16, 10, 14);   /* never refilled */
+    CHECK(b.rsrc[R5R_RAGE] == 0 && !r5_can_rage(&b));  /* empty pool */
+    CHECK(r5_martial_die(&b) == 0);                    /* not a monk */
+}
+
+static void test_guard_rails(void) {
+    R5RNG r;
+    r5_seed(&r, 0);                                    /* 0 falls back, not stuck */
+    CHECK(r.s != 0);
+    int die = r5_die(&r, 6);
+    CHECK(die >= 1 && die <= 6);
+    R5Dice big = r5_roll(&r, 99, 6, 0);                /* dice-count clamp */
+    CHECK(big.n == R5_MAX_DICE);
+    CHECK(big.total >= R5_MAX_DICE && big.total <= R5_MAX_DICE * 6);
+
+    R5Creature f = pc(R5C_FIGHTER, 0, 16, 10, 14);     /* level clamps */
+    CHECK(r5_prof(&f) == 2);
+    f.level = 9;
+    CHECK(r5_prof(&f) == 2);
+    R5Creature ro = pc(R5C_ROGUE, 0, 8, 16, 10);
+    CHECK(r5_sneak_dice(&ro) == 1);
+    ro.level = 9;
+    CHECK(r5_sneak_dice(&ro) == 2);
+
+    R5Creature wz = pc(R5C_WIZARD, 1, 8, 14, 12);      /* slot bounds */
+    wz.slots[0] = 2;
+    CHECK(!r5_spend_slot(&wz, 0) && !r5_spend_slot(&wz, 4));
+    CHECK(wz.slots[0] == 2);
+
+    R5Creature m = monster(10, 10);                    /* refill bad-class guard */
+    m.rsrc[R5R_RAGE] = 7;
+    m.traits = TR_USED_RELENTLESS;
+    r5_refill(&m);
+    CHECK(m.rsrc[R5R_RAGE] == 7);                      /* class table not consulted */
+    CHECK(!(m.traits & TR_USED_RELENTLESS));           /* but the rest-flag clears */
+
+    R5Creature p = pc(R5C_BARD, 1, 10, 14, 12);        /* heal(<=0) is a no-op */
+    r5_apply_damage(&p, 99, DT_SLASHING);
+    CHECK(p.hp == 0 && (p.conds & C_UNCONSCIOUS));
+    r5_heal(&p, 0);
+    r5_heal(&p, -5);
+    CHECK(p.hp == 0 && (p.conds & C_UNCONSCIOUS));     /* no phantom wake */
+
+    R5Creature pal = pc(R5C_PALADIN, 2, 16, 10, 14);   /* lay_hands(<=0) */
+    r5_refill(&pal);
+    uint8_t pool = pal.rsrc[R5R_LAY];
+    CHECK(!r5_lay_hands(&pal, &p, 0) && !r5_lay_hands(&pal, &p, -2));
+    CHECK(pal.rsrc[R5R_LAY] == pool);
+
+    /* EV clamp: a huge negative mod can't drive expected damage below 0;
+     * only the crit term (dice alone) survives: 50 * 10 / 40 = 12 */
+    R5DiceSpec bad = { 1, 4, -10 };
+    CHECK(r5_ev_attack_x100(0, 10, 0, bad) == 12);
+}
+
+static void test_weapon_spec_edges(void) {
+    R5RNG r; r5_seed(&r, 20);
+    R5Creature a = pc(R5C_FIGHTER, 1, 10, 10, 14);     /* +0 mods: clean bounds */
+    R5Creature t = monster(1, 30000);
+    /* versatile flag on a weapon with no versatile spec falls back */
+    int seen = 0;
+    for (int i = 0; i < 100 && !seen; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &t, &r5_weapons[R5W_GREATSWORD],
+                                       R5F_VERSATILE);
+        if (!at.hit) continue;
+        seen = 1;
+        CHECK(at.dmg.sides == 6);                      /* still 2d6 */
+        CHECK(at.dmg.n == (at.crit ? 4 : 2));
+    }
+    CHECK(seen);
+    /* rider with dc 0: no save is rolled, full rider damage lands */
+    R5Weapon venom = { "Venom", { 1, 6, 0 }, { 0, 0, 0 }, 0, DT_SLASHING,
+                       { 1, 4, 0 }, DT_POISON, 0, 0 };
+    seen = 0;
+    for (int i = 0; i < 100 && !seen; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &t, &venom, 0);
+        if (!at.hit) continue;
+        seen = 1;
+        CHECK(at.rider_dmg.n >= 1);
+        CHECK(at.rider_save.n == 0 && !at.rider_saved);
+        CHECK(at.rider_damage == at.rider_dmg.total);
+    }
+    CHECK(seen);
+    /* oversized crit merge: the roll RECORD caps at R5_MAX_DICE, the total
+     * still includes every die (5d8 crit = 10 rolls + 2d6 mark off-record) */
+    R5Weapon huge = { "Maul+", { 5, 8, 0 }, { 0, 0, 0 }, 0, DT_BLUDGEONING,
+                      { 0, 0, 0 }, 0, 0, 0 };
+    seen = 0;
+    for (int i = 0; i < 100 && !seen; i++) {
+        R5Attack at = r5_weapon_attack(&r, &a, &t, &huge,
+                                       R5F_MARK | R5F_AUTOCRIT);
+        if (!at.hit) continue;
+        seen = 1;
+        CHECK(at.crit);
+        CHECK(at.dmg.n == R5_MAX_DICE);
+        CHECK(at.dmg.total >= 10 + 2 && at.dmg.total <= 80 + 12);
+    }
+    CHECK(seen);
+}
+
 /* ------------------------------------------------------------ registry
  * Honest counting: the headline number is TEST FUNCTIONS. Sampling loops
  * execute thousands of assertions per test; that figure is reported in
@@ -534,6 +807,17 @@ static const R5Test tests[] = {
     T(test_save_proficiency),
     T(test_bless),
     T(test_char2_pools),
+    T(test_skill_check_math),
+    T(test_skill_check_prof_expertise),
+    T(test_skill_check_lucky),
+    T(test_monster_crit_min_and_prof),
+    T(test_rage_exclusions),
+    T(test_lucky_attack_and_save),
+    T(test_apply_damage_edges),
+    T(test_extra_d6_merge),
+    T(test_feature_denials),
+    T(test_guard_rails),
+    T(test_weapon_spec_edges),
 };
 #undef T
 

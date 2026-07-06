@@ -83,7 +83,7 @@ $(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h 
 # loudly if TOTAL line coverage drops below COV_FLOOR.
 COVDIR := $(BUILD)/cov
 # ratchet: raise as coverage rises; never lower
-COV_FLOOR := 94
+COV_FLOOR := 99
 
 $(COVDIR)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h rules/test_rules.c | $(BUILD)
 	mkdir -p $(COVDIR)

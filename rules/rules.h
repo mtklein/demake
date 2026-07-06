@@ -232,13 +232,11 @@ int  r5_spend(R5Creature*, int pool, int n);
 int  r5_can_rage(const R5Creature*);
 void r5_start_rage(R5Creature*);
 void r5_end_rage(R5Creature*);
-int  r5_rage_bonus(const R5Creature*);   /* +2 STR melee dmg while C_RAGING */
 int  r5_martial_die(const R5Creature*);
 R5DiceSpec r5_smite_dice(int slot_level);
 int  r5_lay_hands(R5Creature* pal, R5Creature* t, int amt);
 int  r5_pact_cast(R5Creature*);
 void r5_pact_rest(R5Creature*);
-int  r5_savage_crit_dice(const R5Creature*);  /* extra crit weapon dice */
 
 /* ---------------------------------------------------------------- data */
 
