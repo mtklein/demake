@@ -65,13 +65,50 @@ test-aeabi: $(BUILD)/test_aeabi
 $(BUILD)/test_aeabi: src/aeabi.c test/test_aeabi.c | $(BUILD)
 	$(HOSTCC) -O2 -fno-builtin -Wall -Wextra -o $@ src/aeabi.c test/test_aeabi.c
 
-# the whole pre-commit ritual: build, native suites, lint, 7 playthroughs
+# the whole pre-commit ritual: build, native suites, lint, 7 playthroughs,
+# then coverage numbers + ratchet (Makefile-level wiring; gate.sh is scenarios)
 gate:
 	test/gate.sh
+	$(MAKE) coverage
 
 $(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h rules/test_rules.c | $(BUILD)
 	$(HOSTCC) -O1 -g -Wall -Wextra -Werror -Irules -I$(BUILD)/gen \
 	    -o $@ $(RULESSRC) $(SRDTAB) rules/test_rules.c
+
+# --- rules-engine coverage: hard data, ratcheted (`make coverage`) ---------
+# Instrumented host build of the same sources as test_rules. Prints the
+# per-file Regions/Functions/Lines/Branches table (scoped to the engine
+# sources; the test file and generated SRD tables are compiled in but not
+# what we measure), writes browsable HTML to build/cov/html/, and fails
+# loudly if TOTAL line coverage drops below COV_FLOOR.
+COVDIR := $(BUILD)/cov
+# ratchet: raise as coverage rises; never lower
+COV_FLOOR := 99
+
+$(COVDIR)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h rules/test_rules.c | $(BUILD)
+	mkdir -p $(COVDIR)
+	$(LLVM)/bin/clang -fprofile-instr-generate -fcoverage-mapping -g -O1 \
+	    -Wall -Wextra -Werror -Irules -I$(BUILD)/gen \
+	    -o $@ $(RULESSRC) $(SRDTAB) rules/test_rules.c
+
+.PHONY: coverage
+coverage: $(COVDIR)/test_rules
+	LLVM_PROFILE_FILE=$(COVDIR)/rules.profraw $(COVDIR)/test_rules
+	$(LLVM)/bin/llvm-profdata merge -sparse $(COVDIR)/rules.profraw \
+	    -o $(COVDIR)/rules.profdata
+	$(LLVM)/bin/llvm-cov show $(COVDIR)/test_rules \
+	    -instr-profile=$(COVDIR)/rules.profdata \
+	    -format=html -output-dir=$(COVDIR)/html $(RULESSRC)
+	$(LLVM)/bin/llvm-cov report $(COVDIR)/test_rules \
+	    -instr-profile=$(COVDIR)/rules.profdata $(RULESSRC) \
+	    > $(COVDIR)/report.txt
+	@cat $(COVDIR)/report.txt
+	@awk -v floor=$(COV_FLOOR) '/^TOTAL/ { seen = 1; pct = $$(NF-3); sub(/%/, "", pct); \
+	        if (pct + 0 < floor + 0) { \
+	            printf "COVERAGE RATCHET: lines %s%% < floor %s%%\n", pct, floor; exit 1; } \
+	        printf "coverage: lines %s%% >= floor %s%% (ratchet ok)\n", pct, floor; } \
+	    END { if (!seen) { print "COVERAGE RATCHET: no TOTAL in llvm-cov report"; exit 1; } }' \
+	    $(COVDIR)/report.txt
 
 $(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)
 	$(PY) tools/mkassets.py

@@ -34,10 +34,6 @@ int r5_spend_slot(R5Creature* c, int slot_level) {
     return 1;
 }
 
-int r5_savage_crit_dice(const R5Creature* c) {
-    return (c->traits & TR_SAVAGE) ? 1 : 0;
-}
-
 void r5_short_rest(R5Creature* c) {
     c->used = 0;
     r5_pact_rest(c);
@@ -73,10 +69,6 @@ void r5_end_rage(R5Creature* c) {
     c->resist &= (uint16_t)~((1u << DT_BLUDGEONING) | (1u << DT_PIERCING) |
                              (1u << DT_SLASHING));
 }
-int r5_rage_bonus(const R5Creature* c) {   /* +2 melee STR damage while raging */
-    return (c->conds & C_RAGING) ? 2 : 0;
-}
-
 /* ------------------------------------------------------------------- monk */
 
 int r5_martial_die(const R5Creature* c) {  /* d4 at levels 1-3 */
