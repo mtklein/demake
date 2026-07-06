@@ -36,6 +36,7 @@ typedef struct {
     u8 reacted, dodge, hidden;
     u8 gbolt, mock;              /* next-attack riders */
     s8 marked_by;
+    u8 smite;                    /* paladin: next hit spends a slot */
     u16 xp;
 } EC;
 
@@ -552,6 +553,15 @@ static void strike(EC* a, EC* t) {
         bar_damage(&at);
         if (at.rider_dmg.n && t->c->hp > 0 && at.rider_damage > 0)
             deal(t, at.rider_damage, at.rider_type, 1);
+        if (a->smite && a->side == 0 && melee && t->c->hp > 0 &&
+            r5_spend_slot(a->c, 1)) {                    /* Divine Smite */
+            a->smite = 0;
+            R5DiceSpec sd = r5_smite_dice(1);
+            R5Dice d = r5_roll(&rng, at.crit ? sd.n * 2 : sd.n, sd.sides, 0);
+            tray_dice(&d, DPAL(DT_RADIANT));
+            bar_wait("SMITE!");
+            deal(t, d.total, DT_RADIANT, 1);
+        }
         if (melee && t->c->hp > 0) {
             a->engaged = (s8)(t - ec); t->engaged = (s8)(a - ec);
             mgba_logf("engage %s<->%s", a->c->name, t->c->name);
@@ -973,12 +983,17 @@ static int pc_turn(EC* a) {
                 if (s->concentration && c->concentrating) continue;
                 items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
             }
+            if (cls == CLS_PALADIN && c->rsrc[R5R_LAY]) { items[n] = "Lay Hands"; code[n++] = 22; }
+            if (cls == CLS_PALADIN && c->slots[0] && !a->smite) { items[n] = "Smite"; code[n++] = 24; }
             items[n] = "Item"; code[n++] = 1;
             items[n] = "Dodge"; code[n++] = 2;
             if (a->engaged >= 0) { items[n] = "Disengage"; code[n++] = 3; }
         }
         if (!bonus) {
             if (cls == CLS_FIGHTER && r5_can_second_wind(c)) { items[n] = "2nd Wind"; code[n++] = 4; }
+            if (r5_can_rage(c)) { items[n] = "RAGE!"; code[n++] = 20; }
+            if (cls == CLS_MONK && action && c->rsrc[R5R_KI]) { items[n] = "Flurry"; code[n++] = 21; }
+            if (cls == CLS_MONK && c->rsrc[R5R_KI]) { items[n] = "Pat.Def"; code[n++] = 23; }
             if (cls == CLS_ROGUE && !a->hidden) { items[n] = "Hide"; code[n++] = 5; }
             for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
                 if (spell_kit[ki].cls != cls) continue;
@@ -1034,6 +1049,50 @@ static int pc_turn(EC* a) {
                 break;
             }
             case 2: a->dodge = 1; bar_wait("Dodging!"); action = 1; break;
+            case 20:
+                r5_start_rage(c);
+                sfx_noise(16);
+                bar_wait("RAGE! Blades will not bite.");
+                bonus = 1;
+                break;
+            case 21: {                                   /* Flurry of Blows */
+                EC* t = pick5(1, 0);
+                if (!t) break;
+                r5_spend(c, R5R_KI, 1);
+                static const R5Weapon fists = { "Flurry", { 1, 4, 0 }, { 0, 0, 0 },
+                                                WP_FINESSE, DT_BLUDGEONING,
+                                                { 0, 0, 0 }, 0, 0, 0 };
+                for (int fb = 0; fb < 2 && t->c->hp > 0; fb++) {
+                    R5Attack at = r5_weapon_attack(&rng, c, t->c, &fists, atk_flags(a, t, 1));
+                    tray_attack(&at); bar_attack("Fists", &at);
+                    if (at.hit) { hit_react(t); deal(t, at.damage, at.dmg_type, 1); bar_damage(&at); }
+                    post_attack(a, t, &at);
+                }
+                tray_clear();
+                bonus = 1;
+                break;
+            }
+            case 22: {                                   /* Lay on Hands */
+                EC* t = pick5(0, 1);
+                if (!t) break;
+                int amt = c->rsrc[R5R_LAY] < 5 ? c->rsrc[R5R_LAY] : 5;
+                r5_lay_hands(c, t->c, amt);
+                sfx_play(SFX_HEAL);
+                popup(ec_sx(t) + 8, ec_sy(t), amt, 8);
+                bar_wait("Healing hands.");
+                action = 1;
+                break;
+            }
+            case 23:
+                r5_spend(c, R5R_KI, 1);
+                a->dodge = 1;
+                bar_wait("Patient defense.");
+                bonus = 1;
+                break;
+            case 24:
+                a->smite = 1;
+                bar_wait("Radiance coils in the blade.");
+                break;
             case 3:
                 a->engaged = -1;
                 bar_wait("Disengages cleanly.");
