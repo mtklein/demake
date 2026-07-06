@@ -635,6 +635,42 @@ static void t_rest_heals_bench(void) {
              G.reserve[0].hp, G.reserve[0].hpmax);
 }
 
+static void t_crash_scatter_regather(void) {
+    /* The beach arc opens on party_scatter: the crash strands Tav alone,
+     * whole (a narrative long rest), ship flags intact -- then the beach
+     * recoveries re-add the scattered through the same party_add_* doors. */
+    sim_reset();
+    mk_roster5(CLS_BARD, 2);
+    G.flags |= GF_LAEZEL | GF_SH_FREED | GF_ZHALK_DEAD;
+    G.everburn = 1;
+    party5[0].hp = 1;                          /* Tav limps off the helm */
+    T_ASSERT(r5_spend_slot(&party5[0], 1), "bard slot spend failed");
+    u16 flags = G.flags, xp0 = G.pm[0].xp;
+    party_scatter();
+    T_ASSERT(G.nparty == 1, "nparty %d after the crash, want 1", G.nparty);
+    T_ASSERT(G.nreserve == 0, "nreserve %d after the crash, want 0", G.nreserve);
+    T_ASSERT(G.flags == flags && G.everburn == 1,
+             "the crash lost ship flags (%04x -> %04x, eb %d)",
+             flags, G.flags, G.everburn);
+    T_ASSERT(G.pm[0].hp == G.pm[0].hpmax, "sheet hp %d/%d after the long rest",
+             G.pm[0].hp, G.pm[0].hpmax);
+    T_ASSERT(party5[0].hp == party5[0].hpmax, "twin hp %d/%d after the long rest",
+             party5[0].hp, party5[0].hpmax);
+    T_ASSERT(party5[0].slots[0] == 3, "bard L2 slots %d, want 3 back (SRD)",
+             party5[0].slots[0]);
+    /* the beach recoveries: both walk back in at Tav's xp, twins rebuilt */
+    party_add_shadowheart();
+    party_add_laezel();
+    T_ASSERT(G.nparty == 3, "nparty %d after both recoveries, want 3", G.nparty);
+    T_ASSERT(!strcmp(G.pm[1].name, "SHADOW.") && !strcmp(G.pm[2].name, "LAE'ZEL"),
+             "recovery order (%s, %s)", G.pm[1].name, G.pm[2].name);
+    T_ASSERT(G.pm[1].xp == xp0 && G.pm[1].level == G.pm[0].level,
+             "Shadowheart rejoined at xp %d L%d, want %d L%d",
+             G.pm[1].xp, G.pm[1].level, xp0, G.pm[0].level);
+    T_ASSERT(party5[2].hp == party5[2].hpmax && party5[2].hpmax > 0,
+             "Lae'zel's twin not rebuilt (%d/%d)", party5[2].hp, party5[2].hpmax);
+}
+
 static void t_party_row_gated(void) {
     sim_reset();
     mk_party(CLS_CLERIC, 1);
@@ -1707,6 +1743,7 @@ static const Test tests[] = {
     { "party_swap_menu",           t_party_swap_menu },
     { "bench_round_trip",          t_bench_round_trip },
     { "rest_heals_bench",          t_rest_heals_bench },
+    { "crash_scatter_regather",    t_crash_scatter_regather },
     { "party_row_gated",           t_party_row_gated },
     { "battle_auto_win",           t_battle_auto_win },
     { "battle_manual_eldritch_blast", t_battle_manual_eldritch_blast },

@@ -5,7 +5,6 @@
 #include "field.h"
 #include "game.h"
 #include "events.h"
-#include "screens.h"
 #include "encounter.h"
 #include "party5.h"
 
@@ -35,10 +34,37 @@
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
 static int n_imp[3] = { -1, -1, -1 };
-static int n_wander[2] = { -1, -1 };
 static u16 seen;                     /* room-intro-seen bits */
 static int sh_room_open;             /* Shadowheart pod opened this game */
 static int sh_waiting;               /* freed but not yet recruited */
+
+/* beach npcs -- room_enter resets these before any dispatch can read them
+ * (initializers here would land in .data and shift G, whose address the
+ * scenario pokes depend on) */
+static int n_shb;                    /* Shadowheart ashore (met or unconscious) */
+static int n_scav[2];                /* the tiefling scavengers */
+
+/* wandering on-map encounters: per-room patrol slots. Each remembers its
+ * stat block, bounty, and the story bit that keeps it dead (ship kills live
+ * in G.flags, beach kills in G.bflags). */
+static int n_wander[2] = { -1, -1 };
+static u8  wander_mon[2];
+static u16 wander_xp[2];
+static u16* wander_word[2];
+static u16 wander_bit[2];
+
+static void add_wanderer(int slot, int mx, int my, int objt, int pal, int face,
+                         int mon, u16 xp, u16* word, u16 bit, int radius) {
+    if (*word & bit) return;             /* already slain: stays slain */
+    int i = field_add_npc(mx, my, objt, pal, face, NPC_2FRAME);
+    if (i < 0) return;
+    field_npc_patrol(i, radius);
+    n_wander[slot] = i;
+    wander_mon[slot] = (u8)mon;
+    wander_xp[slot] = xp;
+    wander_word[slot] = word;
+    wander_bit[slot] = bit;
+}
 
 static int isclass(int c) { return G.pm[0].cls == c; }
 static R5RNG fchk_rng;
@@ -89,14 +115,21 @@ static void heal_pod(void) {
 
 /* ------------------------------------------------------------ rooms */
 
+static int room_song(int id) {
+    if (id == RM_HELM) return SONG_BOSS;
+    if (id == RM_BEACH || id == RM_DUNES) return SONG_GAIA;
+    return SONG_EXPLORE;
+}
+
 void room_enter(int id, int sx, int sy, int face) {
     mgba_logf("room_enter %d at %d,%d flags=%x", id, sx, sy, G.flags);
-    music(id == RM_HELM ? SONG_BOSS : SONG_EXPLORE);
+    music(room_song(id));
     cur_room = id;
     crumb(CR_ROOM, id);
     n_us = n_lz = n_sh = n_zh = n_fl = -1;
     n_imp[0] = n_imp[1] = n_imp[2] = -1;
     n_wander[0] = n_wander[1] = -1;
+    n_shb = n_scav[0] = n_scav[1] = -1;
 
     switch (id) {
         case RM_NURSERY: field_load(map_nursery, MAP_NURSERY_W, MAP_NURSERY_H); break;
@@ -104,6 +137,8 @@ void room_enter(int id, int sx, int sy, int face) {
         case RM_DECK:    field_load(map_deck, MAP_DECK_W, MAP_DECK_H); break;
         case RM_PODS:    field_load(map_pods, MAP_PODS_W, MAP_PODS_H); break;
         case RM_HELM:    field_load(map_helm, MAP_HELM_W, MAP_HELM_H); break;
+        case RM_BEACH:   field_load(map_beach, MAP_BEACH_W, MAP_BEACH_H); break;
+        case RM_DUNES:   field_load(map_dunes, MAP_DUNES_W, MAP_DUNES_H); break;
     }
     field_spawn(sx, sy, face);
 
@@ -120,26 +155,56 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_imp[2] = field_add_npc(6, 2, OBJT_IMPF, 4, 0, NPC_2FRAME);
             }
             if (us_with_us()) n_us = field_add_npc(12, 5, OBJT_US, 3, 0, NPC_2FRAME);
-            if ((G.flags & (GF_DECK_FOUGHT | GF_W_DECK)) == GF_DECK_FOUGHT) {
+            if (G.flags & GF_DECK_FOUGHT)
                 /* a straggler imp prowls the far rail -- avoidable */
-                n_wander[0] = field_add_npc(16, 7, OBJT_IMPF, 4, 0, NPC_2FRAME);
-                field_npc_patrol(n_wander[0], 28);
-            }
+                add_wanderer(0, 16, 7, OBJT_IMPF, 4, 0,
+                             R5M_LESSER_IMP, 40, &G.flags, GF_W_DECK, 28);
             break;
         case RM_PODS:
             if (sh_room_open) field_set_meta(6, 2, MT_POD_O);
             if (G.flags & GF_RUNE) field_set_meta(5, 4, MT_CONSOLE_LIT);
             if (sh_waiting) n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
             if (us_with_us()) n_us = field_add_npc(14, 8, OBJT_US, 3, 0, NPC_2FRAME);
-            if (!(G.flags & GF_W_PODS)) {
-                n_wander[1] = field_add_npc(15, 2, OBJT_IMPF, 4, 0, NPC_2FRAME);
-                field_npc_patrol(n_wander[1], 28);
-            }
+            add_wanderer(1, 15, 2, OBJT_IMPF, 4, 0,
+                         R5M_LESSER_IMP, 40, &G.flags, GF_W_PODS, 28);
             break;
         case RM_HELM:
             n_zh = field_add_npc(4, 2, OBJT_ZHALKF, 6, 3, NPC_2FRAME);
             n_fl = field_add_npc(7, 2, OBJT_FLAYERF, 5, 2, NPC_2FRAME);
             if (us_with_us()) n_us = field_add_npc(12, 7, OBJT_US, 3, 0, NPC_2FRAME);
+            break;
+        case RM_BEACH:
+            if (G.origin == ORIG_SHADOW) {
+                /* story surgery: the player IS Shadowheart -- no one to
+                 * recover, only her own pod beached where a body would be */
+                field_set_meta(4, 7, MT_POD_O);
+                mgba_log("beach reroute shadowheart");
+            } else if (!(G.bflags & BF_SH_RECOVERED)) {
+                if (G.flags & GF_SH_FREED)
+                    n_shb = field_add_npc(11, 6, OBJT_SHADOW, 2, 2, 0);
+                else
+                    n_shb = field_add_npc(4, 7, OBJT_SHADOW_KO, 2, 0, 0);
+            }
+            add_wanderer(0, 15, 2, OBJT_DEVF, 5, 0,
+                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_CRASH, 28);
+            break;
+        case RM_DUNES:
+            if (G.origin == ORIG_LAEZEL) {
+                /* story surgery: the player IS the githyanki -- the cage
+                 * stands sprung and empty, the scavengers twice as scared */
+                field_set_meta(2, 2, MT_CAGE_OPEN);
+                mgba_log("beach reroute laezel");
+            } else if (G.bflags & BF_LZ_RECOVERED) {
+                field_set_meta(2, 2, MT_CAGE_OPEN);
+            }
+            if (!(G.bflags & BF_SCAVS_GONE)) {
+                n_scav[0] = field_add_npc(1, 3, OBJT_SCAV, 4, 0, NPC_2FRAME);
+                n_scav[1] = field_add_npc(3, 3, OBJT_SCAV, 4, 0, NPC_2FRAME);
+            }
+            add_wanderer(0, 12, 7, OBJT_DEVF, 5, 0,
+                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_DUNE, 28);
+            add_wanderer(1, 5, 9, OBJT_DEVF, 5, 0,
+                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_DUNE2, 28);
             break;
     }
 }
@@ -623,6 +688,273 @@ static void helm_interact(int mx, int my, int m) {
     }
 }
 
+/* ------------------------------------------------------------ the beach */
+
+void level_up_choices(void);
+
+/* xp for a resolved story beat (the encounter engine announces its own) */
+static void beat_xp(u16 xp) {
+    char names[32];
+    sfx_play(SFX_CONFIRM);
+    if (party_give_xp(xp, names)) {
+        party5_refresh_all();
+        say("A new level!");
+        level_up_choices();
+    }
+}
+
+/* open-air room change: no sphincter doors out here */
+static void beach_go(int next, int sx, int sy) {
+    G_FIELD_IDLE = 0;
+    sfx_play(SFX_CONFIRM);
+    fade_out(14);
+    dlg_close();
+    room_enter(next, sx, sy, 0);
+    field_draw();
+    fade_in(14);
+    if (!(seen & (1 << next))) {
+        seen |= (u16)(1 << next);
+        if (next == RM_DUNES) {
+            say("The dunes swallow the surf-sound. Small tracks stitch every slope: clawed, busy, WRONG.");
+            dlg_close();
+        }
+    }
+}
+
+/* Tav wakes alone on the sand -- the moment the prologue used to spend on
+ * a tally screen. Reached from the crash sequence, or directly by a
+ * G_DEMO_BEACH boot (test/scenario.py beach_setup). */
+void beach_wake(void) {
+    party_scatter();                 /* companions scatter; the fall is the
+                                      * arc's narrative long rest */
+    room_enter(RM_BEACH, 10, 6, 0);
+    field_draw();
+    fade_in(40);
+    field_wait(70);
+    say("Gulls. Surf. The smell of your own scorched hair.");
+    say("You wake on a ravaged beach, alone in the wreckage. Alive.");
+    say("Behind your eye, the passenger stirs, and settles. Patient.");
+    if (G.origin != ORIG_SHADOW && (G.flags & GF_SH_FREED))
+        say("Down the sand, dark hair and darker mail: a familiar shape, upright and scowling at the sea.");
+    if (us_with_us())
+        say("Tiny claw-prints circle your landing and strike out inland. Us walked away from this. Us is very brave.");
+    URGE("You wake smiling. Something in the wreck died screaming, and part of you kept the sound.");
+    dlg_close();
+    seen |= 1 << RM_BEACH;
+    mgba_logf("beach wake flags=%x origin=%d nparty=%d",
+              G.flags, G.origin, G.nparty);
+    G_DONE = 1;   /* harness: the prologue's story moment -- scenarios sync
+                   * here exactly as they did on the retired tally */
+}
+
+/* --- the dying mind flayer, half-crushed under its own ship (5,4) --- */
+
+static void flayer_beat(void) {
+    if (G.bflags & BF_FLAYER_DONE) {
+        say(G.bflags & BF_FLAYER_SLAIN
+            ? "The mind flayer lies still. The tide has already started burying it."
+            : "The mind flayer is dead. The sea got there before mercy did.");
+        dlg_close();
+        return;
+    }
+    say("Pinned under a rib of the hull: a mind flayer. Dying. Its eyes find yours --");
+    say("-- and COLD FINGERS close around your mind. THRALL. KNEEL. SERVE.");
+    if (field_check(SK_ARCANA, 12)) {
+        say("You know this grip now. You picture the ship burning around it, and SHOVE.");
+        say("The hold shatters. The creature sags, spent.");
+    } else {
+        say("Your knee hits the sand before you know it's yours. Then the grip fails -- not you. It is too weak to keep you.");
+    }
+    URGE("It is helpless. No one would see. No one would EVER know.");
+    say_keep("It watches you, tentacles curling feebly against the sand.");
+    static const char* const o[] = { "Finish it", "Leave it to die" };
+    if (choose(2, o) == 0) {
+        say("You work a shard of hull plating loose. It is quick. It is not gentle.");
+        say("The pressure behind your eye flinches -- a door slamming somewhere far away.");
+        G.bflags |= BF_FLAYER_SLAIN;
+        mgba_log("flayer beat finished");
+    } else {
+        say("You step back. The sea is patient, and so is dying.");
+        say("Something follows you down the beach: gratitude, or contempt. With their kind, the difference is thin.");
+        mgba_log("flayer beat spared");
+    }
+    G.bflags |= BF_FLAYER_DONE;
+    say("Gained 25 XP.");
+    beat_xp(25);
+    dlg_close();
+}
+
+/* --- Shadowheart ashore: (11,6) awake if freed on ship, else (4,7) --- */
+
+static void sh_recovered(void) {
+    party_add_shadowheart();
+    if (n_shb >= 0) field_remove_npc(n_shb);
+    n_shb = -1;
+    G.bflags |= BF_SH_RECOVERED;
+    mgba_log("beach recover shadowheart");
+    dlg_close();
+}
+
+static void sh_shore_meet(void) {        /* GF_SH_FREED: she swam too */
+    field_face_npc(n_shb, field_player_mx() < 11 ? 2 : 3);
+    SAY_SH("SHADOWHEART: \"So the pod-openers float. Good. I'd hate to owe a corpse.\"");
+    SAY_SH("SHADOWHEART: \"Whatever dragged us out of the sky, we walked away from it. Same terms as the ship, then -- together.\"");
+    say("Shadowheart rejoins the party!");
+    sh_recovered();
+}
+
+static void sh_shore_wake(void) {        /* left behind: the surf coughed her up */
+    say("Face-down at the tide line: a woman in dark mail. The one from the pod... breathing. Barely.");
+    if (field_check(SK_MEDICINE, 10)) {
+        say("You turn her head, clear her throat, and press the sea out of her in steady pushes. She convulses -- and coughs.");
+        SAY_SH("SHADOWHEART: \"*hkk* -- get -- OFF -- ...you. From the ship. So you do stop for strangers. Eventually.\"");
+    } else {
+        say("You pound her back like a drum: less physician than percussionist. The sea fixes what you can't -- she retches awake on her own.");
+        SAY_SH("SHADOWHEART: \"...Was that your idea of HEALING? Remind me to drown somewhere you aren't.\"");
+    }
+    SAY_SH("SHADOWHEART: \"Still. A graceless rescue beats a grave. I'll come along -- someone here clearly needs watching.\"");
+    say("Shadowheart joins the party! (She carries a Scroll of Revivify.)");
+    sh_recovered();
+}
+
+/* --- the scavenger cage on the dune path (2,2) --- */
+
+static void scavs_flee(void) {
+    if (n_scav[0] >= 0) field_remove_npc(n_scav[0]);
+    if (n_scav[1] >= 0) field_remove_npc(n_scav[1]);
+    n_scav[0] = n_scav[1] = -1;
+    G.bflags |= BF_SCAVS_GONE;
+}
+
+static void cage_beat(void) {
+    if (G.origin == ORIG_LAEZEL) {
+        say("A cage of lashed bone and driftwood, torn open from the INSIDE. Whoever they caught didn't stay caught.");
+        say("You approve.");
+        dlg_close();
+        return;
+    }
+    if (G.bflags & BF_LZ_RECOVERED) {
+        say("The sprung cage creaks in the wind. It was never going to be enough.");
+        dlg_close();
+        return;
+    }
+    say("A cage of lashed bone and driftwood. Folded double inside, and furious about it: a githyanki warrior.");
+    if (G.flags & GF_LAEZEL)
+        SAY_LZ("LAE'ZEL: \"Chk. Of course it is you. The fates enjoy their little symmetries. CUT ME LOOSE.\"");
+    else
+        SAY_LZ("LAE'ZEL: \"You. Creature. Open this cage and I shall let you live. This is generosity.\"");
+    if (n_scav[0] >= 0)
+        say("The two tieflings scramble between you and the bars. \"Don't! It's a MONSTER -- it said it would eat our HEARTS!\"");
+    say_keep("The gith's glare could strip paint.");
+    static const char* const o[] = { "Open the cage", "Leave her caged" };
+    if (choose(2, o) == 1) {
+        SAY_LZ("LAE'ZEL: \"TSK'VA! Crawl back to the surf, coward!\"");
+        dlg_close();
+        return;
+    }
+    say("You unpick the lashings. The tieflings bolt before the second knot gives, wailing about hearts.");
+    scavs_flee();
+    sfx_play(SFX_CONFIRM);
+    field_set_meta(2, 2, MT_CAGE_OPEN);
+    if (G.flags & GF_LAEZEL)
+        SAY_LZ("LAE'ZEL: \"You took your time. The ship is gone; Vlaakith's purpose is not. And you still carry the ghaik worm -- so our roads stay one road.\"");
+    else
+        SAY_LZ("LAE'ZEL: \"Hm. You keep your word even to strangers. Foolish. Useful. I am Lae'zel of Creche K'liir. We survive together, or not at all.\"");
+    say("Lae'zel joins the party!");
+    party_add_laezel();
+    G.bflags |= BF_LZ_RECOVERED;
+    mgba_log("beach recover laezel");
+    dlg_close();
+}
+
+static void scav_talk(void) {
+    if (G.origin == ORIG_LAEZEL) {
+        say("\"AAAH! Another one! The cage didn't hold the FIRST one!\" They look at your face, then at each other, and RUN.");
+        scavs_flee();
+        dlg_close();
+        return;
+    }
+    if (G.bflags & BF_LZ_RECOVERED) { scavs_flee(); return; }
+    say("Two soot-streaked tieflings, all horns and nerves. \"We caught it FAIR! It fell right out of the sky!\"");
+    say("\"...Do you want it? Please want it.\"");
+    dlg_close();
+}
+
+/* --- interactions --- */
+
+static void beach_interact(int mx, int my, int m) {
+    (void)mx; (void)my;
+    if (m == MT_FLAYER_DYING) { flayer_beat(); return; }
+    if (m == MT_WRECK_L || m == MT_WRECK_R) {
+        say("A rib of the nautiloid, tall as a house, buried nose-down in the sand. Still warm.");
+        if (G.flags & GF_ZHALK_DEAD)
+            say("Wedged in the plating: a scorched cambion pauldron. Zhalk's. The commander fell with his prize.");
+        else if (G.flags & GF_DECK_FOUGHT)
+            say("Scorch-lines rake the hull where the dragons found their mark.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_WRECK) {
+        say("A shard of hull. The flesh of it is already drying to leather in the sun.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_POD_O) {   /* origin Shadowheart: her own pod, beached */
+        say("A pod, burst open on the rocks. YOUR pod -- it followed you all the way down.");
+        say("Lady Shar gives nothing back, but the sea apparently does.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CHEST) {
+        if (!(G.bflags & BF_CHEST_BEACH)) {
+            G.bflags |= BF_CHEST_BEACH;
+            sfx_play(SFX_CONFIRM);
+            say("A ship's chest, burst on the rocks. One Potion survived the landing, still floating in its brine.");
+            G.potions++;
+        } else say("Empty, and full of sand besides.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_ROCK) { say("Sea-worn stone, warm in the sun."); dlg_close(); return; }
+    if (m == MT_SURF || m == MT_SEA) {
+        say("The sea rolls in, patient as ever. Somewhere under it: most of a nautiloid.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_DUNE) {
+        say("Dune grass whispers on the ridge. The gap in the bank leads inland.");
+        dlg_close();
+    }
+}
+
+static void dunes_interact(int mx, int my, int m) {
+    (void)mx;
+    if (m == MT_CAGE || m == MT_CAGE_OPEN) { cage_beat(); return; }
+    if (m == MT_ROCK) {
+        if (my == 0) {
+            /* stone 4's door: the chapel on the bluff, teased not opened */
+            say("The path climbs north between the rocks. On the bluff above: a ruined chapel, crows wheeling over it.");
+            say("Rockfall chokes the pass. You'd need to clear it -- another day.");
+        } else say("Sea-worn stone, warm in the sun.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CHEST) {
+        if (!(G.bflags & BF_CHEST_DUNE)) {
+            G.bflags |= BF_CHEST_DUNE;
+            sfx_play(SFX_CONFIRM);
+            say("A scavenger cache, half-buried: two Potions and a fistful of shells. The shells are worthless. Probably.");
+            G.potions = (u8)(G.potions + 2);
+        } else say("Just the shells now. Still worthless.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_DUNE) {
+        say("Wind-carved sand, tufted with grass. The dunes go on and on.");
+        dlg_close();
+    }
+}
+
 /* ------------------------------------------------------------ dispatch */
 
 /* subclass selection when a member reaches its subclass level (Char 2.0) */
@@ -658,6 +990,8 @@ void ev_interact(int mx, int my) {
         case RM_DECK:    deck_interact(mx, my, m); break;
         case RM_PODS:    pods_interact(mx, my, m); break;
         case RM_HELM:    helm_interact(mx, my, m); break;
+        case RM_BEACH:   beach_interact(mx, my, m); break;
+        case RM_DUNES:   dunes_interact(mx, my, m); break;
     }
 }
 
@@ -665,6 +999,21 @@ void ev_skill_test(int skill, int dc) { field_check(skill, dc); dlg_close(); }
 
 void ev_step(int mx, int my) {
     int m = field_meta_at(mx, my);
+    if (cur_room == RM_BEACH) {
+        if (my == 0) { beach_go(RM_DUNES, mx, 10); return; }   /* the dune gap */
+        if (!(G.bflags & BF_FLAYER_DONE)) {
+            /* step within reach of the dying flayer (5,4) and it grasps */
+            int dx = mx - 5, dy = my - 4;
+            if (dx < 0) dx = -dx;
+            if (dy < 0) dy = -dy;
+            if (dx + dy <= 1) { flayer_beat(); return; }
+        }
+        return;
+    }
+    if (cur_room == RM_DUNES) {
+        if (my == 11) beach_go(RM_BEACH, mx, 1);   /* back to the crash site */
+        return;
+    }
     if (m == MT_DOOR_C) {
         switch (cur_room) {                /* top-wall doors lead backward */
             case RM_NURSERY: door_to(RM_SURGERY, 7, 1); return;
@@ -697,15 +1046,20 @@ static int is_wanderer(int idx) {
 }
 
 static void wanderer_fight(int idx, int surprise) {
-    u16 dead = idx == n_wander[0] ? GF_W_DECK : GF_W_PODS;
-    EncSpawn sp = { R5M_LESSER_IMP, (s8)idx, 40, 1 };
-    if (encounter_run(&sp, 1, 0, surprise) == ENC_WIN) G.flags |= dead;
-    music(SONG_EXPLORE);
+    int s = idx == n_wander[0] ? 0 : 1;
+    EncSpawn sp = { wander_mon[s], (s8)idx, wander_xp[s], 1 };
+    if (encounter_run(&sp, 1, 0, surprise) == ENC_WIN)
+        *wander_word[s] |= wander_bit[s];
+    music(room_song(cur_room));
 }
 
 void ev_aggro(int idx) {
     if (!is_wanderer(idx)) return;
-    say("The imp shrieks -- it has your scent!");
+    int s = idx == n_wander[0] ? 0 : 1;
+    if (wander_mon[s] == R5M_DEVOURER)
+        say("The brain-thing SKITTERS around, claws up. It has tasted your thoughts!");
+    else
+        say("The imp shrieks -- it has your scent!");
     dlg_close();
     wanderer_fight(idx, 2);          /* it found you: party surprised */
 }
@@ -716,6 +1070,15 @@ void ev_npc(int idx) {
         say("It hasn't seen you. You strike first!");
         dlg_close();
         wanderer_fight(idx, 1);      /* unaware: enemies surprised */
+        return;
+    }
+    if (idx >= 0 && idx == n_shb) {
+        if (G.flags & GF_SH_FREED) sh_shore_meet();
+        else sh_shore_wake();
+        return;
+    }
+    if (idx >= 0 && (idx == n_scav[0] || idx == n_scav[1])) {
+        scav_talk();
         return;
     }
     if (idx == n_us) {
@@ -756,7 +1119,7 @@ void ev_npc(int idx) {
     }
 }
 
-/* ------------------------------------------------------------ ending */
+/* ------------------------------------------------------------ the crash */
 
 static void crash_sequence(int flayer_did_it) {
     G_DONE = 2;                 /* harness: finale cutscene reached */
@@ -790,47 +1153,11 @@ static void crash_sequence(int flayer_did_it) {
     say("...");
     dlg_close();
 
-    /* the ravaged beach */
     REG_BLDCNT = 0;
     REG_BLDY = 0;
-    field_load(map_beach, MAP_BEACH_W, MAP_BEACH_H);
-    field_spawn(8, 3, 0);
-    field_draw();
-    music(SONG_PRELUDE);
-    fade_in(40);
-    field_wait(70);
-    say("Gulls. Surf. The smell of your own scorched hair.");
-    say("You wake on a ravaged beach, alone in the wreckage. Alive. And not alone for long.");
-    dlg_close();
-    field_wait(30);
-
-    /* tally */
-    scr_tally();
-    {
-        static const char* const clsn[CLS_COUNT] = { "Bard", "Rogue", "Ranger",
-            "Wizard", "Fighter", "Cleric", "Barbarian", "Druid", "Monk",
-            "Paladin", "Sorcerer", "Warlock" };
-        txt_put_n(SCR_TALLY_WHO_X, SCR_TALLY_WHO_Y, G.pm[0].name, 0, SCR_TALLY_WHO_W);
-        txt_put_n(SCR_TALLY_CLS_X, SCR_TALLY_CLS_Y, clsn[G.pm[0].cls], 0, SCR_TALLY_CLS_W);
-    }
-#define TVAL(slot, cond, yes, no) \
-    txt_put_n(SCR_TALLY_##slot##_X, SCR_TALLY_##slot##_Y, (cond) ? (yes) : (no), \
-              (cond) ? 1 : 2, SCR_TALLY_##slot##_W)
-    TVAL(V_US, us_with_us(), "YES", (G.flags & GF_US_MUTILATED) ? "HURT" : "no");
-    TVAL(V_LZ, G.flags & GF_LAEZEL, "ALLY", "no");
-    TVAL(V_SH, G.flags & GF_SH_FREED, "SAVED", "no");
-    TVAL(V_ZH, G.flags & GF_ZHALK_DEAD, "SLAIN", "fled");
-    TVAL(V_EB, G.everburn, "TAKEN", "-");
-#undef TVAL
-
-    G_DONE = 1;
-    for (;;) {
-        frame();
-        if (key_hit() & KEY_START) break;
-        if (G_DEMO) { field_wait(120); break; }
-    }
-    /* soft reset back to the title */
-    *(vu8*)0x03007FFA = 0;
-    __asm volatile("swi 0x00" ::: "r0", "r1", "r2", "r3", "memory");
-    for (;;) frame();
+    /* The prologue tally that used to live here is retired: the game no
+     * longer ends at the crash. Its accounting returns at the grove-gates
+     * finale (beach arc, stone 6). The story lands on the sand instead. */
+    beach_wake();
+    /* ...and control returns to field_run: the beach is playable. */
 }

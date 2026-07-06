@@ -41,6 +41,7 @@ typedef struct {
     u8 rweapon[RESERVE_MAX];      /* their equipped R5W_* */
     u8 rtactic[RESERVE_MAX];      /* their TAC_* preference */
     u8 nreserve;
+    u16 bflags;                   /* BF_* beach-arc story bits (GF_ is full) */
 } Game;
 enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
        ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
@@ -68,6 +69,21 @@ enum {
     GF_W_PODS       = 1 << 15,   /* pods prowler slain */
 };
 
+/* beach-arc story bits (G.bflags); GF_* above is the ship's word and it is
+ * full -- the crash starts a fresh one */
+enum {
+    BF_SH_RECOVERED = 1 << 0,    /* Shadowheart found ashore and rejoined */
+    BF_LZ_RECOVERED = 1 << 1,    /* Lae'zel freed from the scavenger cage */
+    BF_SCAVS_GONE   = 1 << 2,    /* the tiefling scavengers bolted */
+    BF_FLAYER_DONE  = 1 << 3,    /* the dying mind flayer beat resolved */
+    BF_FLAYER_SLAIN = 1 << 4,    /* ...by your hand (else left to the tide) */
+    BF_DEV_CRASH    = 1 << 5,    /* crash-site devourer slain */
+    BF_DEV_DUNE     = 1 << 6,    /* dune-path devourer slain */
+    BF_DEV_DUNE2    = 1 << 7,    /* second dune-path devourer slain */
+    BF_CHEST_BEACH  = 1 << 8,    /* crash-site chest looted */
+    BF_CHEST_DUNE   = 1 << 9,    /* dune cache looted */
+};
+
 #define HERO_CLS (G.pm[0].cls)
 
 int origin_race(int o);          /* canon blood (character2.md identities) */
@@ -87,5 +103,6 @@ void party_add_gale(void);
 void party_swap(int i, int r);   /* walking slot i (1..2; Tav holds 0) <-> reserve r */
 int  party_give_xp(u16 xp, char* levelup_names);  /* returns # of level-ups */
 void party_heal_full(void);      /* walkers and reserve both */
+void party_scatter(void);        /* the crash: Tav alone, whole (narrative long rest) */
 
 #endif

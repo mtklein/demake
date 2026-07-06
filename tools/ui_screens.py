@@ -165,6 +165,9 @@ SCREENS = [
         ],
     },
     {
+        # Dormant since the beach arc's stone 2: the crash no longer ends the
+        # game, so nothing calls scr_tally today. The accounting returns at
+        # the grove-gates finale (stone 6) -- keep the layout warm for it.
         "name": "tally",
         "wins": [
             {"id": "box", "y": 2, "rows": [

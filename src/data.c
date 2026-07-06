@@ -56,6 +56,7 @@ static void strcpy8(char* d, const char* s) {
 }
 
 void party5_refresh(int i);   /* party5.c: keep the 5e twins in step */
+void party5_refresh_all(void);
 void party5_bench_build(int r);
 void party5_swap(int i, int r);
 int  party5_default_weapon(int cls);
@@ -209,6 +210,17 @@ int party_give_xp(u16 xp, char* names) {
         }
     }
     return ups;
+}
+
+/* The crash off Avernus: companions scatter (re-gathered across the beach
+ * arc, each recovery a party_add_*), and falling out of the sky is the
+ * arc's narrative long rest -- the survivor wakes whole. Ship flags stay:
+ * they shade every beach beat. */
+void party_scatter(void) {
+    G.nparty = 1;
+    G.nreserve = 0;
+    party_heal_full();
+    party5_refresh_all();
 }
 
 void party_heal_full(void) {

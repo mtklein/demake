@@ -118,8 +118,11 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define G_DEMO (*(vu8*)0x0203FF00)
 #define G_DEMO_BATTLE (*(vu8*)0x0203FF02)   /* 0 auto-fight+nerve@helm, 2 kill-all */
 #define G_DEMO_CLASS  (*(vu8*)0x0203FF03)   /* class to auto-pick in demo */
+#define G_DEMO_BEACH  (*(vu8*)0x0203FF04)   /* poke 1: skip the ship, boot at the
+                                               beach wake with G_BEACH_FLAGS */
 #define G_FIELD_IDLE  (*(vu8*)0x0203FF05)   /* 1 = field_run looping (input ok) */
-#define G_DONE        (*(vu8*)0x0203FF06)   /* 1 = ending tally on screen */
+#define G_DONE        (*(vu8*)0x0203FF06)   /* 2 = crash cutscene, 1 = beach wake
+                                               (the prologue's "done" moment) */
 #define G_MANUAL_BAT  (*(vu8*)0x0203FF07)   /* 1 = interactive battle even in demo */
 /* creation-flow pokes: 0 keeps the legacy race-none/preset sheet every
  * pre-Character-2.0 scenario runs in; the screens still show and
@@ -129,6 +132,8 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define G_DEMO_AB     (*(vu8*)0x0203FF0A)   /* poke 1: arrange scores from G_AB_BUF */
 #define G_AB_BUF ((vu8*)0x0203FF20)         /* poked spread, 6 bytes (STR..CHA); must
                                                be the class preset permuted */
+#define G_BEACH_FLAGS (*(vu16*)0x0203FF2C)  /* poked GF_* world-state carried into a
+                                               G_DEMO_BEACH boot (little-endian) */
 /* EWRAM is garbage at power-on: the flag block only counts when the magic
  * cookie is present (set by the test runner's pokes or the title toggle). */
 #define G_FLAGS_MAGIC (*(vu32*)0x0203FF38)
