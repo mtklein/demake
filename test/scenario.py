@@ -161,6 +161,14 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def skill_check():
+    """poked field skill check rolls a visible d20 (asserts the field-check log)"""
+    setup(3, [0, 1, 0, 0, 2])
+    intro()
+    poke(0x0203FF0F, 3)              # G_SKILL_TEST = SK_ARCANA + 1
+    wait(80); shot("skill_done")
+
+@scn
 def durge_check():
     """Dark Urge origin hears intrusive thoughts (asserts the urge-line log)"""
     poke(DEMO, 1); poke(BATTLE, 0); poke(CLASS, 1); poke(0x0203FF0E, 6)

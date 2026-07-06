@@ -365,6 +365,24 @@ def gen_class_spells(o):
         o.append("    { %s }," % ", ".join(str(i) for i in ids))
     o.append("};")
 
+
+def gen_skill_ids(h):
+    names = sorted(SRD.SKILLS)          # alphabetical = bitmask order (pinned)
+    for i, k in enumerate(names):
+        h.append("#define SK_%s %d" % (k.upper().replace(" ", "_"), i))
+    h.append("#define SK_COUNT %d" % len(names))
+
+def gen_skills(o):
+    names = sorted(SRD.SKILLS)
+    o.append("const uint8_t r5_skill_ability[SK_COUNT] = {")
+    for k in names:
+        o.append("    %s,   /* %s */" % (AB[SRD.SKILLS[k]["ability"]], k))
+    o.append("};")
+    o.append("const char* const r5_skill_name[SK_COUNT] = {")
+    for k in names:
+        o.append('    "%s",' % k.title())
+    o.append("};")
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     o = [
@@ -379,12 +397,14 @@ def main():
     gen_monsters(o); o.append("")
     gen_subclasses(o); o.append("")
     gen_subclass_menu(o); o.append("")
-    gen_class_spells(o)
+    gen_class_spells(o); o.append("")
+    gen_skills(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
     h = []
     gen_spell_ids(h)
     gen_sub_ids(h)
+    gen_skill_ids(h)
     with open(os.path.join(os.path.dirname(OUT), "srd_ids.h"), "w") as f:
         f.write("\n".join(h) + "\n")
     print(f"srd tables: {len(WEAPON_MAP)} weapons, {len(CLASS_MAP)} classes, "

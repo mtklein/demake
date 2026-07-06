@@ -145,6 +145,7 @@ enum { CR_ROOM = 1, CR_ENC, CR_TURN, CR_MENU, CR_CAST, CR_RESULT };
 #define G_PANIC_TEST  (*(vu8*)0x0203FF0C)  /* poke 1: test the crash screen */
 #define G_DEMO_LEVEL  (*(vu8*)0x0203FF0D)  /* poke: start party at this level (tests) */
 #define G_DEMO_ORIGIN (*(vu8*)0x0203FF0E)  /* poke: origin index (default 7 = custom) */
+#define G_SKILL_TEST  (*(vu8*)0x0203FF0F)  /* poke: run a field skill check (tests) */
 void gba_init(void);
 void vsync(void);
 u16  key_state(void);      /* held keys, 1 = pressed */

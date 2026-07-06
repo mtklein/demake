@@ -41,6 +41,39 @@ static int sh_room_open;             /* Shadowheart pod opened this game */
 static int sh_waiting;               /* freed but not yet recruited */
 
 static int isclass(int c) { return G.pm[0].cls == c; }
+static R5RNG fchk_rng;
+static int fchk_seeded;
+static char* put_num(char* d, int v) {
+    if (v < 0) { *d++ = '-'; v = -v; }
+    char t[6]; int n = 0;
+    do { t[n++] = (char)('0' + v % 10); v /= 10; } while (v);
+    while (n) *d++ = t[--n];
+    return d;
+}
+/* a skill check on the field: roll a d20 through the dialog, show it, vs DC */
+static int field_check(int skill, int dc) {
+    if (!fchk_seeded) { r5_seed(&fchk_rng, rnd() ^ 0x5EED); fchk_seeded = 1; }
+    int d20;
+    int total = r5_skill_check(&fchk_rng, &party5[0], skill,
+                               G.pm[0].skills, G.pm[0].expert, &d20);
+    int ok = total >= dc;
+    char m[48]; char* d = m;
+    const char* s = r5_skill_name[skill]; while (*s) *d++ = *s++;
+    *d++ = ' ';
+    d = put_num(d, d20); *d++ = '+';
+    d = put_num(d, total - d20); *d++ = '=';
+    d = put_num(d, total);
+    s = ok ? " vs " : " vs "; while (*s) *d++ = *s++;
+    d = put_num(d, dc); *d++ = ' ';
+    s = ok ? "PASS" : "FAIL"; while (*s) *d++ = *s++;
+    *d = 0;
+    mgba_logf("field-check %s d20=%d tot=%d dc=%d %s",
+              r5_skill_name[skill], d20, total, dc, ok ? "pass" : "fail");
+    sfx_play(d20 == 20 ? SFX_HEAL : ok ? SFX_CONFIRM : SFX_CANCEL);
+    say(m);
+    return ok;
+}
+
 static int is_durge(void) { return G.origin == ORIG_DURGE; }
 #define URGE(t) do { if (is_durge()) { mgba_log("urge-line"); say("[URGE] " t); } } while (0)
 static int us_with_us(void) {
@@ -195,8 +228,13 @@ static void nursery_interact(int mx, int my, int m) {
     } else if (m == MT_CORPSE) {
         if (!(G.flags & GF_SLATE_READ)) {
             G.flags |= GF_SLATE_READ;
-            say("A dead thrall, days gone. A rune slate lies by his hand.");
-            say("Touching it floods you with vision: ships between stars, a thousand worlds harvested.");
+            say("A dead thrall, days gone. A rune slate lies by his hand, dense with glyphs.");
+            if (field_check(SK_ARCANA, 12)) {
+                say("The script yields: ships between stars, a thousand worlds harvested.");
+                say("And a word your captors fear -- you file it away.");
+            } else {
+                say("The glyphs swim and refuse you. Just malice, and a headache.");
+            }
             dlg_close();
         } else {
             say("The thrall is past helping.");
@@ -622,6 +660,8 @@ void ev_interact(int mx, int my) {
         case RM_HELM:    helm_interact(mx, my, m); break;
     }
 }
+
+void ev_skill_test(int skill, int dc) { field_check(skill, dc); dlg_close(); }
 
 void ev_step(int mx, int my) {
     int m = field_meta_at(mx, my);

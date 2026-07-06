@@ -10,6 +10,7 @@ typedef struct {
     char name[8];
     u8 cls, level, subclass;
     u32 prepared;    /* prepared-caster spell bitmask into r5_class_spells */
+    u32 skills, expert;   /* SK_* proficiency + expertise bitmasks */
     s16 hp, hpmax, mp, mpmax;
     u8 atk, def, mag, spd;
     u16 xp;

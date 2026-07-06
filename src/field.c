@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "field.h"
 #include "game.h"
+#include "rules.h"
 
 static const u8* fmeta;
 static int fw, fh;
@@ -237,7 +238,8 @@ static void npc_ai(void) {
         int adx = ddx < 0 ? -ddx : ddx, ady = ddy < 0 ? -ddy : ddy;
         int dist = adx + ady;
         int r = n->aggro_r;
-        if (G.pm[0].cls == CLS_ROGUE) r = r * 2 / 3;   /* rogues walk quiet */
+        if (G.pm[0].skills & (1u << SK_STEALTH)) r = r * 2 / 3;   /* trained: quieter */
+        if (G.pm[0].expert & (1u << SK_STEALTH)) r = r * 2 / 3;   /* Expertise: quieter still */
         /* sentries watch a cone ahead; flanks and rear are peripheral */
         if (!((n->face == 0 && ddy > 0) || (n->face == 1 && ddy < 0) ||
               (n->face == 2 && ddx < 0) || (n->face == 3 && ddx > 0))) r /= 2;
@@ -285,6 +287,8 @@ void field_run(void) {
     while (!exit_req) {
         frame();
         G_FIELD_IDLE = 1;
+        if (G_SKILL_TEST) { int sk = G_SKILL_TEST - 1; G_SKILL_TEST = 0;
+            void ev_skill_test(int, int); ev_skill_test(sk, 12); }
         npc_ai();
         draw_alert();
         if (!pmoving) {

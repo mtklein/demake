@@ -75,6 +75,18 @@ void party_init(int cls, const char* name) {
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
     /* origins whose subclass arrives at level 1 get it now (Char 2.0) */
+    {
+        static const unsigned char sk2[CLS_COUNT][2] = {
+            [CLS_BARD]={SK_PERSUASION,SK_PERFORMANCE},[CLS_ROGUE]={SK_STEALTH,SK_SLEIGHT_OF_HAND},
+            [CLS_RANGER]={SK_SURVIVAL,SK_PERCEPTION},[CLS_WIZARD]={SK_ARCANA,SK_HISTORY},
+            [CLS_FIGHTER]={SK_ATHLETICS,SK_INTIMIDATION},[CLS_CLERIC]={SK_RELIGION,SK_MEDICINE},
+            [CLS_BARBARIAN]={SK_ATHLETICS,SK_INTIMIDATION},[CLS_DRUID]={SK_NATURE,SK_ANIMAL_HANDLING},
+            [CLS_MONK]={SK_ACROBATICS,SK_STEALTH},[CLS_PALADIN]={SK_RELIGION,SK_PERSUASION},
+            [CLS_SORCERER]={SK_ARCANA,SK_DECEPTION},[CLS_WARLOCK]={SK_ARCANA,SK_DECEPTION},
+        };
+        p->skills = (1u << sk2[cls][0]) | (1u << sk2[cls][1]);
+        p->expert = (cls == CLS_ROGUE) ? p->skills : 0;   /* rogue Expertise */
+    }
     if (G.origin == ORIG_SHADOW) p->subclass = R5SUB_DOMAIN_OF_MASKS;
     else if (G.origin == ORIG_WYLL) p->subclass = R5SUB_FIEND;
     if (G_DEMO_LEVEL >= 2) { char nm[16]; party_give_xp(

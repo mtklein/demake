@@ -106,3 +106,14 @@ void r5_pact_rest(R5Creature* c) {         /* pact slots return on short rest */
     if (c->cls == R5C_WARLOCK)
         c->rsrc[R5R_PACT] = r5_classes[R5C_WARLOCK].rsrc[c->level][R5R_PACT];
 }
+
+/* skill check: d20 + ability mod + (prof) + (prof again if expertise) */
+int r5_skill_check(R5RNG* r, const R5Creature* c, int skill, uint32_t prof,
+                   uint32_t expert, int* d20out) {
+    R5Dice d = r5_d20(r, (c->traits & TR_LUCKY) ? R5F_LUCKY : 0);
+    int total = d.total + r5_mod(c->ab[r5_skill_ability[skill]]);
+    if (prof & (1u << skill))   total += r5_prof(c);
+    if (expert & (1u << skill)) total += r5_prof(c);
+    if (d20out) *d20out = d.total;
+    return total;
+}
