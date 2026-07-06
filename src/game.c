@@ -247,6 +247,77 @@ static void blurb_draw(const char* s) {
     }
 }
 
+/* origin identity: class (-1 = choose), portrait, default subclass or 255,
+ * and a two-line blurb. Fixed origins skip class selection. */
+typedef struct { const char* name; s8 cls; s8 por; u8 sub; const char* blurb; } Origin;
+static const Origin origins[ORIG_COUNT] = {
+    { "Astarion",  CLS_ROGUE,   POR_ASTARION, 255, "Pale elf. A hunger\nhe hides too well." },
+    { "Gale",      CLS_WIZARD,  POR_GALE,     255, "A wizard nursing\na very bad secret." },
+    { "Karlach",   CLS_BARBARIAN,POR_KARLACH, 255, "A tiefling: infernal\nengine for a heart." },
+    { "Lae'zel",   CLS_FIGHTER, POR_LAEZEL,   255, "Githyanki warrior.\nContempt as armor." },
+    { "Shadowheart",CLS_CLERIC, POR_SHADOW,   255, "Cleric of Shar.\nMemories missing." },
+    { "Wyll",      CLS_WARLOCK, POR_WYLL,     255, "Blade of Frontiers.\nA pact regretted." },
+    { "Dark Urge", -1,          POR_DURGE,    255, "You wake knowing\nsomething used your\nhands, and liked it." },
+    { "Custom Tav",-1,          -1,           255, "Someone new.\nChoose your path." },
+};
+
+static void origin_blurb(const char* s) {
+    for (int j = 0; j < 4; j++) {
+        char line[16]; int k = 0;
+        while (*s && *s != '\n' && k < 11) line[k++] = *s++;
+        if (*s == '\n') s++;
+        line[k] = 0;
+        txt_put_n(SCR_CLASSSEL_B0_X, SCR_CLASSSEL_B0_Y + j, line, 2, SCR_CLASSSEL_B0_W);
+    }
+}
+
+int game_origin_select(void) {
+    memset16(SCREENBLOCK(30), 0, 1024);
+    memset16(SCREENBLOCK(31), 0, 1024);
+    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D;
+    fade_in(10);
+    scr_classsel();
+    txt_put(SCR_CLASSSEL_PROMPT_X, SCR_CLASSSEL_PROMPT_Y, "Who were you?", 0);
+    for (int i = 0; i < ORIG_COUNT; i++)
+        txt_put_n(SCR_CLASSSEL_C0_X, SCR_CLASSSEL_C0_Y + i, origins[i].name, 0, SCR_CLASSSEL_C0_W);
+
+    int sel = 0, demo_hold = G_DEMO ? 60 : 0;
+    for (;;) {
+        origin_blurb(origins[sel].blurb);
+        s8 por = origins[sel].por;
+        if (por >= 0) ui_portrait(por, SCR_CLASSSEL_HERO_X, SCR_CLASSSEL_HERO_Y - 2);
+        else txt_clear(SCR_CLASSSEL_HERO_X, SCR_CLASSSEL_HERO_Y - 2, 6, 6);
+        int done = 0;
+        for (;;) {
+            obj_set(OBJ_CURSOR, SCR_CLASSSEL_LIST_X * 8 - 6,
+                    (SCR_CLASSSEL_C0_Y + sel) * 8 - 4, 1, OBJT_HAND, 7, 0);
+            frame();
+            if (demo_hold) {
+                int target = G_DEMO_ORIGIN < ORIG_COUNT ? G_DEMO_ORIGIN : ORIG_CUSTOM;
+                if (--demo_hold == 0) {
+                    if (sel < target) { sel++; demo_hold = 12; }
+                    else { sfx_play(SFX_CONFIRM); done = 1; break; }
+                }
+                continue;
+            }
+            u16 k = key_hit();
+            if (k & KEY_UP && sel > 0) { sel--; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_DOWN && sel < ORIG_COUNT - 1) { sel++; sfx_play(SFX_CURSOR); break; }
+            if (k & KEY_A) { sfx_play(SFX_CONFIRM); done = 1; break; }
+        }
+        if (done) break;
+    }
+    obj_hide(OBJ_CURSOR);
+    fade_out(10);
+    txt_clear(0, 0, 30, 20);
+    memset16(SCREENBLOCK(31), 0, 1024);
+    return sel;
+}
+
+int origin_class(int o) { return origins[o].cls; }
+const char* origin_name(int o) { return origins[o].name; }
+int origin_portrait(int o) { return origins[o].por; }
+
 int game_class_select(void) {
     memset16(SCREENBLOCK(30), 0, 1024);
     memset16(SCREENBLOCK(31), 0, 1024);

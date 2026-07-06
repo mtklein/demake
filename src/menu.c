@@ -53,7 +53,7 @@ static char* mp_num(char* d, int v) {
 }
 static char* mp_str(char* d, const char* s) { while (*s) *d++ = *s++; return d; }
 
-static void menu_portrait(int por, int cx, int cy) {
+void ui_portrait(int por, int cx, int cy) {
 #if PORTRAIT_COUNT > 0
     if (por < 0) return;
     extern const u16 portrait_tiles[];
@@ -250,7 +250,7 @@ static void member_sheet(int i) {
     R5Creature* c = &party5[i];
     clear_all();
     win_draw(0, 0, 30, 20);
-    menu_portrait(cls_portrait[c->cls], 1, 1);
+    ui_portrait(cls_portrait[c->cls], 1, 1);
 
     char b[28]; char* d;
     txt_put_n(9, 1, c->name, 1, 8);

@@ -7,7 +7,10 @@
 
 void game_title(void);
 void game_crawl(void);
+int  game_origin_select(void);
 int  game_class_select(void);
+int  origin_class(int o);
+const char* origin_name(int o);
 void game_name_entry(char* out);
 
 int main(void) {
@@ -19,16 +22,25 @@ int main(void) {
 
     game_title();
     game_crawl();
-    int cls = game_class_select();
+    int origin = game_origin_select();
+    int ocls = origin_class(origin);
+    int cls = ocls >= 0 ? ocls : game_class_select();   /* fixed origin skips */
     char nm[8];
-    game_name_entry(nm);
+    if (ocls >= 0) {                                     /* fixed origin: its name */
+        const char* on = origin_name(origin);
+        int i = 0; for (; on[i] && i < 7; i++) nm[i] = on[i]; nm[i] = 0;
+    } else {
+        game_name_entry(nm);
+    }
+    G.origin = (u8)origin;
     party_init(cls, nm);
     {
         void party5_refresh_all(void);
         party5_refresh_all();
     }
     memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
-    mgba_logf("start: class=%d name=%s", cls, nm);
+    mgba_logf("start: origin=%d class=%d sub=%d name=%s", origin, cls,
+              G.pm[0].subclass, nm);
 
     room_enter(RM_NURSERY, 3, 6, 0);
     field_draw();

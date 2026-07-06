@@ -43,13 +43,13 @@ $(ELF): $(OBJ) gba.ld
 $(BUILD)/crt0.o: src/crt0.s | $(BUILD)
 	$(CC) --target=arm-none-eabi -mcpu=arm7tdmi -x assembler-with-cpp -c $< -o $@
 
-$(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h $(BUILD)/gen/screens.h | $(BUILD)
+$(BUILD)/%.o: src/%.c src/gba.h $(BUILD)/gen/assets.h $(BUILD)/gen/screens.h $(BUILD)/gen/srd_ids.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/gen/%.o: $(BUILD)/gen/%.c | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/r_%.o: rules/%.c rules/rules.h | $(BUILD)
+$(BUILD)/r_%.o: rules/%.c rules/rules.h $(BUILD)/gen/srd_ids.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(SRDTAB) $(BUILD)/gen/srd_ids.h: tools/mksrd.py tools/srd/srd_data.py tools/srd/overrides.py | $(BUILD)

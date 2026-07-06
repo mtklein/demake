@@ -41,6 +41,7 @@ def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
 
 def setup(cls, choices, battle_mode=0):
     poke(DEMO, 1); poke(BATTLE, battle_mode); poke(CLASS, cls)
+    poke(0x0203FF0E, 7)   # origin = custom Tav (fixed origins override in their own scenarios)
     poke(IDLE, 0); poke(DONE, 0)
     for i, c in enumerate(choices):
         poke(CHOICE + i, c)
@@ -158,6 +159,16 @@ def _mk_smoke(cls):
 
 for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
+
+@scn
+def origin_check():
+    """Shadowheart origin: cleric, Masks subclass (id 16) from level 1, her name"""
+    poke(DEMO, 1); poke(BATTLE, 0); poke(0x0203FF0E, 4)   # origin = Shadowheart
+    for i, byte in enumerate((0x01, 0xEE, 0xFF, 0xC0)): poke(0x0203FF38 + i, byte)
+    poke(0x0203FF05, 0); poke(0x0203FF06, 0)
+    wait(700)                          # title + crawl + origin auto-select
+    w(f"until {IDLE:08x} 01 12000")    # reach the nursery
+    shot("origin_shadow")
 
 @scn
 def prepare_check():

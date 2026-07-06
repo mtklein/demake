@@ -2,6 +2,7 @@
 #include "game.h"
 #include "assets.h"
 #include "field.h"
+#include "rules.h"
 
 Game G;
 
@@ -73,6 +74,9 @@ void party_init(int cls, const char* name) {
     PMember* p = &G.pm[0];
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
+    /* origins whose subclass arrives at level 1 get it now (Char 2.0) */
+    if (G.origin == ORIG_SHADOW) p->subclass = R5SUB_DOMAIN_OF_MASKS;
+    else if (G.origin == ORIG_WYLL) p->subclass = R5SUB_FIEND;
     if (G_DEMO_LEVEL >= 2) { char nm[16]; party_give_xp(
         G_DEMO_LEVEL >= 3 ? 900 : 300, nm); }   /* test hook: pre-level */
     set_stats(p);

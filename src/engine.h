@@ -26,6 +26,7 @@ void say(const char* s);
 void say_p(int portrait, const char* s);
 void say_keep(const char* s);
 int  choose(int n, const char* const* opts);
+void ui_portrait(int por, int cx, int cy);
 
 /* oam.c */
 void oam_init(void);

@@ -144,6 +144,7 @@ enum { CR_ROOM = 1, CR_ENC, CR_TURN, CR_MENU, CR_CAST, CR_RESULT };
 #define PANIC_WD_FRAMES 600            /* ~10s without frame() = hang */
 #define G_PANIC_TEST  (*(vu8*)0x0203FF0C)  /* poke 1: test the crash screen */
 #define G_DEMO_LEVEL  (*(vu8*)0x0203FF0D)  /* poke: start party at this level (tests) */
+#define G_DEMO_ORIGIN (*(vu8*)0x0203FF0E)  /* poke: origin index (default 7 = custom) */
 void gba_init(void);
 void vsync(void);
 u16  key_state(void);      /* held keys, 1 = pressed */

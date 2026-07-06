@@ -26,7 +26,10 @@ typedef struct {
     u8 weapon[3];        /* equipped R5W_* per member */
     u8 winv[8], nwinv;   /* unequipped weapons found around the ship */
     u16 flags;
+    u8 origin;        /* ORIG_* -- 6 = Dark Urge, 7 = custom Tav */
 } Game;
+enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
+       ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
 void loot_weapon(int w);          /* add to inventory (menu equips) */
 extern Game G;
 
