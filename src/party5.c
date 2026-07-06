@@ -104,6 +104,16 @@ void party5_refresh(int i) {
     }
     c->used = used;
     c->concentrating = 0;
+    {   /* resource pools: preserve spent amounts across refreshes */
+        u8 spent[R5R_COUNT];
+        for (int p = 0; p < R5R_COUNT; p++) {
+            int oldmax = built[i] ? r5_classes[c->cls].rsrc[c->level][p] : 0;
+            spent[p] = built[i] ? (u8)(oldmax - c->rsrc[p]) : 0;
+        }
+        r5_refill(c);
+        for (int p = 0; p < R5R_COUNT; p++)
+            c->rsrc[p] = (u8)(c->rsrc[p] > spent[p] ? c->rsrc[p] - spent[p] : 0);
+    }
     built[i] = 1;
 }
 
@@ -120,5 +130,6 @@ void party5_heal_full(void) {
         c->used = 0;
         for (int s = 0; s < 3; s++)
             c->slots[s] = r5_classes[c->cls].slots[c->level][s];
+        r5_refill(c);                    /* pools return on a full rest */
     }
 }
