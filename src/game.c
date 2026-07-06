@@ -216,26 +216,29 @@ void game_crawl(void) {
 static const char* const cls_names[CLS_COUNT] = {
     "Bard", "Rogue", "Ranger", "Wizard", "Fighter", "Cleric",
     "Barbarian", "Druid", "Monk", "Paladin", "Sorcerer", "Warlock" };
+/* every line must fit the blurb card (SCR_CLASSSEL_B0_W chars) or
+ * blurb_draw splits it mid-word -- "mends allie / s." shipped once.
+ * The card cannot widen: the class list owns the rest of the screen. */
 static const char* const cls_blurb[CLS_COUNT] = {
-    "Mocks foes,\nmends allies.\nA cutting\nwit.",
-    "Strikes from\nshadow for\ntriple\ndamage.",
-    "Marks prey,\nsets snares.\nSteady and\nbrutal.",
+    "A cutting\nwit: mocks\nfoes, mends\nallies.",
+    "Strikes out\nof shadow:\ntriple\ndamage.",
+    "Marks prey,\nsets traps.\nSteady and\nbrutal.",
     "Fire bolt,\nmissiles,\nsleep.\nBrilliant.",
-    "Second wind,\nsurging\nsteel.\nUnbroken.",
-    "Bless, mend,\nsmite. The\ngods answer\nyou.",
+    "Second wind\nand surging\nsteel.\nUnbroken.",
+    "Bless, mend\nand smite:\nthe gods\nanswer you.",
     "RAGE. Shrug\noff blades.\nHit very\nhard.",
-    "Wild shape:\nbecome the\nbeast. Green\nmagic.",
+    "Nature's\nmagic. Wild\nshape: be\nthe beast.",
     "Ki-fueled\nflurries.\nFists like\nhammers.",
     "Smite evil,\nlay hands,\nswear the\noath.",
     "Magic in\nthe blood.\nBends every\nrule.",
-    "A patron\nwhispers.\nEldritch\npower, owed.",
+    "A patron\nwhispers.\nEldritch\npower owed.",
 };
 
 static void blurb_draw(const char* s) {
     for (int j = 0; j < 4; j++) {
         char line[16];
         int k = 0;
-        while (*s && *s != '\n' && k < 11) line[k++] = *s++;
+        while (*s && *s != '\n' && k < SCR_CLASSSEL_B0_W) line[k++] = *s++;
         if (*s == '\n') s++;
         line[k] = 0;
         txt_put_n(SCR_CLASSSEL_B0_X, SCR_CLASSSEL_B0_Y + j, line, 2, SCR_CLASSSEL_B0_W);

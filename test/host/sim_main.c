@@ -988,14 +988,25 @@ static void t_member_look_identity(void) {
     T_ASSERT(G.pm[0].face == ORIG_SHADOW, "party_init face %d", G.pm[0].face);
 }
 
+/* each class's longest blurb line, from the design: it must land intact on
+ * ONE grid row -- blurb_draw once split "mends allies." into "mends allie/s."
+ * because the card was narrower than the copy */
+static const char* const blurb_line[CLS_COUNT] = {
+    "foes, mends", "Strikes out", "sets traps.", "Brilliant.",
+    "and surging", "answer you.", "off blades.", "magic. Wild",
+    "Fists like",  "Smite evil,", "Bends every", "power owed.",
+};
+
 static void t_class_select_art(void) {
     for (int cls = 0; cls < CLS_COUNT; cls++) {
         sim_reset();
         char script[256] = "";
         for (int i = 0; i < cls; i++) strcat(script, "DOWN ");
-        strcat(script, "A");
+        strcat(script, "SNAP A");
         script_keys(script);
         int r = game_class_select();
+        T_ASSERT(snap_contains(0, blurb_line[cls]),
+                 "%s blurb line wrapped mid-word", cls_display[cls]);
         T_ASSERT(r == cls, "class select returned %d, want %d", r, cls);
         const SimObj* hero = sim_obj(OBJ_PLAYER);
         T_ASSERT(hero->tile == custom_walk[cls],
