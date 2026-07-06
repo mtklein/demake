@@ -107,6 +107,13 @@ void party5_refresh(int i) {
     }
     c->used = used;
     c->concentrating = 0;
+    c->crit_min = 20;
+    c->heal_boost = 0;
+    if (p->subclass < R5SUB_COUNT) {          /* subclass passives */
+        u8 pv = r5_subclasses[p->subclass].passive;
+        if (pv & SUBP_CRIT19) c->crit_min = 19;
+        if (pv & SUBP_HEAL_DISCIPLE) c->heal_boost = (u8)(2 + p->level);
+    }
     r5_refill(c);                            /* new-level pools, then re-spend */
     for (int r = 0; r < R5R_COUNT; r++) {
         int v = c->rsrc[r] - (pspent[r] < 0 ? 0 : pspent[r]);

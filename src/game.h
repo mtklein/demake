@@ -8,7 +8,7 @@ enum { CLS_BARD, CLS_ROGUE, CLS_RANGER, CLS_WIZARD, CLS_FIGHTER, CLS_CLERIC,
 
 typedef struct {
     char name[8];
-    u8 cls, level;
+    u8 cls, level, subclass;
     s16 hp, hpmax, mp, mpmax;
     u8 atk, def, mag, spd;
     u16 xp;

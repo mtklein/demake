@@ -694,6 +694,7 @@ static void cast_heal(EC* a, EC* t, int sp) {
     const R5Spell* s = &r5_spells[sp];
     int mod = s->add_mod ? r5_mod(a->c->ab[party5_cast_ab(a->c->cls)]) : 0;
     R5Dice d = r5_roll(&rng, s->dice.n, s->dice.sides, s->dice.mod + mod);
+    if (a->c->heal_boost && s->level > 0) d.total += a->c->heal_boost;  /* Life */
     tray_clear();
     tray_dice(&d, 8);
     sfx_play(SFX_HEAL);

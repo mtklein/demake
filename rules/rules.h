@@ -164,6 +164,8 @@ typedef struct {
     uint8_t used;                    /* USED_* resource bits */
     uint8_t rsrc[R5R_COUNT];         /* live pools (see R5R_) */
     uint8_t traits;                  /* TR_* racial trait bits */
+    uint8_t crit_min;                /* d20 >= this crits (20; Champion 19) */
+    uint8_t heal_boost;              /* Life: +2+level on healing spells */
     uint8_t concentrating;           /* spell id + 1, or 0 */
 } R5Creature;
 
@@ -247,6 +249,18 @@ enum { R5W_DAGGER, R5W_SHORTSWORD, R5W_LONGSWORD, R5W_GREATSWORD, R5W_RAPIER,
        R5W_COUNT };
 
 extern const R5Class r5_classes[R5C_COUNT];
+
+/* subclasses: id table generated into srd_ids.h; passive bits applied at
+ * sheet build, triggered features interpreted by the choice/combat stones */
+enum { SUBP_CRIT19 = 1 << 0, SUBP_HEAL_DISCIPLE = 1 << 1, SUBP_TOUGH = 1 << 2 };
+typedef struct {
+    const char* name;      /* display, <=10 chars */
+    uint8_t cls, level;    /* class + choice level */
+    uint8_t passive;       /* SUBP_* always-on bits */
+    uint8_t srd;
+    uint32_t prepared;     /* always-prepared spells: bitmask into r5_spells */
+} R5Subclass;
+extern const R5Subclass r5_subclasses[];
 
 /* spells (prologue set, generated from SRD data) */
 typedef struct {

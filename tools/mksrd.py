@@ -265,6 +265,73 @@ def gen_monsters(o):
             len(attacks)))
     o.append("};")
 
+
+# ---------------------------------------------------------------- subclasses
+
+def all_subclasses():
+    subs = dict(SRD.SUBCLASSES)
+    subs.update(getattr(OVR, "SUBCLASSES_HB", {}))
+    # stable order: by class enum, srd-first, then name
+    def key(kv):
+        n, s = kv
+        cls = CLS_ORDER.index(s["class"]) if s["class"] in CLS_ORDER else 99
+        return (cls, 0 if s.get("srd", not n[0].isupper()) else 1, n)
+    return sorted(subs.items(), key=lambda kv: key(kv))
+
+def sub_enum(name):
+    out = "R5SUB_"
+    for ch in name.upper():
+        out += ch if ch.isalnum() else "_"
+    while "__" in out: out = out.replace("__", "_")
+    return out.rstrip("_")
+
+def gen_sub_ids(h):
+    h.append("/* generated: R5SUB_* subclass ids */")
+    order = all_subclasses()
+    for i, (name, s) in enumerate(order):
+        h.append(f"#define {sub_enum(name)} {i}")
+    h.append(f"#define R5SUB_COUNT {len(order)}")
+
+SPELL_INDEX = {k: i for i, k in enumerate(None or [])}  # filled in gen_spells era
+
+def spell_bit(key):
+    order = spell_order()
+    return order.index(key) if key in order else -1
+
+def gen_subclasses(o):
+    o.append("const R5Subclass r5_subclasses[R5SUB_COUNT] = {")
+    for name, s in all_subclasses():
+        disp = s.get("display", name.title())[:10]
+        cls = CLS_ORDER.index(s["class"])
+        passive = []
+        prepared = 0
+        for lvl, feats in s["features"].items():
+            for f in feats:
+                mk = f["mech"].get("kind")
+                if mk == "crit_range": passive.append("SUBP_CRIT19")
+                elif mk == "heal_bonus": passive.append("SUBP_HEAL_DISCIPLE")
+                elif mk in ("always_prepared", "spell_list_extend"):
+                    v = f["mech"].get("spells", f["mech"].get("list", []))
+                    def walk(x):
+                        if isinstance(x, str):
+                            b = spell_bit(x)
+                            return 1 << b if 0 <= b < 32 else 0
+                        if isinstance(x, dict):
+                            r = 0
+                            for y in x.values(): r |= walk(y)
+                            return r
+                        if isinstance(x, (list, tuple)):
+                            r = 0
+                            for y in x: r |= walk(y)
+                            return r
+                        return 0
+                    prepared |= walk(v)
+        pf = " | ".join(sorted(set(passive))) or "0"
+        srd = 1 if s.get("srd", not name[0].isupper()) else 0
+        o.append('    [%s] = { "%s", %d, %d, %s, %d, 0x%08x },' % (
+            sub_enum(name), disp, cls, s["level"], pf, srd, prepared))
+    o.append("};")
+
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     o = [
@@ -276,11 +343,13 @@ def main():
     gen_weapons(o); o.append("")
     gen_classes(o); o.append("")
     gen_spells(o); o.append("")
-    gen_monsters(o)
+    gen_monsters(o); o.append("")
+    gen_subclasses(o)
     with open(OUT, "w") as f:
         f.write("\n".join(o) + "\n")
     h = []
     gen_spell_ids(h)
+    gen_sub_ids(h)
     with open(os.path.join(os.path.dirname(OUT), "srd_ids.h"), "w") as f:
         f.write("\n".join(h) + "\n")
     print(f"srd tables: {len(WEAPON_MAP)} weapons, {len(CLASS_MAP)} classes, "

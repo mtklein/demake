@@ -478,6 +478,28 @@ static void test_char2_pools(void) {
     }
     CHECK(saw_crit_dice == 6);
 
+    /* subclass passive: Champion crits on 19-20 */
+    R5Creature ch = { 0 };
+    ch.cls = R5C_FIGHTER; ch.level = 3; ch.ab[R5_STR] = 16; ch.crit_min = 19;
+    R5RNG cr = { 999 };
+    R5Creature big = { 0 }; big.ac = 1; big.hp = big.hpmax = 30000;
+    int crits = 0, hits = 0;
+    for (int i = 0; i < 40000; i++) {
+        R5Attack at = r5_weapon_attack(&cr, &ch, &big, &r5_weapons[R5W_GREATSWORD], 0);
+        if (at.hit) hits++;
+        if (at.crit) crits++;
+    }
+    /* ~10% crit (19-20) vs the ~5% baseline; wide slack */
+    CHECK(crits * 100 / hits >= 7 && crits * 100 / hits <= 13);
+    ch.crit_min = 20;
+    crits = hits = 0;
+    for (int i = 0; i < 40000; i++) {
+        R5Attack at = r5_weapon_attack(&cr, &ch, &big, &r5_weapons[R5W_GREATSWORD], 0);
+        if (at.hit) hits++;
+        if (at.crit) crits++;
+    }
+    CHECK(crits * 100 / hits >= 3 && crits * 100 / hits <= 7);
+
     R5Creature mk = { 0 };
     mk.cls = R5C_MONK; mk.level = 2; r5_refill(&mk);
     CHECK(mk.rsrc[R5R_KI] == 2 && r5_martial_die(&mk) == 4);

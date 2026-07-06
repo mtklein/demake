@@ -77,7 +77,7 @@ static int ability_for_weapon(const R5Creature* a, const R5Weapon* w) {
 
 /* shared to-hit resolution; returns 1 on hit and fills d20/bless/bonus/total */
 static void resolve_to_hit(R5RNG* r, R5Attack* out, int to_hit_bonus,
-                           int flags, uint8_t target_ac) {
+                           int flags, uint8_t target_ac, int crit_min) {
     out->d20 = r5_d20(r, flags);
     out->bonus = (int16_t)to_hit_bonus;
     if (flags & R5F_BLESS) {
@@ -89,7 +89,7 @@ static void resolve_to_hit(R5RNG* r, R5Attack* out, int to_hit_bonus,
     }
     out->target_ac = target_ac;
     out->total = (int16_t)(out->d20.total + out->bonus);
-    out->crit = (out->d20.total == 20);
+    out->crit = (out->d20.total >= (crit_min ? crit_min : 20));
     out->fumble = (out->d20.total == 1);
     out->hit = out->crit || (!out->fumble && out->total >= target_ac);
     if (out->hit && (flags & R5F_AUTOCRIT)) out->crit = 1;
@@ -119,7 +119,7 @@ R5Attack r5_weapon_attack(R5RNG* r, const R5Creature* a, const R5Creature* t,
     R5Attack out = { 0 };
     if (a->traits & TR_LUCKY) flags |= R5F_LUCKY;
     int abil = ability_for_weapon(a, w);
-    resolve_to_hit(r, &out, abil + r5_prof(a), flags, t->ac);
+    resolve_to_hit(r, &out, abil + r5_prof(a), flags, t->ac, a->crit_min);
     out.dmg_type = w->dmg_type;
     if (!out.hit) return out;
 
@@ -157,7 +157,7 @@ R5Attack r5_monster_attack(R5RNG* r, const R5Creature* a, const R5MAttack* ma,
                            const R5Creature* t, int flags) {
     (void)a;
     R5Attack out = { 0 };
-    resolve_to_hit(r, &out, ma->to_hit, flags, t->ac);
+    resolve_to_hit(r, &out, ma->to_hit, flags, t->ac, a ? a->crit_min : 20);
     out.dmg_type = ma->dmg_type;
     if (!out.hit) return out;
 

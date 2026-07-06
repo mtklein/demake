@@ -72,7 +72,7 @@ void party_init(int cls, const char* name) {
     G.flags = 0;
     PMember* p = &G.pm[0];
     strcpy8(p->name, name);
-    p->cls = (u8)cls; p->level = 1; p->xp = 0;
+    p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
     G.tactics[0] = G.tactics[1] = G.tactics[2] = TAC_ORDERS;
