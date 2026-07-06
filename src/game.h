@@ -82,6 +82,9 @@ enum {
     BF_DEV_DUNE2    = 1 << 7,    /* second dune-path devourer slain */
     BF_CHEST_BEACH  = 1 << 8,    /* crash-site chest looted */
     BF_CHEST_DUNE   = 1 << 9,    /* dune cache looted */
+    BF_AST_RECRUITED= 1 << 10,   /* Astarion's knife beat resolved: he walks */
+    BF_GALE_RECRUITED=1 << 11,   /* Gale pulled through the portal sigil */
+    BF_BOAR_DRAINED = 1 << 12,   /* origin Astarion fed on his staked kill */
 };
 
 #define HERO_CLS (G.pm[0].cls)

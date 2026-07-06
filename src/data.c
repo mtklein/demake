@@ -182,7 +182,7 @@ void party_add_shadowheart(void) {
     G.flags |= GF_SH_FREED;
 }
 
-/* beach recruits; their story beats land in a later stone */
+/* beach recruits (events.c: the knife beat and the sigil beat) */
 void party_add_astarion(void) { party_add("ASTAR.", CLS_ROGUE, ORIG_ASTARION); }
 void party_add_gale(void)     { party_add("GALE", CLS_WIZARD, ORIG_GALE); }
 
@@ -193,6 +193,7 @@ void party_swap(int i, int r) {
     u8 tw = G.weapon[i];   G.weapon[i] = G.rweapon[r];    G.rweapon[r] = tw;
     u8 tt = G.tactics[i];  G.tactics[i] = G.rtactic[r];   G.rtactic[r] = tt;
     party5_swap(i, r);
+    mgba_logf("party swap in=%s out=%s", G.pm[i].name, G.reserve[r].name);
 }
 
 int party_give_xp(u16 xp, char* names) {

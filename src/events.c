@@ -30,6 +30,16 @@
 #else
 #define SAY_ZH(t) say(t)
 #endif
+#ifdef POR_ASTARION
+#define SAY_AST(t) say_p(POR_ASTARION, t)
+#else
+#define SAY_AST(t) say(t)
+#endif
+#ifdef POR_GALE
+#define SAY_GA(t) say_p(POR_GALE, t)
+#else
+#define SAY_GA(t) say(t)
+#endif
 
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
@@ -43,6 +53,8 @@ static int sh_waiting;               /* freed but not yet recruited */
  * scenario pokes depend on) */
 static int n_shb;                    /* Shadowheart ashore (met or unconscious) */
 static int n_scav[2];                /* the tiefling scavengers */
+static int n_ast;                    /* the pale elf lurking by the grass */
+static int n_boar;                   /* origin Astarion's staked kill */
 
 /* wandering on-map encounters: per-room patrol slots. Each remembers its
  * stat block, bounty, and the story bit that keeps it dead (ship kills live
@@ -130,6 +142,7 @@ void room_enter(int id, int sx, int sy, int face) {
     n_imp[0] = n_imp[1] = n_imp[2] = -1;
     n_wander[0] = n_wander[1] = -1;
     n_shb = n_scav[0] = n_scav[1] = -1;
+    n_ast = n_boar = -1;
 
     switch (id) {
         case RM_NURSERY: field_load(map_nursery, MAP_NURSERY_W, MAP_NURSERY_H); break;
@@ -185,10 +198,22 @@ void room_enter(int id, int sx, int sy, int face) {
                 else
                     n_shb = field_add_npc(4, 7, OBJT_SHADOW_KO, 2, 0, 0);
             }
+            if (G.origin == ORIG_ASTARION) {
+                /* story surgery: the lurker with the knife is the player.
+                 * What remains of his beat is the kill he staked out. */
+                if (!(G.bflags & BF_BOAR_DRAINED))
+                    n_boar = field_add_npc(2, 5, OBJT_BOARW, 3, 2, 0);
+                mgba_log("beach reroute astarion");
+            } else if (!(G.bflags & BF_AST_RECRUITED)) {
+                /* the rogue walker IS his recruited look (member_look) */
+                MemberLook L = member_look(ORIG_ASTARION, CLS_ROGUE);
+                n_ast = field_add_npc(2, 5, L.objt, L.pal, 0, 0);
+            }
             add_wanderer(0, 15, 2, OBJT_DEVF, 5, 0,
                          R5M_DEVOURER, 50, &G.bflags, BF_DEV_CRASH, 28);
             break;
         case RM_DUNES:
+            if (G.origin == ORIG_GALE) mgba_log("beach reroute gale");
             if (G.origin == ORIG_LAEZEL) {
                 /* story surgery: the player IS the githyanki -- the cage
                  * stands sprung and empty, the scavengers twice as scared */
@@ -880,6 +905,116 @@ static void scav_talk(void) {
     dlg_close();
 }
 
+/* --- Astarion by the shore (2,5): the knife at your throat --- */
+
+static void astarion_beat(void) {
+    field_face_npc(n_ast, field_player_mx() > 2 ? 3 : 0);
+    say("A pale elf waves you over, all urgency and excellent posture.");
+    SAY_AST("ASTARION: \"You there! One of those brain-things -- I have it cornered, there, in the grass. Kill it and I am forever grateful.\"");
+    say_keep("He points. The grass is very still.");
+    {
+        static const char* const o[] = { "Peer into the grass", "Watch him, not the grass" };
+        if (choose(2, o) == 0) {
+            say("You lean in. Nothing but wind --");
+            say("-- then sand in your knees and an arm like a bar across your chest. Steel settles under your jaw.");
+        } else {
+            if (isclass(CLS_ROGUE))
+                say("[ROGUE] You watch his weight, not his finger. He moves anyway -- smoother than anyone you've ever robbed.");
+            say("You keep your eyes on him. It does not help. The world tips, the sand takes you, and steel settles under your jaw.");
+        }
+    }
+    SAY_AST("ASTARION: \"Shhh. Not a sound. I saw you on that ship, friend. So tell me: what do you and your tentacled masters want with me?\"");
+    field_shake(16);
+    sfx_noise(12);
+    say("Behind your eye the passenger LUNGES at him -- and behind his eye, something lunges back.");
+    SAY_AST("ASTARION: \"Agh!\" He recoils as if your blood burned him. \"You have one of those worms. Squirming little stowaway -- I FELT it.\"");
+    URGE("His grip is broken and his throat is bare. You find yourself counting the ways, warmly.");
+    SAY_AST("ASTARION: \"Well. This is awkward. I meant to carve answers out of a thrall, and instead I find -- a fellow victim.\"");
+    say_keep("The knife vanishes like a conjurer's card. He offers the same hand, open.");
+    {
+        static const char* const o[] = { "Together, then.", "Point that at me again and lose it." };
+        if (choose(2, o) == 1)
+            SAY_AST("ASTARION: \"Noted and filed. You'll find I make a marvelous ally -- and a genuinely tiresome enemy.\"");
+        else
+            SAY_AST("ASTARION: \"Splendid. Misery adores company, and I am DELIGHTFUL company.\"");
+    }
+    SAY_AST("ASTARION: \"Astarion. Of Baldur's Gate -- a magistrate, before all this. Now let's find someone who can dig these things out, before the wriggling gets ambitious.\"");
+    say("Astarion joins the party!");
+    party_add_astarion();
+    G.bflags |= BF_AST_RECRUITED;
+    if (n_ast >= 0) field_remove_npc(n_ast);
+    n_ast = -1;
+    mgba_logf("beach recruit astarion walk=%d reserve=%d", G.nparty, G.nreserve);
+    dlg_close();
+}
+
+/* origin Astarion: the lure spot holds his kill instead of him */
+static void boar_beat(void) {
+    say("The boar stands where you staked it: hobbled, heart hammering, downwind and doomed.");
+    say("Your gums ache around the old points. The sea is loud. No one is watching.");
+    say_keep("It would only take a moment.");
+    {
+        static const char* const o[] = { "Feed", "Master it -- for now" };
+        if (choose(2, o) == 0) {
+            say("Quick, and quiet, and warm. The hunger curls up satisfied, like a cat.");
+            say("You smooth the sand over what's left. Habit.");
+            G.bflags |= BF_BOAR_DRAINED;
+            mgba_log("boar beat fed");
+        } else {
+            say("You cut the hobble instead. The boar bolts, and the hunger files the debt under LATER.");
+            mgba_log("boar beat spared");
+        }
+    }
+    if (n_boar >= 0) field_remove_npc(n_boar);
+    n_boar = -1;
+    dlg_close();
+}
+
+/* --- the portal sigil cut into the dunes' east rocks (15,8) --- */
+
+static void sigil_beat(void) {
+    if (G.origin == ORIG_GALE) {
+        /* story surgery: the wizard the stone would deliver is the player --
+         * the anchor has nothing for him but a professional opinion */
+        say("A weave-anchor, cut deep and recently. Waterdhavian work: fussy, elegant, nearly excellent.");
+        say("Nearly. The exit matrix sits a hair off-true -- whoever routed through here arrived somewhere else, or not at all.");
+        say("You could have built it better in your sleep. You resolve, quietly, never to admit how much that cheers you.");
+        mgba_log("sigil beat rerouted");
+        dlg_close();
+        return;
+    }
+    if (G.bflags & BF_GALE_RECRUITED) {
+        say("The sigil stone stands dark and spent. Whatever it was holding, you already pulled it free.");
+        dlg_close();
+        return;
+    }
+    say("A sigil glows on the rock face, wet-bright, humming like a bell that refuses to finish ringing.");
+    if (isclass(CLS_WIZARD))
+        say("[WIZARD] A travel rune, and it is under strain. Something is stuck in the doorway.");
+    field_shake(14);
+    sfx_noise(10);
+    say("The rune FLARES. A hand thrusts out of solid stone, fingers spread, grasping at the air.");
+    say("A voice from nowhere, courteous and slightly compressed: \"Ah, contact! Could I trouble you for a hand? Mine is spoken for.\"");
+    say_keep("The hand waves, beckoning. The stone around it groans.");
+    {
+        static const char* const o[] = { "Take the hand and PULL", "Question the hand first" };
+        if (choose(2, o) == 1) {
+            say("\"And you would be?\" you ask the hand. It wilts, wounded.");
+            SAY_GA("GALE: \"A wizard of absolutely no ill intent, wedged in a failing portal. Details AFTER the rescue, please.\"");
+        }
+    }
+    say("You brace a heel on the rock and HAUL. The stone argues -- then gives him up all at once, mid-sentence:");
+    SAY_GA("GALE: \"--which is why one never portals off an exploding nautiloid without an exit anchor. Gale, of Waterdeep. Charmed, truly.\"");
+    say("He shakes the grit from his sleeves. Behind your eye the passenger stirs -- and behind his, something answers.");
+    SAY_GA("GALE: \"Ah. You too? The little mind-worm, courtesy of our late hosts. Then our problems are entangled -- I'd hoped for a nicer word.\"");
+    SAY_GA("GALE: \"Traveling alone out here rates somewhere between unwise and posthumous. Shall we?\"");
+    say("Gale joins the party!");
+    party_add_gale();
+    G.bflags |= BF_GALE_RECRUITED;
+    mgba_logf("beach recruit gale walk=%d reserve=%d", G.nparty, G.nreserve);
+    dlg_close();
+}
+
 /* --- interactions --- */
 
 static void beach_interact(int mx, int my, int m) {
@@ -929,6 +1064,7 @@ static void beach_interact(int mx, int my, int m) {
 
 static void dunes_interact(int mx, int my, int m) {
     (void)mx;
+    if (m == MT_SIGIL) { sigil_beat(); return; }
     if (m == MT_CAGE || m == MT_CAGE_OPEN) { cage_beat(); return; }
     if (m == MT_ROCK) {
         if (my == 0) {
@@ -1008,6 +1144,14 @@ void ev_step(int mx, int my) {
             if (dy < 0) dy = -dy;
             if (dx + dy <= 1) { flayer_beat(); return; }
         }
+        if (n_ast >= 0) {
+            /* wander near the pale elf (2,5) and he beckons: the lure IS
+             * the beat */
+            int dx = mx - 2, dy = my - 5;
+            if (dx < 0) dx = -dx;
+            if (dy < 0) dy = -dy;
+            if (dx + dy <= 2) { astarion_beat(); return; }
+        }
         return;
     }
     if (cur_room == RM_DUNES) {
@@ -1072,6 +1216,8 @@ void ev_npc(int idx) {
         wanderer_fight(idx, 1);      /* unaware: enemies surprised */
         return;
     }
+    if (idx >= 0 && idx == n_ast) { astarion_beat(); return; }
+    if (idx >= 0 && idx == n_boar) { boar_beat(); return; }
     if (idx >= 0 && idx == n_shb) {
         if (G.flags & GF_SH_FREED) sh_shore_meet();
         else sh_shore_wake();

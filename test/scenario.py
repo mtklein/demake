@@ -410,6 +410,64 @@ def beach_origin():
     face_interact("LEFT")              # the cage, stranger fork
     shot("b_origin")
 
+# --- the Ravaged Beach (stone 3): the recruits ----------------------------
+
+@scn
+def beach_recruits():
+    """The roster outgrows the walking three. Shadowheart rejoins ashore;
+    Astarion's knife-at-the-throat beat fills the third walking slot; the
+    cage sends Lae'zel to reserve 0; Gale arrives through the portal sigil
+    into reserve 1 (the bench is now full: five souls). Then the Start
+    menu's Party row -- live for the first time in real play -- swaps
+    Lae'zel in for Shadowheart, on-ROM, via scripted input."""
+    beach_setup(0, [0, 0, 0, 0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    face_interact("RIGHT")             # Shadowheart, upright at (11,6)
+    walk("LEFT", 8)                    # the pale elf beckons: beat fires at (3,6)
+    ready()
+    shot("b_astarion")
+    walk("RIGHT", 7)                   # back to (10,6)
+    walk("UP", 6)                      # the dune gap
+    ready()
+    walk("UP", 4); walk("LEFT", 6)     # (4,6): west corridor
+    walk("UP", 4); walk("LEFT", 1)     # (3,2), beside the cage
+    face_interact("LEFT")              # Lae'zel freed -> reserve slot 0
+    walk("DOWN", 1)                    # (3,3)
+    walk("RIGHT", 6); walk("RIGHT", 6) # (15,3): east along the north corridor
+    walk("DOWN", 4)                    # (15,7), above the sigil
+    face_interact("DOWN")              # the hand in the stone: Gale -> slot 1
+    shot("b_gale")
+    tap("START"); wait(20)             # five souls: the Party row is live
+    tap("DOWN", 5, gap=12); tap("A"); wait(20)   # -> Party
+    tap("A"); wait(20)                 # walking slot 1 (Shadowheart)...
+    tap("A"); wait(30)                 # ...swaps with reserve 0 (Lae'zel)
+    shot("b_party_swap")
+    tap("B"); wait(10); tap("B"); wait(20)       # back out to the field
+
+@scn
+def beach_reroute_astarion():
+    """Origin Astarion: no pale stranger waits by the grass -- story
+    surgery leaves his staked kill there instead, and the hunger beat
+    plays (Feed)."""
+    beach_setup(1, [0], flags=0, origin=0)
+    beach_boot()
+    walk("LEFT", 8)                    # (2,6), beneath the staked boar
+    face_interact("UP")                # the hunger beat
+    shot("b_reroute_ast")
+
+@scn
+def beach_reroute_gale():
+    """Origin Gale: the sigil stone holds no one -- the wizard it would
+    deliver is already standing in front of it, unimpressed."""
+    beach_setup(3, [0], flags=0, origin=1)
+    beach_boot()
+    walk("UP", 6)                      # the dune gap
+    ready()
+    walk("RIGHT", 5)                   # (15,10): the east edge
+    walk("UP", 2)                      # (15,9); the sigil stone blocks step 2
+    face_interact("UP")                # a professional opinion
+    shot("b_reroute_gale")
+
 @scn
 def helm_sleepz():
     setup(3, [0, 1, 0, 0, 2], 2)

@@ -732,6 +732,25 @@ METATILES = {
         "6666666666666666",
     ],
     # the cage torn open: bars sprung, empty dark interior, one bar askew
+    # rock face carved with a glowing portal sigil (teal ring, bright core)
+    "sigil": [
+        "6666666666666666",
+        "6666677777766666",
+        "6667777777777666",
+        "6677777777777766",
+        "6677779999777766",
+        "6777798888977776",
+        "6777988998897776",
+        "6777988998897776",
+        "6777798888977776",
+        "6677779999777766",
+        "6667E7777EEEE666",
+        "6666E77EEEEEE666",
+        "6667111111111766",
+        "6666776666776666",
+        "6666666666666666",
+        "6666666666766666",
+    ],
     "cage_open": [
         "6666666666666666",
         "6666666666666666",
@@ -758,6 +777,7 @@ SOLID = {
     "myrnath", "myrnath_empty", "transp_l", "transp_r",
     "tank", "viewport", "surf", "sea", "wreck",
     "rock", "dune", "wreck_l", "wreck_r", "flayer_dying", "cage", "cage_open",
+    "sigil",
 }
 
 ORDER = [
@@ -768,5 +788,5 @@ ORDER = [
     "mesh", "gith_corpse", "flayer_corpse", "tank", "helm_floor", "viewport",
     "sand", "sand_d", "surf", "sea", "wreck",
     "sand_g", "rock", "dune", "wreck_l", "wreck_r",
-    "flayer_dying", "cage", "cage_open",
+    "flayer_dying", "cage", "cage_open", "sigil",
 ]
