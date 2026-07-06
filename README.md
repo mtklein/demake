@@ -52,9 +52,12 @@ Healer, No Slots — so companions can fight themselves while you drive the hero
 
 ## The mission
 
-Wake in a pod aboard a mind flayer warship falling through Avernus. Choose who
-you were before you were taken — **Bard, Rogue, Ranger, or Wizard** — then fight
-your way to the helm before the ship crashes.
+Wake in a pod aboard a mind flayer warship falling through Avernus. First choose
+**who you were** — one of six origin heroes (Astarion, Gale, Karlach, Lae'zel,
+Shadowheart, Wyll), **The Dark Urge** (a custom character who hears intrusive
+thoughts), or a **custom Tav** built from scratch: any of the **twelve D&D
+classes**, three subclasses each, with a race, background, standard-array stats,
+and skill proficiencies. Then fight your way to the helm before the ship crashes.
 
 Faithful beats from the BG3 prologue, condensed into an FF4 dungeon:
 
@@ -71,6 +74,24 @@ Faithful beats from the BG3 prologue, condensed into an FF4 dungeon:
 
 Your choices — who you freed, who you saved, whether you took the blade — are
 tallied over the wreckage on the Ravaged Beach.
+
+### Your character
+
+All twelve SRD classes are playable to level 3, each with its real kit: a
+barbarian who **rages** (damage resistance + a bonus to every swing), a monk
+spending **ki** on Flurry of Blows and Patient Defense, a paladin who arms
+**Divine Smite** onto the next hit and heals with **Lay on Hands**, a warlock
+casting Eldritch Blast on short-rest **pact** slots, a sorcerer, and a **druid
+who Wild Shapes into a beast** — a replacement actor with its own HP that hands
+you back the moment it drops, staged like a Final Fantasy summon. Casters draw
+from a table of **83 SRD spells** (levels 0–2); prepared casters swap their
+prepared list in the party menu. Leveling up offers real choices — the defining
+one being your **subclass** (each class has its SRD subclass plus two original
+homebrew ones). Racial traits reach into the dice: halfling **Luck** rerolls
+natural 1s, half-orc **Relentless Endurance** refuses to drop, **Savage Attacks**
+piles on crit dice. And **skill checks** happen on the field — the visible d20
+rolls right in the dialog box, "Arcana 15+4=19 vs 12 PASS," to read a rune or
+slip past a patrol.
 
 Combat is SRD 5e for real: d20 + modifiers vs AC with every die drawn as it
 lands (polyhedra in damage-type colors), advantage/disadvantage, crits that
@@ -142,8 +163,13 @@ end to end, plus living-encounter scenarios: sneaking a backstab on a patroller
 sleepers (`helm_sleepz`).
 
 `make gate` runs the whole ritual in one command -- ROM and runner builds, the
-rules and division-helper suites, the counterpoint linter, and all seven
-scripted playthroughs with structural pass/fail assertions.
+rules and division-helper suites, the counterpoint linter, and every scripted
+playthrough (the four class paths, stealth/ambush encounters, and targeted
+checks for wild shape, the level-up subclass pick, spell preparation, origins,
+the Dark Urge, field skill checks, and the crash screen) with structural
+pass/fail assertions. A built-in crash reporter (`src/panic.c`) draws a panic
+screen with breadcrumbs and a git build id, mirrors it to the mGBA log at FATAL,
+and a VBlank watchdog reports the exact PC of any main-loop hang.
 
 ## Debug flags (CodeBreaker cheats)
 
