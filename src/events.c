@@ -1093,10 +1093,12 @@ static void dunes_interact(int mx, int my, int m) {
 
 /* ------------------------------------------------------------ dispatch */
 
-/* subclass selection when a member reaches its subclass level (Char 2.0) */
+/* subclass resolution when a member reaches its subclass level (Char 2.0):
+ * the played hero (slot 0) picks; companions auto-take canon (data.c) */
 void level_up_choices(void) {
     for (int i = 0; i < G.nparty; i++) {
         PMember* p = &G.pm[i];
+        if (party_canon_subclass(p)) { party5_refresh(i); continue; }
         if (p->subclass != 255) continue;                 /* already chosen */
         if (p->level < r5_subclass_level[p->cls]) continue;
         const u8* ids = r5_subclass_of_class[p->cls];
@@ -1116,6 +1118,10 @@ void level_up_choices(void) {
         mgba_logf("subclass pick %s -> %d", p->name, p->subclass);
         dlg_close();
     }
+    /* benched members resolve at the same moments the walking party does;
+     * their twin picks the passives up at its next rebuild (swap-in) */
+    for (int r = 0; r < G.nreserve; r++)
+        party_canon_subclass(&G.reserve[r]);
 }
 
 void ev_interact(int mx, int my) {

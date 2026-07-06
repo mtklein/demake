@@ -91,6 +91,7 @@ enum {
 
 int origin_race(int o);          /* canon blood (character2.md identities) */
 int origin_background(int o);    /* canon background */
+int origin_subclass(int o);      /* canon subclass; 255 = the player's pick */
 
 void game_creation(int cls, int origin);   /* pickers + name + party build */
 int  game_race_pick(int origin);           /* -> R5RACE_* entry */
@@ -104,7 +105,10 @@ void party_add_shadowheart(void);
 void party_add_astarion(void);
 void party_add_gale(void);
 void party_swap(int i, int r);   /* walking slot i (1..2; Tav holds 0) <-> reserve r */
-int  party_give_xp(u16 xp, char* levelup_names);  /* returns # of level-ups */
+int  party_give_xp(u16 xp, char* levelup_names);  /* returns # of level-ups;
+        * names gets one ' '-joined name per level-up gained THIS award:
+        * worst case 3 members x 2 ups x 8 bytes -- callers pass char[48] */
+int  party_canon_subclass(PMember* p);  /* companions auto-take canon at the reveal */
 void party_heal_full(void);      /* walkers and reserve both */
 void party_scatter(void);        /* the crash: Tav alone, whole (narrative long rest) */
 

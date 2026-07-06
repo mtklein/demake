@@ -71,7 +71,6 @@ void party_init(int cls, const char* name) {
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = 0; p->subclass = 255;
     p->face = (u8)G.origin;   /* member 0 art identity = its origin */
-    /* origins whose subclass arrives at level 1 get it now (Char 2.0) */
     {
         static const unsigned char sk2[CLS_COUNT][2] = {
             [CLS_BARD]={SK_PERSUASION,SK_PERFORMANCE},[CLS_ROGUE]={SK_STEALTH,SK_SLEIGHT_OF_HAND},
@@ -95,9 +94,13 @@ void party_init(int cls, const char* name) {
         p->skills = cls_sk | r5_races[p->race].skills
                            | r5_backgrounds[p->background].skills;
     }
-    if (G.origin == ORIG_SHADOW) p->subclass = R5SUB_DOMAIN_OF_MASKS;
-    else if (G.origin == ORIG_WYLL) p->subclass = R5SUB_FIEND;
-    if (G_DEMO_LEVEL >= 2) { char nm[16]; party_give_xp(
+    /* origins whose class reveals its subclass at level 1 wear the canon
+     * pick from creation (game.c's one table: Shadowheart's Masks, Wyll's
+     * Fiend); later reveals stay 255 -- the played hero keeps the
+     * level_up_choices pick UI whatever face they wear */
+    if (G.origin < ORIG_DURGE && p->level >= r5_subclass_level[cls])
+        p->subclass = (u8)origin_subclass(G.origin);
+    if (G_DEMO_LEVEL >= 2) { char nm[48]; party_give_xp(
         G_DEMO_LEVEL >= 3 ? 900 : 300, nm); }   /* test hook: pre-level */
     set_stats(p);
     p->hp = p->hpmax; p->mp = p->mpmax;
@@ -126,6 +129,21 @@ void party_set_identity(int race, int bg, const s8* ab6) {
     party5_refresh(0);
 }
 
+/* Companions wear their canon subclass (character2.md's origin table,
+ * game.c's origins[]) from the moment their class reveals it -- walking or
+ * benched, a companion's soul is not the player's to spec. Slot 0 is the
+ * played hero: only they get the level_up_choices pick UI. Returns 1 when
+ * the canon pick lands (callers refresh the 5e twin). */
+int party_canon_subclass(PMember* p) {
+    if (p == &G.pm[0] || p->subclass != 255) return 0;
+    if (p->level < r5_subclass_level[p->cls]) return 0;
+    int sub = origin_subclass(p->face);
+    if (sub == 255) return 0;
+    p->subclass = (u8)sub;
+    mgba_logf("subclass canon %s -> %d", p->name, sub);
+    return 1;
+}
+
 /* level as far as xp allows (prologue cap 3); returns levels gained */
 static int level_ups(PMember* p) {
     int n = 0;
@@ -139,6 +157,7 @@ static int level_ups(PMember* p) {
         p->mp = (s16)(p->mp + p->mpmax - oldmp);
         n++;
     }
+    party_canon_subclass(p);   /* the reveal moment: companions take canon */
     return n;
 }
 
@@ -154,6 +173,8 @@ static void party_add(const char* name, int cls, int face) {
     else return;                    /* the arc caps the roster at 5 souls */
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = G.pm[0].xp; p->face = (u8)face;
+    p->subclass = 255;   /* explicit: slot 0s and stale occupants both read
+                          * as real subclasses; canon lands at the reveal */
     p->race = (u8)origin_race(face);
     p->background = (u8)origin_background(face);
     p->skills = r5_races[p->race].skills | r5_backgrounds[p->background].skills;
@@ -161,7 +182,7 @@ static void party_add(const char* name, int cls, int face) {
     p->hp = p->hpmax; p->mp = p->mpmax;
     if (walk) {
         G.weapon[G.nparty - 1] = (u8)party5_default_weapon(cls);
-        { char nm[16]; party_give_xp(0, nm); }
+        { char nm[48]; party_give_xp(0, nm); }   /* catch-up: up to 2 ups */
         party5_refresh(G.nparty - 1);
     } else {
         G.rweapon[G.nreserve] = (u8)party5_default_weapon(cls);

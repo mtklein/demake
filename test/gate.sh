@@ -73,15 +73,18 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
     # beach scenarios assert the arc's structure, never exact xp: the wake
-    # fired, the recoveries landed, the devourer entered the initiative log
+    # fired, the recoveries landed, the devourer entered the initiative log.
+    # Canon-subclass marks are xp-proof too: Shadowheart's Masks fires at
+    # cleric's level-1 reveal on recruit; Gale benches at L2+ (wizard's 2).
     case "$scn" in
+        bard_full)      extra="subclass canon SHADOW. -> 16" ;;
         beach_full)     extra="beach wake|result=CONNECTED|beach recover shadowheart|init Devourer" ;;
         beach_medicine) extra="beach wake|beach recover shadowheart" ;;
         beach_flayer)   extra="beach recover shadowheart|field-check Arcana|init Devourer|enc result=WIN" ;;
         beach_origin)   extra="beach wake|beach recover laezel" ;;
         # the recruit route: both beats land, the bench fills (5 souls), and
         # the Party-row swap's own log seals it (the want= above)
-        beach_recruits) extra="beach wake|beach recover shadowheart|beach recover laezel|beach recruit astarion walk=3 reserve=0|beach recruit gale walk=3 reserve=2" ;;
+        beach_recruits) extra="beach wake|beach recover shadowheart|beach recover laezel|beach recruit astarion walk=3 reserve=0|beach recruit gale walk=3 reserve=2|subclass canon SHADOW. -> 16|subclass canon GALE -> 9" ;;
         beach_reroute_astarion) extra="beach wake|boar beat fed" ;;
         beach_reroute_gale)     extra="beach wake|sigil beat rerouted" ;;
         *)              extra="" ;;

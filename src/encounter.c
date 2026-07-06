@@ -1478,7 +1478,7 @@ victory:
         d = put_str(d, "Received "); d = put_num(d, xp); d = put_str(d, " XP!");
         *d = 0;
         bar_wait(m);
-        char names[32];
+        char names[48];                /* one name per level-up this award */
         if (party_give_xp((u16)xp, names)) {
             party5_refresh_all();
             bar_wait("A new level!");

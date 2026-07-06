@@ -671,6 +671,72 @@ static void t_crash_scatter_regather(void) {
              "Lae'zel's twin not rebuilt (%d/%d)", party5[2].hp, party5[2].hpmax);
 }
 
+/* Companions auto-take their canon subclass (character2.md's origin table)
+ * the moment their class reveals it -- SRD 5.1 timing: cleric at 1,
+ * wizard at 2, fighter/rogue at 3. level_up_choices is a fake in this
+ * suite, so passing proves the REAL leveling path resolves them; the
+ * played hero (slot 0) is never auto-spec'd. */
+static void t_companion_subclass_reveal(void) {
+    sim_reset();
+    mk_party(CLS_BARD, 1);
+    party_add_laezel();
+    party_add_shadowheart();
+    T_ASSERT(G.pm[1].subclass == 255,
+             "L1 Lae'zel subclass %d, want 255 (fighter reveals at 3)",
+             G.pm[1].subclass);
+    T_ASSERT(G.pm[2].subclass == R5SUB_DOMAIN_OF_MASKS,
+             "L1 Shadowheart subclass %d, want Masks %d (cleric reveals at 1)",
+             G.pm[2].subclass, R5SUB_DOMAIN_OF_MASKS);
+    char nm[48];                   /* the contract: one name per up (6 here) */
+    party_give_xp(900, nm);        /* the whole walking party hits L3... */
+    party5_refresh_all();          /* ...and battle-end refreshes the twins */
+    T_ASSERT(G.pm[1].level == 3, "Lae'zel L%d, want 3", G.pm[1].level);
+    T_ASSERT(G.pm[1].subclass == R5SUB_CHAMPION,
+             "L3 Lae'zel subclass %d, want Champion %d",
+             G.pm[1].subclass, R5SUB_CHAMPION);
+    T_ASSERT(party5[1].crit_min == 19,
+             "Champion twin crit_min %d, want 19 (Improved Critical)",
+             party5[1].crit_min);
+    T_ASSERT(G.pm[0].subclass == 255,
+             "leveling auto-spec'd Tav to %d -- the pick is the player's",
+             G.pm[0].subclass);
+}
+
+/* The bench path: a recruit already past the reveal takes canon during
+ * party_add's level_ups catch-up; one below it stays 255 on the sheet. */
+static void t_companion_subclass_bench(void) {
+    sim_reset();
+    mk_party(CLS_BARD, 1);         /* an L1 party: nothing revealed yet */
+    party_add_laezel();
+    party_add_shadowheart();
+    party_add_astarion();
+    party_add_gale();
+    T_ASSERT(G.reserve[0].subclass == 255 && G.reserve[1].subclass == 255,
+             "L1 bench auto-spec'd (%d, %d), want 255/255 (reveals at 3/2)",
+             G.reserve[0].subclass, G.reserve[1].subclass);
+    sim_reset();
+    mk_party(CLS_BARD, 3);         /* the party is L3 before anyone joins */
+    party_add_laezel();
+    party_add_shadowheart();
+    party_add_astarion();
+    party_add_gale();
+    T_ASSERT(G.reserve[0].level == 3 && G.reserve[1].level == 3,
+             "bench catch-up gave L%d/L%d, want 3/3",
+             G.reserve[0].level, G.reserve[1].level);
+    T_ASSERT(G.pm[1].subclass == R5SUB_CHAMPION,
+             "walking Lae'zel past the reveal has %d, want Champion %d",
+             G.pm[1].subclass, R5SUB_CHAMPION);
+    T_ASSERT(G.reserve[0].subclass == R5SUB_THE_AMBUSH_ARTIST,
+             "benched Astarion has %d, want Ambush %d (the assassin-shape)",
+             G.reserve[0].subclass, R5SUB_THE_AMBUSH_ARTIST);
+    T_ASSERT(G.reserve[1].subclass == R5SUB_EVOCATION,
+             "benched Gale has %d, want Evocation %d",
+             G.reserve[1].subclass, R5SUB_EVOCATION);
+    T_ASSERT(bench5[0].crit_min == 19,
+             "Ambush twin crit_min %d, want 19 (canon precedes the bench build)",
+             bench5[0].crit_min);
+}
+
 static void t_party_row_gated(void) {
     sim_reset();
     mk_party(CLS_CLERIC, 1);
@@ -1255,6 +1321,49 @@ static void t_origin_sheet_identities(void) {
     T_ASSERT(party5[2].traits & TR_FEY, "companion Shadowheart lost fey ancestry");
 }
 
+/* character2.md's origin table, subclass column: one source (game.c's
+ * origins[]) feeds origin-PLAYED creation and companion canon alike.
+ * Classes revealing at level 1 wear it from creation; every later reveal
+ * leaves the played hero's pick to the player. */
+static void t_origin_subclass_single_source(void) {
+    static const struct { int origin, cls, sub; } want[] = {
+        { ORIG_ASTARION, CLS_ROGUE,     255 },              /* reveals at 3 */
+        { ORIG_GALE,     CLS_WIZARD,    255 },              /* reveals at 2 */
+        { ORIG_KARLACH,  CLS_BARBARIAN, 255 },              /* reveals at 3 */
+        { ORIG_LAEZEL,   CLS_FIGHTER,   255 },              /* reveals at 3 */
+        { ORIG_SHADOW,   CLS_CLERIC,    R5SUB_DOMAIN_OF_MASKS },  /* at 1 */
+        { ORIG_WYLL,     CLS_WARLOCK,   R5SUB_FIEND },            /* at 1 */
+    };
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++) {
+        sim_reset();
+        G.origin = (u8)want[i].origin;
+        mk_party(want[i].cls, 1);
+        T_ASSERT(G.pm[0].subclass == want[i].sub,
+                 "origin %d creation subclass %d, want %d",
+                 want[i].origin, G.pm[0].subclass, want[i].sub);
+    }
+    /* played Gale reaching wizard's reveal keeps the pick UI: no auto-take */
+    sim_reset();
+    G.origin = ORIG_GALE;
+    mk_party(CLS_WIZARD, 2);
+    T_ASSERT(G.pm[0].level == 2 && G.pm[0].subclass == 255,
+             "played Gale at L%d auto-took %d -- his soul IS the player's",
+             G.pm[0].level, G.pm[0].subclass);
+    /* the canon column itself, straight off the table (Karlach never
+     * party_adds in the prologue; her Berserker identity still holds) */
+    T_ASSERT(origin_subclass(ORIG_ASTARION) == R5SUB_THE_AMBUSH_ARTIST
+             && origin_subclass(ORIG_GALE) == R5SUB_EVOCATION
+             && origin_subclass(ORIG_KARLACH) == R5SUB_BERSERKER
+             && origin_subclass(ORIG_LAEZEL) == R5SUB_CHAMPION,
+             "canon column %d/%d/%d/%d, want Ambush/Evocation/Berserker/Champion",
+             origin_subclass(ORIG_ASTARION), origin_subclass(ORIG_GALE),
+             origin_subclass(ORIG_KARLACH), origin_subclass(ORIG_LAEZEL));
+    T_ASSERT(origin_subclass(ORIG_DURGE) == 255
+             && origin_subclass(ORIG_CUSTOM) == 255,
+             "the Urge/custom canon %d/%d, want 255/255 (their pick to make)",
+             origin_subclass(ORIG_DURGE), origin_subclass(ORIG_CUSTOM));
+}
+
 static void t_background_skill_union(void) {
     /* Astarion: rogue picks (Stealth+Sleight) + Criminal (Deception+Stealth)
      * + high-elf Keen Senses (Perception); Expertise stays the CLASS pair */
@@ -1744,6 +1853,8 @@ static const Test tests[] = {
     { "bench_round_trip",          t_bench_round_trip },
     { "rest_heals_bench",          t_rest_heals_bench },
     { "crash_scatter_regather",    t_crash_scatter_regather },
+    { "companion_subclass_reveal", t_companion_subclass_reveal },
+    { "companion_subclass_bench",  t_companion_subclass_bench },
     { "party_row_gated",           t_party_row_gated },
     { "battle_auto_win",           t_battle_auto_win },
     { "battle_manual_eldritch_blast", t_battle_manual_eldritch_blast },
@@ -1760,6 +1871,7 @@ static const Test tests[] = {
     { "race_none_baseline",        t_race_none_baseline },
     { "race_mechanics_sheet",      t_race_mechanics_sheet },
     { "origin_sheet_identities",   t_origin_sheet_identities },
+    { "origin_subclass_single_source", t_origin_subclass_single_source },
     { "background_skill_union",    t_background_skill_union },
     { "race_picker_reaches_all",   t_race_picker_reaches_all },
     { "race_picker_card_and_back", t_race_picker_card_and_back },
