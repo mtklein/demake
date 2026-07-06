@@ -160,6 +160,15 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def panic_check():
+    """poke the crash-screen test flag; the report must reach the log"""
+    setup(0, [0, 1, 0, 0, 2])
+    wait(260)
+    poke(0x0203FF0C, 1)
+    wait(120)
+    shot("panic_screen")
+
+@scn
 def tether_check():
     """Manual deck fight: form a melee engagement and see the tether draw.
     The gate asserts the 'engage' and 'tether' log lines."""

@@ -1013,6 +1013,7 @@ static int pc_turn(EC* a) {
 
         int sel = menu5(items, n, 0);
         u8 cd = code[sel];
+        crumb(CR_MENU, cd);
         if (cd == 7) break;
         switch (cd) {
             case 0: {
@@ -1138,6 +1139,8 @@ static int pc_turn(EC* a) {
             }
             default: {
                 int sp = cd - 10;
+                ASSERT(sp >= 0 && sp < R5S_COUNT);
+                crumb(CR_CAST, sp);
                 const R5Spell* s = &r5_spells[sp];
                 int paid = s->level == 0 ? 1
                          : cls == CLS_WARLOCK ? r5_pact_cast(c)
@@ -1276,6 +1279,8 @@ retry:
         add_mon(es[i].mon, es[i].npc, es[i].side, es[i].xp);
     frame_camera();
 
+    crumb(CR_ENC, n);
+
     /* --- initiative, rolled in the open --- */
     bar_wait("Roll initiative!");
     for (int i = 0; i < nec; i++) {
@@ -1301,6 +1306,7 @@ retry:
         for (int oi = 0; oi < nec; oi++) {
             EC* a = &ec[order[oi]];
             g_act = a;
+            crumb(CR_TURN, (oi << 8) | (u8)(a - ec));
             if (a->c->hp <= 0 && a->side != 0) continue;
             if (a->c->conds & C_UNCONSCIOUS) {
                 if (a->side == 1 && a->c->hp > 0) bar("Fast asleep...");
@@ -1366,6 +1372,7 @@ victory:
             bar_wait("A new level!");
         }
         mgba_logf("enc result=WIN xp=%d", xp);
+    crumb(CR_RESULT, 1);
     }
     /* party folds back into Tav */
     for (int i = 0; i < G.nparty; i++) field_remove_npc(party_npc[i]);

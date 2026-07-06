@@ -7,7 +7,11 @@ static u16 s_keys, s_prev;
 /* called from the IRQ dispatcher every vblank (thumb) */
 void vblank_tick(void);
 void audio_tick(void);
-void vblank_tick(void) { audio_tick(); }
+void vblank_tick(void) {
+    audio_tick();
+    if (++g_wd == PANIC_WD_FRAMES)
+        panic("main loop hung", g_irq_pc - 4);
+}
 
 void gba_init(void) {
     REG_WAITCNT = 0x4317;            /* 3/1 ROM waitstates + prefetch */

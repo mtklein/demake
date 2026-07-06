@@ -22,6 +22,8 @@ static u32 drift_t;
 void sky_autodrift(int on) { drift_on = on; }
 
 void frame(void) {
+    g_wd = 0;                          /* pet the hang watchdog */
+    if (G_PANIC_TEST == 1) { G_PANIC_TEST = 2; panic("poked (crash-screen test)", 0); }
     vsync();
     oam_flush();
     key_poll();

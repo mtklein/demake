@@ -76,6 +76,15 @@ $(BUILD)/test_rules: $(RULESSRC) $(SRDTAB) $(BUILD)/gen/srd_ids.h rules/rules.h 
 $(BUILD)/gen/assets.c $(BUILD)/gen/assets.h $(BUILD)/gen/screens.c $(BUILD)/gen/screens.h: $(TOOLSRC) | $(BUILD)
 	$(PY) tools/mkassets.py
 
+# build id for the crash screen; only rewritten when it changes
+.PHONY: FORCE
+$(BUILD)/gen/buildid.h: FORCE | $(BUILD)
+	@id=$$(git describe --always --dirty 2>/dev/null || echo dev); \
+	 new="#define BUILD_ID \"$$id\""; \
+	 [ "$$new" = "$$(cat $@ 2>/dev/null)" ] || echo "$$new" > $@
+
+$(BUILD)/panic.o: $(BUILD)/gen/buildid.h
+
 $(BUILD):
 	mkdir -p $(BUILD)/gen
 

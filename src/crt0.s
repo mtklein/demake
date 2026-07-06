@@ -63,6 +63,8 @@ _start:
     .arm
     .global isr_arm
 isr_arm:
+    ldr r0, =g_irq_pc           @ crash reporting: remember where we were
+    str lr, [r0]
     mov r0, #0x04000000
     add r0, r0, #0x200
     ldrh r1, [r0]               @ IE

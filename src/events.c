@@ -58,6 +58,7 @@ void room_enter(int id, int sx, int sy, int face) {
     mgba_logf("room_enter %d at %d,%d flags=%x", id, sx, sy, G.flags);
     music(id == RM_HELM ? SONG_BOSS : SONG_EXPLORE);
     cur_room = id;
+    crumb(CR_ROOM, id);
     n_us = n_lz = n_sh = n_zh = n_fl = -1;
     n_imp[0] = n_imp[1] = n_imp[2] = -1;
     n_wander[0] = n_wander[1] = -1;

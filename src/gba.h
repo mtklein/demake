@@ -134,6 +134,15 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 
 /* util.c */
 extern volatile u32 g_frame;
+
+/* --- crash reporting (src/panic.c) --- */
+void panic(const char* why, u32 pc);
+void crumb(int code, int arg);
+extern volatile u32 g_irq_pc, g_wd;
+enum { CR_ROOM = 1, CR_ENC, CR_TURN, CR_MENU, CR_CAST, CR_RESULT };
+#define ASSERT(c) do { if (!(c)) panic("assert " __FILE__, __LINE__); } while (0)
+#define PANIC_WD_FRAMES 600            /* ~10s without frame() = hang */
+#define G_PANIC_TEST  (*(vu8*)0x0203FF0C)  /* poke 1: test the crash screen */
 void gba_init(void);
 void vsync(void);
 u16  key_state(void);      /* held keys, 1 = pressed */
