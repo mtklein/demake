@@ -505,29 +505,54 @@ static void test_char2_pools(void) {
     CHECK(mk.rsrc[R5R_KI] == 2 && r5_martial_die(&mk) == 4);
 }
 
-int main(void) {
-    test_weapon_rider();
-    test_expectations();
-    test_dice();
-    test_advantage();
-    test_mods();
-    test_attack_math();
-    test_finesse_and_ranged();
-    test_versatile();
-    test_crit_doubles_dice_not_mod();
-    test_hunters_mark_and_sneak();
-    test_monster_attack_rider();
-    test_resist_immune_vuln();
-    test_temp_hp();
-    test_downed_and_healing();
-    test_conditions_and_conc();
-    test_second_wind_and_surge();
-    test_sneak_progression();
-    test_slots();
-    test_save_proficiency();
-    test_bless();
-        test_char2_pools();
+/* ------------------------------------------------------------ registry
+ * Honest counting: the headline number is TEST FUNCTIONS. Sampling loops
+ * execute thousands of assertions per test; that figure is reported in
+ * parentheses only and is never what "N tests" means. */
 
-    printf("%d checks, %d failures\n", checks, fails);
+typedef struct { const char* name; void (*fn)(void); } R5Test;
+#define T(f) { #f, f }
+static const R5Test tests[] = {
+    T(test_weapon_rider),
+    T(test_expectations),
+    T(test_dice),
+    T(test_advantage),
+    T(test_mods),
+    T(test_attack_math),
+    T(test_finesse_and_ranged),
+    T(test_versatile),
+    T(test_crit_doubles_dice_not_mod),
+    T(test_hunters_mark_and_sneak),
+    T(test_monster_attack_rider),
+    T(test_resist_immune_vuln),
+    T(test_temp_hp),
+    T(test_downed_and_healing),
+    T(test_conditions_and_conc),
+    T(test_second_wind_and_surge),
+    T(test_sneak_progression),
+    T(test_slots),
+    T(test_save_proficiency),
+    T(test_bless),
+    T(test_char2_pools),
+};
+#undef T
+
+int main(void) {
+    const int ntests = (int)(sizeof tests / sizeof tests[0]);
+    int failed_tests = 0;
+    for (int i = 0; i < ntests; i++) {
+        int before = fails;
+        tests[i].fn();
+        if (fails > before) {
+            failed_tests++;
+            printf("FAILED %s (%d failing checks)\n",
+                   tests[i].name, fails - before);
+        } else {
+            printf("ok %s\n", tests[i].name);
+        }
+    }
+    printf("%d tests, %d failures "
+           "(%d assertion executions — sampling loops inflate this figure)\n",
+           ntests, failed_tests, checks);
     return fails != 0;
 }
