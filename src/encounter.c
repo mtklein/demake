@@ -923,6 +923,33 @@ static int tactic_turn(EC* a, int tac) {
     return 0;
 }
 
+/* default battle kits: every caster class casts out of the box. Leveled
+ * rows gate on slots (pact for warlocks), concentration rows on focus.
+ * Superseded per-member once known/prepared choices land (Character 2.0). */
+static const struct { u8 cls, spell; const char* label; } spell_kit[] = {
+    { CLS_BARD,     R5S_VICIOUS_MOCKERY, "V.Mockery" },
+    { CLS_BARD,     R5S_HEALING_WORD,    "Heal.Word" },
+    { CLS_WIZARD,   R5S_FIRE_BOLT,       "Fire Bolt" },
+    { CLS_WIZARD,   R5S_MAGIC_MISSILE,   "M.Missile" },
+    { CLS_WIZARD,   R5S_SLEEP,           "Sleep"     },
+    { CLS_CLERIC,   R5S_SACRED_FLAME,    "S.Flame"   },
+    { CLS_CLERIC,   R5S_GUIDING_BOLT,    "Guid.Bolt" },
+    { CLS_CLERIC,   R5S_CURE_WOUNDS,     "Cure Wnds" },
+    { CLS_CLERIC,   R5S_BLESS,           "Bless"     },
+    { CLS_DRUID,    R5S_PRODUCE_FLAME,   "P.Flame"   },
+    { CLS_DRUID,    R5S_POISON_SPRAY,    "Psn.Spray" },
+    { CLS_DRUID,    R5S_CURE_WOUNDS,     "Cure Wnds" },
+    { CLS_DRUID,    R5S_HEALING_WORD,    "Heal.Word" },
+    { CLS_SORCERER, R5S_FIRE_BOLT,       "Fire Bolt" },
+    { CLS_SORCERER, R5S_RAY_OF_FROST,    "RayFrost"  },
+    { CLS_SORCERER, R5S_MAGIC_MISSILE,   "M.Missile" },
+    { CLS_SORCERER, R5S_SLEEP,           "Sleep"     },
+    { CLS_WARLOCK,  R5S_ELDRITCH_BLAST,  "Eld.Blast" },
+    { CLS_WARLOCK,  R5S_BURNING_HANDS,   "Burn.Hands" },
+    { CLS_PALADIN,  R5S_CURE_WOUNDS,     "Cure Wnds" },
+    { CLS_PALADIN,  R5S_BLESS,           "Bless"     },
+};
+
 static int pc_turn(EC* a) {
     int tac = (G_DEMO && !G_MANUAL_BAT) ? TAC_WISELY : G.tactics[a->pi];
     if (tac != TAC_ORDERS) return tactic_turn(a, tac);
@@ -934,16 +961,17 @@ static int pc_turn(EC* a) {
         const char* items[12]; u8 code[12]; int n = 0;
         if (!action) {
             items[n] = "Attack"; code[n++] = 0;
-            if (cls == CLS_BARD) { items[n] = "V.Mockery"; code[n++] = 10 + R5S_VICIOUS_MOCKERY; }
-            if (cls == CLS_WIZARD) {
-                items[n] = "Fire Bolt"; code[n++] = 10 + R5S_FIRE_BOLT;
-                if (c->slots[0]) { items[n] = "M.Missile"; code[n++] = 10 + R5S_MAGIC_MISSILE; }
-                if (c->slots[0]) { items[n] = "Sleep"; code[n++] = 10 + R5S_SLEEP; }
-            }
-            if (cls == CLS_CLERIC && c->slots[0]) {
-                items[n] = "Guid.Bolt"; code[n++] = 10 + R5S_GUIDING_BOLT;
-                items[n] = "Cure Wnds"; code[n++] = 10 + R5S_CURE_WOUNDS;
-                if (!c->concentrating) { items[n] = "Bless"; code[n++] = 10 + R5S_BLESS; }
+            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
+                if (spell_kit[ki].cls != cls) continue;
+                const R5Spell* s = &r5_spells[spell_kit[ki].spell];
+                if (s->bonus_action) continue;              /* bonus section */
+                if (s->level > 0) {
+                    int have = cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
+                                                  : c->slots[s->level - 1];
+                    if (!have) continue;
+                }
+                if (s->concentration && c->concentrating) continue;
+                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
             }
             items[n] = "Item"; code[n++] = 1;
             items[n] = "Dodge"; code[n++] = 2;
@@ -952,7 +980,14 @@ static int pc_turn(EC* a) {
         if (!bonus) {
             if (cls == CLS_FIGHTER && r5_can_second_wind(c)) { items[n] = "2nd Wind"; code[n++] = 4; }
             if (cls == CLS_ROGUE && !a->hidden) { items[n] = "Hide"; code[n++] = 5; }
-            if (cls == CLS_BARD && c->slots[0]) { items[n] = "Heal.Word"; code[n++] = 10 + R5S_HEALING_WORD; }
+            for (unsigned ki = 0; ki < sizeof spell_kit / sizeof *spell_kit; ki++) {
+                if (spell_kit[ki].cls != cls) continue;
+                const R5Spell* s = &r5_spells[spell_kit[ki].spell];
+                if (!s->bonus_action) continue;
+                if (s->level > 0 && !(cls == CLS_WARLOCK ? c->rsrc[R5R_PACT]
+                                                         : c->slots[s->level - 1])) continue;
+                items[n] = spell_kit[ki].label; code[n++] = (u8)(10 + spell_kit[ki].spell);
+            }
             if (cls == CLS_RANGER && c->slots[0] && !c->concentrating) { items[n] = "Hunt.Mark"; code[n++] = 6; }
         }
         if (rounds_left > 0 && a->pi == 0 && round_no >= 2) {
@@ -1045,7 +1080,10 @@ static int pc_turn(EC* a) {
             default: {
                 int sp = cd - 10;
                 const R5Spell* s = &r5_spells[sp];
-                if (s->level > 0 && !r5_spend_slot(c, s->level)) { bar_wait("No slots!"); break; }
+                int paid = s->level == 0 ? 1
+                         : cls == CLS_WARLOCK ? r5_pact_cast(c)
+                                              : r5_spend_slot(c, s->level);
+                if (!paid) { bar_wait("No slots!"); break; }
                 if (sp == R5S_MAGIC_MISSILE) cast_missiles(a);
                 else if (sp == R5S_SLEEP) cast_sleep(a);
                 else if (sp == R5S_BLESS) { c->concentrating = R5S_BLESS + 1; bar_wait("Bless!"); }
