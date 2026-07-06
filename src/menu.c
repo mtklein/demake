@@ -259,7 +259,7 @@ static void member_sheet(int i) {
     win_draw(0, 0, 30, 20);
     ui_portrait(member_look(G.pm[i].face, c->cls).por, 1, 1);
 
-    char b[28]; char* d;
+    char b[44]; char* d;   /* "Weapon: Everburn Blade 2d6 2h +fire" is 36 */
     txt_put_n(9, 1, c->name, 1, 8);
     d = b; d = mp_str(d, cls_names[c->cls]);
     d = mp_str(d, "  Lv"); d = mp_num(d, c->level); *d = 0;
