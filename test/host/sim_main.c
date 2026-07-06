@@ -22,6 +22,13 @@ void field_menu(void);        /* menu.c  */
 int game_class_select(void);  /* game.c  */
 void ability_audit(void);     /* encounter.c: per-class menu dump */
 void sheet_audit(void);       /* menu.c: per-class sheet-spell dump */
+void game_title(void);        /* game.c title/jukebox/karaoke flows */
+void game_crawl(void);
+int  game_origin_choose(int cls);
+void game_name_entry(char* out);
+int  origin_class(int o);
+int  origin_portrait(int o);
+const char* origin_name(int o);
 
 #define T_ASSERT(cond, ...) do { if (!(cond)) sim_fail(__VA_ARGS__); } while (0)
 
@@ -861,6 +868,86 @@ static void t_audit_native(void) {
     T_ASSERT(log_contains("sheet cls=11"), "sheet audit never reached cls 11");
 }
 
+/* ------------------------------------------------- title flows (game.c)
+ * jukebox/karaoke are reachable ONLY via SELECT on the title screen; no
+ * ROM scenario presses it, so until now no test had ever run them. */
+
+static void t_title_jukebox_karaoke(void) {
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    /* the title fade_in eats 20 frames (keys land after W24); L L flips
+     * attract mode on and back off; SELECT opens the jukebox; nine DOWNs
+     * land on track 9 = SELUNE; A plays it and, since it carries lyrics,
+     * drops into karaoke; the SNAP catches the synced lyric sheet around
+     * playback rows 224..287; B backs out twice; START leaves the title. */
+    script_keys("W24 L L SELECT W4 "
+                "DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN DOWN A "
+                "W200 SNAP B W8 B W8 START");
+    game_title();
+    T_ASSERT(snap_count() == 1, "snap never fired (script derailed)");
+    T_ASSERT(snap_contains(0, "morning takes") || snap_contains(0, "all that's left"),
+             "no Under Selune lyric on the karaoke sheet");
+    T_ASSERT(sim_last_music == SONG_PRELUDE,
+             "music %d after backing out, want the title PRELUDE", sim_last_music);
+    T_ASSERT(!G_DEMO, "L L should have left attract mode off");
+}
+
+static void t_crawl_pages(void) {
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(200000, 0);
+    game_crawl();
+    T_ASSERT(log_contains("say: The city of Baldur's Gate"),
+             "the crawl never told page 1");
+    T_ASSERT(log_contains("dragonfire"), "the crawl never told page 4");
+}
+
+static void t_origin_choose_flow(void) {
+    sim_reset();
+    /* demo-driven: 8 = "this class's origin row", computed in the chooser */
+    G_DEMO = 1;
+    G_DEMO_ORIGIN = ORIG_COUNT;
+    sim_budget(200000, 0);
+    int o = game_origin_choose(CLS_CLERIC);
+    T_ASSERT(o == ORIG_SHADOW, "cleric origin row gave %d, want Shadowheart", o);
+    G_DEMO_ORIGIN = ORIG_DURGE;
+    o = game_origin_choose(CLS_MONK);      /* no monk companion: 2-row menu */
+    T_ASSERT(o == ORIG_DURGE, "Dark Urge row gave %d", o);
+    /* manual: DOWN, A takes "Play Gale" under wizard */
+    G_DEMO = 0;
+    script_keys("W16 DOWN A");
+    o = game_origin_choose(CLS_WIZARD);
+    T_ASSERT(o == ORIG_GALE, "manual pick gave %d, want Gale", o);
+    T_ASSERT(!strcmp(origin_name(ORIG_SHADOW), "Shadowheart"),
+             "origin 4 named '%s'", origin_name(ORIG_SHADOW));
+    /* identity portraits win for every fixed origin (the borrowed-faces law) */
+    for (int i = 0; i < ORIG_CUSTOM; i++) {
+        int cls = origin_class(i) < 0 ? CLS_BARD : origin_class(i);
+        T_ASSERT(member_look(i, cls).por == origin_portrait(i),
+                 "origin %d portrait drifted from its table", i);
+    }
+}
+
+static void t_name_entry_grid(void) {
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    char nm[8];
+    /* B B B clears the default TAV; seven As at grid (0,0) type AAAAAA and
+     * prove the 6-char cap holds; DOWN x4 reaches END; A confirms */
+    script_keys("W12 B B B A A A A A A A DOWN DOWN DOWN DOWN A");
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "AAAAAA"), "name '%s', want AAAAAA (6-char cap)", nm);
+    /* straight to END keeps the default */
+    script_keys("W12 DOWN DOWN DOWN DOWN A");
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "TAV"), "name '%s', want the TAV default", nm);
+    G_DEMO = 1;                        /* demo path: no screen at all */
+    game_name_entry(nm);
+    T_ASSERT(!strcmp(nm, "TAV"), "demo name '%s', want TAV", nm);
+}
+
 /* ------------------------------------------------- party art (game.c) */
 
 /* the custom-Tav walker per class: fighter/cleric are OBJT_HERO now --
@@ -950,6 +1037,10 @@ static const Test tests[] = {
     { "spell_dc_math",             t_spell_dc_math },
     { "heal_full_rest",            t_heal_full_rest },
     { "audit_native",              t_audit_native },
+    { "title_jukebox_karaoke",     t_title_jukebox_karaoke },
+    { "crawl_pages",               t_crawl_pages },
+    { "origin_choose_flow",        t_origin_choose_flow },
+    { "name_entry_grid",           t_name_entry_grid },
     { "member_look_identity",      t_member_look_identity },
     { "class_select_art",          t_class_select_art },
     { "menu_crawl_fuzz",           t_menu_crawl_fuzz },
