@@ -51,5 +51,6 @@ void ev_npc(int idx);
 void ev_aggro(int idx);   /* a patroller reached the party */
 void ev_light(void);      /* reapply DARK-room dimming (menu may equip the
                            * Everburn; battles and fades clear BLDCNT) */
+void ev_fdie_hide(void);  /* clear the skill-check die (drawn during dialog) */
 
 #endif

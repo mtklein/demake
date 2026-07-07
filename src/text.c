@@ -148,6 +148,8 @@ void dlg_close(void) {
     dlg_inset = 0;
 }
 
+int dlg_is_open(void) { return dlg_on; }   /* the field die draws over the box */
+
 static void dlg_wait_a(int marker) {
     if (marker) TXT[(DLG_TY + DLG_ROWS - 1) * 32 + 28] = ME(GLYPH_MORE, 0, 0, 0);
     int t = 0;

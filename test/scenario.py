@@ -202,11 +202,13 @@ def creation_check():
 
 @scn
 def skill_check():
-    """poked field skill check rolls a visible d20 (asserts the field-check log)"""
+    """poked field skill check rolls a VISIBLE tumbling d20 over the dialog
+    (asserts the field-check AND field-die log markers; shots the settled die)"""
     setup(3, [0, 1, 0, 0, 2])
     intro()
     poke(0x0203FF0F, 3)              # G_SKILL_TEST = SK_ARCANA + 1
-    wait(80); shot("skill_done")
+    wait(40); shot("skill_die")      # die landed + breakdown up, over the box
+    wait(60); shot("skill_done")     # dialog closed: the die has cleared
 
 # field player-state addresses (src/field.c statics) for deterministic
 # placement -- reaching a specific field tile by scripted walks is timing-

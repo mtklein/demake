@@ -414,6 +414,8 @@ void field_run(void) {
                 ev_step(ppx / 16, ppy / 16);
             }
         }
+        ev_fdie_hide();  /* a skill-check die shown during dialog clears on
+                          * return -- the cone_hide discipline, inverted */
         cone_draw();   /* after any dispatch: a no-op event redraws same frame */
         field_draw();
     }

@@ -20,6 +20,7 @@ void win_draw(int x, int y, int w, int h);
 void win_clear(int x, int y, int w, int h);
 void dlg_open(void);
 void dlg_close(void);
+int  dlg_is_open(void);
 void dlg_print(const char* s, int pal);
 void dlg_set_portrait(int id);   /* POR_* from assets.h, -1 = none */
 void say(const char* s);
@@ -44,6 +45,11 @@ void obj_flip(int i, int h, int v);
                          * (encounter.c OBJ_TETH), field patrol-cone dots
                          * 29-38 (field.c OBJ_CONE -- field-mode, kept
                          * disjoint from battle garnish on purpose);
-                         * encounter popups/zZ/dice claim 40+ */
+                         * field skill-check die 40-42 (OBJ_FDIE, field-mode);
+                         * encounter popups/zZ/dice claim 40+ (battle-mode --
+                         * shares the range with OBJ_FDIE, safe because field
+                         * and battle never draw at once, and the die hides on
+                         * every return to the field loop) */
+#define OBJ_FDIE   40   /* the field skill-check d20: face + up to two digits */
 
 #endif

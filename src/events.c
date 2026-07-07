@@ -8,6 +8,7 @@
 #include "encounter.h"
 #include "party5.h"
 #include "screens.h"     /* the tally layout (tools/ui_screens.py) */
+#include "dice_ui.h"     /* the shared tumbling die, over the dialog */
 
 /* Speaker lines upgrade to portraits automatically as each portrait lands
  * in tools/art/portraits.py (missing art falls back to plain say). */
@@ -140,6 +141,31 @@ static char* put_num(char* d, int v) {
     while (n) *d++ = t[--n];
     return d;
 }
+/* The field's echo of combat's dice tray: the skill-check d20, tumbled over
+ * the open dialog box through the SAME dice_ui primitive. It claims field OAM
+ * slot OBJ_FDIE (face + up to two digits) at the box's right margin -- clear
+ * of the text column (max col 27) and the more-arrow (row 4) on every page --
+ * and is hidden on every return to the field loop (ev_fdie_hide, called from
+ * field_run) so it can never linger into a menu or the next room. */
+#define FDIE_X 224        /* col 28: right of the widest dialog line */
+#define FDIE_Y 14
+
+void ev_fdie_hide(void) { for (int i = 0; i < 3; i++) obj_hide(OBJ_FDIE + i); }
+
+/* the roll is already decided (d20): stage the digits the field hasn't, spin
+ * the face a beat, land on the real value -- gold on a nat 20, a red thud on a
+ * nat 1, else the plain grey die. Presentational only: dice_ui spins a
+ * throwaway counter, so nothing here draws from fchk_rng or moves the result. */
+static void fdie_show(int d20) {
+    if (!dlg_is_open()) dlg_open();          /* a box for the die to sit over */
+    dice_stage_digits();
+    u8 v = (u8)d20;
+    int pal = d20 == 20 ? 9 : d20 == 1 ? 11 : 10;
+    dice_roll_headline(OBJ_FDIE, FDIE_X, 0, FDIE_Y, 20, &v, 1, pal, frame);
+    for (int i = 0; i < 8; i++) frame();     /* a beat on the landed value */
+    mgba_logf("field-die d20=%d shown", d20);
+}
+
 /* a skill check on the field: roll a d20 through the dialog, show it, vs DC */
 static int field_check(int skill, int dc) {
     if (!fchk_seeded) { r5_seed(&fchk_rng, rnd() ^ 0x5EED); fchk_seeded = 1; }
@@ -159,6 +185,7 @@ static int field_check(int skill, int dc) {
     *d = 0;
     mgba_logf("field-check %s d20=%d tot=%d dc=%d %s",
               r5_skill_name[skill], d20, total, dc, ok ? "pass" : "fail");
+    fdie_show(d20);                     /* the die tumbles and lands over the box */
     sfx_play(d20 == 20 ? SFX_HEAL : ok ? SFX_CONFIRM : SFX_CANCEL);
     say(m);
     return ok;

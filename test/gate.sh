@@ -97,8 +97,8 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     case "$scn" in
         bard_full)      extra="subclass canon SHADOW. -> 16" ;;
         beach_full)     extra="beach wake|result=CONNECTED|beach recover shadowheart|init Devourer" ;;
-        beach_medicine) extra="beach wake|beach recover shadowheart" ;;
-        beach_flayer)   extra="beach recover shadowheart|field-check Arcana|init Devourer|enc result=WIN" ;;
+        beach_medicine) extra="beach wake|beach recover shadowheart|field-die d20=" ;;
+        beach_flayer)   extra="beach recover shadowheart|field-check Arcana|field-die d20=|init Devourer|enc result=WIN" ;;
         beach_origin)   extra="beach wake|beach recover laezel" ;;
         # the recruit route: both beats land, the bench fills (5 souls), and
         # the Party-row swap's own log seals it (the want= above)
@@ -122,12 +122,14 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # joins already at 3 and takes the Fiend through party_add) and six
         # souls at the fire afterward
         gates_full)     extra="result=CONNECTED|init Thrall|beach recover shadowheart|flayer beat finished|beach recruit astarion walk=3 reserve=0|init Devourer|beach recover laezel|beach recruit gale walk=3 reserve=2|party swap in=LAE'ZEL out=ASTAR.|warryn stirs|init Bandit|init Skeleton|camp scene begins|camp rest from=|init Goblin|init Warchief|Zevlor side2|Wyll side2|subclass pick TAV|subclass canon LAE'ZEL|subclass canon WYLL|gates recruit wyll walk=3 reserve=3|gates held|camp souls=6" ;;
-        chapel_parley)  extra="field-check Persuasion|looters resolved|tomb door opens|dark room=8 dim=1" ;;
+        chapel_parley)  extra="field-check Persuasion|field-die d20=|looters resolved|tomb door opens|dark room=8 dim=1" ;;
         crypt_withers)  extra="dark room=8 dim=1|init Skeleton|enc result=WIN|withers wakes|dark room=10 dim=1|subclass pick Wyll" ;;
         # stone 5: three souls reach the camp, the scene fires once with a
         # synced verse (lyric row logged), the demo autoskip moves it along,
         # and a companion stands by the fire with a word in her
         camp_night)     extra="beach wake|camp souls=3|camp scene begins souls=3|lyric 1 @|karaoke autoskip|camp scene played|camp talk SHADOW." ;;
+        # the poked skill check: the roll is logged AND a die was shown for it
+        skill_check)    extra="field-die d20=" ;;
         *)              extra="" ;;
     esac
     if [ -n "$extra" ]; then
