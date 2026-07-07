@@ -44,6 +44,13 @@ GF_LAEZEL, GF_SH_FREED, GF_ZHALK_DEAD, GF_DECK_FOUGHT = 1 << 2, 1 << 3, 1 << 5, 
 def ready(maxf=9000):
     w(f"until {IDLE:08x} 01 {maxf}")
     _face[0] = 'DOWN'   # room spawns face down
+def facing(k):
+    """Correct the facing tracker after a MID-ROOM ready() (which assumes a
+    fresh DOWN spawn). A proximity draw fires while walking, so the ROM still
+    faces the walk direction; without this the next same-direction walk emits
+    a phantom turn-in-place that the ROM (already facing that way) spends as a
+    real step, drifting a tile."""
+    _face[0] = k
 def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
 def tally(maxf=40000): w(f"until {DONE:08x} 03 {maxf}")   # the arc's true end
 
@@ -470,9 +477,10 @@ def beach_recruits():
     walk("UP", 4); walk("LEFT", 1)     # (3,2), beside the cage
     face_interact("LEFT")              # Lae'zel freed -> reserve slot 0
     walk("DOWN", 1)                    # (3,3)
-    walk("RIGHT", 6); walk("RIGHT", 6) # (15,3): east along the north corridor
-    walk("DOWN", 4)                    # (15,7), above the sigil
-    face_interact("DOWN")              # the hand in the stone: Gale -> slot 1
+    walk("RIGHT", 4)                   # (7,3): the sigil's pull fires
+    ready(); facing("RIGHT")           # clear the draw; the ROM still faces RIGHT
+    walk("RIGHT", 2)                   # (9,3), below the sigil stone
+    face_interact("UP")                # the hand in the stone: Gale -> slot 1
     shot("b_gale")
     tap("START"); wait(20)             # five souls: the Party row is live
     tap("DOWN", 5, gap=12); tap("A"); wait(20)   # -> Party
@@ -500,9 +508,10 @@ def beach_reroute_gale():
     beach_boot()
     walk("UP", 6)                      # the dune gap
     ready()
-    walk("RIGHT", 5)                   # (15,10): the east edge
-    walk("UP", 2)                      # (15,9); the sigil stone blocks step 2
-    face_interact("UP")                # a professional opinion
+    walk("UP", 4); walk("LEFT", 6)     # (4,6): the safe west climb
+    walk("UP", 4)                      # (4,2): the top row
+    walk("RIGHT", 4)                   # (8,2): beside the sigil stone
+    face_interact("RIGHT")             # a professional opinion (no draw for him)
     shot("b_reroute_gale")
 
 # --- stone 4: the chapel, the crypt, darkvision's debut, Withers ----------
@@ -517,7 +526,8 @@ def _to_chapel():
     walk("UP", 4); walk("LEFT", 1)     # (3,2), beside the cage
     face_interact("LEFT")              # Lae'zel rejoins (choice 0)
     walk("UP", 1)                      # (3,1)
-    walk("RIGHT", 4)                   # (7,1), below the pass
+    walk("RIGHT", 4)                   # (7,1): the sigil's pull fires here
+    ready()                            # let the draw's line clear (BF_SIGIL_SEEN)
     walk("UP", 1)                      # the cleared rockfall -> chapel
     ready()
 
@@ -646,7 +656,8 @@ def camp_night():
 
 def _to_gates():
     """chapel spawn (7,8) -> the west gap (0,4), skirting the looter band"""
-    walk("LEFT", 6)                    # (1,8)
+    walk("LEFT", 6)                    # (1,8): the camp signpost fires here
+    ready()                            # let the nudge clear (BF_CAMP_SEEN)
     walk("UP", 4)                      # (1,4)
     walk("LEFT", 1)                    # (0,4): the grove road
     ready()
@@ -712,10 +723,10 @@ def gates_full():
     walk("UP", 4); walk("LEFT", 1)        # (3,2), beside the cage
     face_interact("LEFT")                 # Lae'zel -> the bench
     walk("DOWN", 1)                       # (3,3)
-    walk("RIGHT", 6); walk("RIGHT", 6)    # (15,3) (walks cap at 8 steps)
-    walk("DOWN", 4)                       # (15,7), above the sigil
-    face_interact("DOWN")                 # Gale -> the bench: five souls
-    walk("UP", 4)                         # (15,3)
+    walk("RIGHT", 4)                      # (7,3): the sigil's pull fires
+    ready(); facing("RIGHT")              # clear the draw; the ROM still faces RIGHT
+    walk("RIGHT", 2)                      # (9,3), below the sigil stone
+    face_interact("UP")                   # Gale -> the bench: five souls
     # five souls: swap Lae'zel in for Astarion before the chapel -- the
     # bench exists to answer exactly this fight (and the swap is part of
     # the thorough route's proof)
@@ -724,9 +735,8 @@ def gates_full():
     tap("DOWN"); tap("A"); wait(20)       # walking slot 2 (Astarion)...
     tap("A"); wait(30)                    # ...swaps with reserve 0 (Lae'zel)
     tap("B"); wait(10); tap("B"); wait(20)
-    walk("LEFT", 6); walk("LEFT", 6)      # (3,3)
-    walk("UP", 2)                         # (3,1)
-    walk("RIGHT", 4)                      # (7,1)
+    walk("LEFT", 2)                       # (7,3), left of the sigil stone
+    walk("UP", 2)                         # (7,1)
     walk("UP", 1); ready()                # the pass -> the chapel yard
     walk("UP", 4)                         # (7,4), below the band
     walk("LEFT", 2); walk("UP", 1)        # (5,3): the masked one stirs
@@ -776,6 +786,34 @@ def gates_reroute_wyll():
     tally()                            # the ledger fires for origins too
     ready(30000)
     shot("g_reroute_won")
+
+@scn
+def critical_path():
+    """The missable-companion regression, walked as a straight line: a run
+    that beelines dunes -> chapel -> the grove road and never steps aside to
+    the sigil or the camp. Both now signpost themselves ON that line --
+    'gale sigil noticed' as the dunes near the pass, 'camp signposted' as the
+    yard nears the gates -- while neither Gale nor a rest is taken (the draws
+    pull the eye; the gate's zero-counts below prove they never grab). Walked
+    with the camp route's setup so the dune patrols drift by unaggroed; the
+    gap it guards is class-agnostic anyway."""
+    beach_setup(0, [0, 0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    face_interact("RIGHT")             # Shadowheart ashore: a companion for the nudge
+    walk("UP", 6); ready()             # the dune gap -> dunes (10,10)
+    # straight up the middle for the chapel -- no cage, no Gale (this lower
+    # climb is _to_chapel's, so the devourers slip past exactly as there)
+    walk("UP", 4); walk("LEFT", 6)     # (4,6): the west climb past the massif
+    walk("UP", 4)                      # (4,2): the top row
+    walk("RIGHT", 3)                   # the sigil's pull fires at (6,2)
+    ready(); facing("RIGHT")           # 'gale sigil noticed'; the stone stays unslotted
+    shot("p_sigil")                    # the rune-stone lit, in the player's eyeline
+    walk("RIGHT", 1)                   # (7,2)
+    walk("UP", 2); ready()             # the cleared pass -> the chapel yard
+    shot("p_chapel")                   # the yard; the east fire-glow named on entry
+    walk("LEFT", 8)                    # to the west wall (1,8): nearing the grove road
+    ready()                            # 'camp signposted'; no rest taken
+    shot("p_signpost")
 
 @scn
 def helm_sleepz():

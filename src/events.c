@@ -944,6 +944,8 @@ static void beach_go(int next, int sx, int sy) {
                 say("Voices ahead. Living ones -- and arguing about a door.");
             if (!(G.bflags & BF_GATES_WON))
                 say("And west along the bluff, under a smudge of smoke: the far-off ring of steel on steel.");
+            if (!(G.bflags & BF_CAMP_SCENE))
+                say("East, in the lee of the bluff, a low fire-glow throbs against the dark -- a sheltered hollow, a laid ring, a place to gather before the road runs out.");
             dlg_close();
         }
         if (next == RM_GATES) {
@@ -1229,7 +1231,22 @@ static void boar_beat(void) {
     dlg_close();
 }
 
-/* --- the portal sigil cut into the dunes' east rocks (15,8) --- */
+/* --- the portal sigil cut into the dunes' rocks (9,2), on the chapel-exit
+ * approach: a player crossing the dunes for the door passes within its
+ * pull. sigil_draw is the SIGNPOST -- a one-shot flare + hum + a line that
+ * turns the head, fired on proximity (ev_step) so the missable recruit gets
+ * noticed. It never recruits: taking the hand at the stone stays a choice
+ * (sigil_beat, on an A-press). Skipped for origin Gale (no one to pull) and
+ * once Gale already walks with you. --- */
+
+static void sigil_draw(void) {
+    G.bflags |= BF_SIGIL_SEEN;
+    field_shake(8);
+    sfx_noise(8);
+    say("Off toward the pass a standing stone wakes: a rune flares wet-bright across its face, and behind the rock something STIRS, straining to be seen.");
+    dlg_close();
+    mgba_log("gale sigil noticed");
+}
 
 static void sigil_beat(void) {
     if (G.origin == ORIG_GALE) {
@@ -1611,6 +1628,21 @@ static int camp_npc_talk(int idx) {
         return 1;
     }
     return 0;
+}
+
+/* The camp is a side room off the chapel yard's east gap -- easy to walk
+ * straight past on the way to the gates. Signpost it: on the approach to the
+ * grove road, one call back to the banked fire in the bluff's lee. A nudge,
+ * never a shove -- the rest stays optional; BF_CAMP_SEEN fires it once, and
+ * BF_CAMP_SCENE (already slept) mutes it. */
+static void camp_signpost(void) {
+    G.bflags |= BF_CAMP_SEEN;
+    if (G.nparty > 1)
+        say("One of the others catches your sleeve and tips a head east, to the fire-glow banked in the bluff's lee. \"Before that door -- we rest. While we still can.\"");
+    else
+        say("West waits the grove road and the ring of steel. East, a fire-glow banks low in the bluff's lee -- a night's rest there for the taking, before the door.");
+    dlg_close();
+    mgba_log("camp signposted");
 }
 
 /* ------------------------------------------------------------ the gates
@@ -1998,6 +2030,16 @@ void ev_step(int mx, int my) {
     if (cur_room == RM_DUNES) {
         if (my == 11) { beach_go(RM_BEACH, mx, 1); return; }  /* crash site */
         if (my == 0) { beach_go(RM_CHAPEL, mx, 8); return; }  /* the bluff */
+        if (!(G.bflags & (BF_SIGIL_SEEN | BF_GALE_RECRUITED)) &&
+            G.origin != ORIG_GALE) {
+            /* cross into the sigil's reach (9,2) and the stone calls out --
+             * a draw, not the recruit; the pull is what a straight-for-the-
+             * chapel player was missing */
+            int dx = mx - 9, dy = my - 2;
+            if (dx < 0) dx = -dx;
+            if (dy < 0) dy = -dy;
+            if (dx + dy <= 3) { sigil_draw(); return; }
+        }
         return;
     }
     if (cur_room == RM_CHAPEL) {
@@ -2012,6 +2054,12 @@ void ev_step(int mx, int my) {
             if (dx < 0) dx = -dx;
             if (dy < 0) dy = -dy;
             if (dx + dy <= 1) { warryn_stir(); return; }
+        }
+        if (mx <= 1 &&
+            !(G.bflags & (BF_CAMP_SEEN | BF_CAMP_SCENE | BF_GATES_WON))) {
+            /* nearing the grove road (west gap at mx 0) with no night behind
+             * you: the camp in the east lee gets one last call */
+            camp_signpost(); return;
         }
         return;
     }

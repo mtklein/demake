@@ -110,17 +110,20 @@ MAPS = {
     # Landmarks: south gap (9,11)-(10,11) back to the crash site, the
     # cleared north pass (7,0)-(8,0) up to the chapel, Lae'zel's cage (2,2)
     # with scavengers at (1,3) and (3,3), cache chest (14,2), Gale's portal
-    # sigil (15,8), devourer patrols (12,7) and (5,9).
+    # sigil (9,2) — moved off the far-right margin into the chapel-exit
+    # approach, where every finishing player's eye crosses it (its own
+    # proximity draw pulls them the last step) — devourer patrols (12,7)
+    # and (5,9).
     "dunes": [
         "nnnnnnnxxnnnnnnnnn",
         "nsssSssssssssssssn",
-        "nsZsssssssssssTssn",
+        "nsZssssss*ssssTssn",
         "nssssssGsssSsssssn",
         "nssssnnnnnnnnGsssn",
         "nSssGnnnnnnnnssSsn",
         "nssssssssssssssssn",
         "nsssSssssGsssssssn",
-        "nrssssssssssSss*sn",
+        "nrssssssssssSssssn",
         "nssssssSssssssssGn",
         "nsGsssssssssSssssn",
         "nnnnnnnnnssnnnnnnn",

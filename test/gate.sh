@@ -36,7 +36,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            beach_full beach_medicine beach_flayer beach_origin \
            beach_recruits beach_reroute_astarion beach_reroute_gale \
            chapel_fight chapel_parley crypt_withers camp_night warryn_check \
-           gates_wyll gates_reroute_wyll gates_full \
+           gates_wyll gates_reroute_wyll gates_full critical_path \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
@@ -66,6 +66,8 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # the thorough route's ledger, exact and xp-proof: six souls
         # gathered, one camp night slept (fixed by the route, not the dice)
         gates_full)                           want="gates tally souls=6 rests=1" ;;
+        # the beeline: both margins signpost themselves on the critical path
+        critical_path)                        want="camp signposted" ;;
         tether_check)                         want="tether"          ;;
         cone_show)                            want="cone shown npc=" ;;
         panic_check)                          want="PANIC poked"     ;;
@@ -87,7 +89,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night|warryn_check|loot_check) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night|warryn_check|loot_check|critical_path) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
     # beach scenarios assert the arc's structure, never exact xp: the wake
@@ -128,6 +130,9 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # synced verse (lyric row logged), the demo autoskip moves it along,
         # and a companion stands by the fire with a word in her
         camp_night)     extra="beach wake|camp souls=3|camp scene begins souls=3|lyric 1 @|karaoke autoskip|camp scene played|camp talk SHADOW." ;;
+        # the beeline sees both signposts unbidden (the zero-counts below
+        # prove neither is auto-taken)
+        critical_path)  extra="beach wake|beach recover shadowheart|gale sigil noticed|camp signposted" ;;
         # the poked skill check: the roll is logged AND a die was shown for it
         skill_check)    extra="field-die d20=" ;;
         *)              extra="" ;;
@@ -155,6 +160,14 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # night, and the Under Selune scene must have fired exactly once
         n=$(echo "$out" | grep -c "camp scene begins")
         [ "$n" -eq 1 ] || bad="${bad:+$bad,}scene-count=$n"
+    fi
+    if [ "$scn" = critical_path ]; then
+        # kept optional: both draws fire on the beeline, but nothing is
+        # auto-taken -- no Gale slotted, no camp night begun
+        gr=$(echo "$out" | grep -c "beach recruit gale" || true)
+        cs=$(echo "$out" | grep -c "camp scene begins" || true)
+        [ "$gr" -eq 0 ] || bad="${bad:+$bad,}gale-taken=$gr"
+        [ "$cs" -eq 0 ] || bad="${bad:+$bad,}camp-taken=$cs"
     fi
     if [ "$scn" = chapel_fight ]; then
         # the masked one fights with the band: four bandits enter initiative

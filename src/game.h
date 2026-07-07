@@ -103,6 +103,10 @@ enum {
     BF_WARRYN_SEEN  = 1 << 20,   /* stood close enough; the tadpole knows its kin */
     BF_GATES_WON    = 1 << 21,   /* the assault broken; the door still shut */
     BF_CHEST_GATES  = 1 << 22,   /* the Hellrider cache shared out */
+    /* signposts: one-shot draws that pull the eye toward the missable
+     * margins (Gale's sigil, the camp night) from the critical path */
+    BF_SIGIL_SEEN   = 1 << 23,   /* the dunes sigil called out; drawn once */
+    BF_CAMP_SEEN    = 1 << 24,   /* camp signposted before the gates; once */
 };
 
 #define HERO_CLS (G.pm[0].cls)

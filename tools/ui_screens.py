@@ -183,7 +183,7 @@ SCREENS = [
                 row("sp", l("Cmdr Zhalk", 0), g(2), s("v_zh", 6)),
                 row("sp", l("The mind flayer", 0), g(2), s("v_fl", 6)),
                 row("sp", l("The masked one", 0), g(2), s("v_wr", 6)),
-                row("sp", l("Souls at the fire", 0), g(2), s("v_so", 6)),
+                row("sp", l("Souls gathered", 0), g(2), s("v_so", 6)),
                 row("sp", l("Camp nights", 0), g(2), s("v_cn", 6)),
                 row("sp", l("The grove gates", 0), g(2), s("v_gt", 6)),
                 BLANK,
