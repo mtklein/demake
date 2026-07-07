@@ -109,7 +109,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # stone 6: the gates -- goblins + warchief in initiative, BOTH allies
         # take real side-2 turns, the assault breaks, the sixth soul lands,
         # and the tally closes the arc (G_DONE=3)
-        gates_wyll)     extra="beach wake|gates wyll dueling|init Goblin|init Warchief|init Zevlor|init Wyll|Zevlor side2|Wyll side2|enc result=WIN|gates held|gates tally" ;;
+        gates_wyll)     extra="beach wake|gates wyll dueling|init Goblin|init Warchief|init Zevlor|init Wyll|Zevlor side2|Wyll side2|enc song=|enc result=WIN|gates held|gates tally" ;;
         gates_reroute_wyll) extra="beach wake|init Goblin|init Warchief|init Zevlor|Zevlor side2|enc result=WIN|gates held|gates tally" ;;
         # the whole arc, thorough: ship battles + connect, every recovery
         # and recruit, the masked one, three devourers, the band, the dead,

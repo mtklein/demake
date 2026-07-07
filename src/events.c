@@ -1668,6 +1668,7 @@ static void gates_battle(void) {
         gs[n].mon = R5M_WYLL; gs[n].npc = (s8)n_wyllg;
         gs[n].xp = 0; gs[n].side = 2; n++;
     }
+    encounter_song(SONG_GATES);          /* the finale gets its anthem */
     encounter_run(gs, n, 0, 0);
     G.bflags |= BF_GATES_WON;
     mgba_log("gates held");

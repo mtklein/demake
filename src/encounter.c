@@ -1341,6 +1341,14 @@ static void add_mon(int mon, int npc, int side, u16 xp) {
     e->xp = xp;
 }
 
+/* One battle's theme, set by events before encounter_run; survives the
+ * wipe-retry (the rematch keeps its anthem), resets when the fight ends.
+ * Stored +1 with 0 = unset so it stays zero-initialized .bss -- an
+ * initializer here lands in .data and shifts G, whose address the
+ * scenario fleet pokes (the stone-2 lesson, relearned in this file). */
+static int enc_song;
+void encounter_song(int s) { enc_song = s + 1; }
+
 int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise) {
     Game gsnap = G;
     R5Creature p5snap[3];
@@ -1359,7 +1367,8 @@ retry:
     nec = 0;
     round_no = 1;
     rounds_left = helm_rounds;
-    music(SONG_BATTLE);
+    if (enc_song) mgba_logf("enc song=%d", enc_song - 1);
+    music(enc_song ? enc_song - 1 : SONG_BATTLE);
 
     /* translucent combat UI: BG0|BG1 alpha-blend over field + sprites
      * (re-armed each retry; the wipe fade clears BLDCNT) */
@@ -1518,6 +1527,7 @@ victory:
     win_clear(0, 15, 30, 5);
     REG_BLDCNT = 0;
     G_FIELD_IDLE = 0;
+    enc_song = 0;
     return ENC_WIN;
 
 connected:
@@ -1531,6 +1541,7 @@ connected:
     win_clear(0, 15, 30, 5);
     REG_BLDCNT = 0;
     G_FIELD_IDLE = 0;
+    enc_song = 0;
     return ENC_CONNECTED;
 
 wipe:

@@ -1052,6 +1052,24 @@ static void t_battle_helm_allies(void) {
     T_ASSERT(r == ENC_CONNECTED, "battle result %d, want ENC_CONNECTED", r);
 }
 
+/* one-shot battle theme: events set it before the finale so the gates
+ * play their anthem instead of stock SONG_BATTLE; the fanfare still
+ * closes the fight, and the override logs for the ROM gate to grep */
+static void t_battle_theme_override(void) {
+    sim_reset();
+    mk_party(CLS_FIGHTER, 3);
+    G_DEMO = 1;
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    EncSpawn es[1] = { { R5M_THRALL, (s8)n0, 10, 1 } };
+    encounter_song(SONG_GATES);
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 1, 0, 0);
+    T_ASSERT(log_contains("enc song="), "the theme override never logged");
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+    T_ASSERT(sim_last_music == SONG_VICTORY, "music %d, want the fanfare",
+             sim_last_music);
+}
+
 /* a companion downed BEFORE the fight takes no turns at 0 hp. The turn
  * loop logs "turn rN NAME sideS hp=H" only when a turn is actually taken
  * and hp clamps at 0, so "LAE'ZEL side0 hp=0" is the exact zombie
@@ -2115,6 +2133,7 @@ static const Test tests[] = {
     { "battle_cleric_rescue",      t_battle_cleric_rescue },
     { "battle_bard_rescue",        t_battle_bard_rescue },
     { "battle_helm_allies",        t_battle_helm_allies },
+    { "battle_theme_override",     t_battle_theme_override },
     { "battle_no_zombie_turns",    t_battle_no_zombie_turns },
     { "battle_helm_tav_down",      t_battle_helm_tav_down },
     { "battle_druid_wildshape",    t_battle_druid_wildshape },

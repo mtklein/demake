@@ -32,6 +32,9 @@ enum { ENC_WIN, ENC_CONNECTED };
 /* surprise: 0 none, 1 enemies skip round 1, 2 party+allies skip round 1 */
 int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise);
 
+/* set the NEXT battle's theme (one-shot; default SONG_BATTLE) */
+void encounter_song(int s);
+
 /* darkvision doctrine (docs/character2.md): the room's DARK flag, set by
  * events.c on room entry. encounter_dark() is the live answer -- the
  * equipped Everburn Blade suppresses DARK entirely. */
