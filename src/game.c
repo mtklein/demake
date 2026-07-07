@@ -8,6 +8,7 @@
 #include "party5.h"
 #include "rules.h"
 #include "screens.h"
+#include "palette.h"
 
 static void sky_full(void) {
     /* Avernus sky across the whole screen on BG3 */
@@ -336,17 +337,26 @@ MemberLook member_look(int face, int cls) {
     static const s8 tavpor[CLS_COUNT] = { -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1 };
 #endif
     if (cls < 0 || cls >= CLS_COUNT) cls = 0;
+    /* Each companion returns its OWNED persistent OBJ bank (docs/palettes.md):
+     * the party is distinct by construction, no two members ever share a bank.
+     * Astarion and Gale keep the class-walker silhouette but wear their own
+     * bank now -- the death of "almost all the player sprites the same blue". */
     if (face == ORIG_LAEZEL) {
-        L.objt = OBJT_LAEZEL; L.ko = OBJT_LAEZEL_KO; L.pal = 1; L.por = POR_LAEZEL;
+        L.objt = OBJT_LAEZEL; L.ko = OBJT_LAEZEL_KO;
+        L.pal = (u8)pal_persistent_bank(PAL_LAEZEL); L.por = POR_LAEZEL;
     } else if (face == ORIG_SHADOW) {
-        L.objt = OBJT_SHADOW; L.ko = OBJT_SHADOW_KO; L.pal = 2; L.por = POR_SHADOW;
+        L.objt = OBJT_SHADOW; L.ko = OBJT_SHADOW_KO;
+        L.pal = (u8)pal_persistent_bank(PAL_SHADOW); L.por = POR_SHADOW;
     } else if (face == ORIG_WYLL) {
-        L.objt = OBJT_WYLL; L.ko = OBJT_WYLL_KO; L.pal = 4; L.por = POR_WYLL;
+        L.objt = OBJT_WYLL; L.ko = OBJT_WYLL_KO;
+        L.pal = (u8)pal_persistent_bank(PAL_WYLL); L.por = POR_WYLL;
     } else {
         L.objt = walk[cls]; L.ko = OBJT_HERO_KO; L.pal = 0; L.por = tavpor[cls];
         switch (face) {                       /* origin portraits (sprite stays class) */
-            case ORIG_ASTARION: L.por = POR_ASTARION; break;
-            case ORIG_GALE:     L.por = POR_GALE;     break;
+            case ORIG_ASTARION:
+                L.pal = (u8)pal_persistent_bank(PAL_ASTARION); L.por = POR_ASTARION; break;
+            case ORIG_GALE:
+                L.pal = (u8)pal_persistent_bank(PAL_GALE); L.por = POR_GALE; break;
             case ORIG_KARLACH:  L.por = POR_KARLACH;  break;
             case ORIG_DURGE:    L.por = POR_DURGE;    break;
         }
@@ -377,7 +387,7 @@ int game_class_select(void) {
     for (;;) {
         blurb_draw(cls_blurb[sel]);
         MemberLook L = member_look(ORIG_CUSTOM, sel);   /* preview the class walker */
-        if (L.pal == 0) memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);   /* all twelve */
+        if (L.pal == 0) pal_tav_class(sel);             /* Tav bank 0 wears the class */
         obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
                 1, L.objt, L.pal, 0);
 
@@ -921,11 +931,11 @@ void game_creation(int cls, int origin) {
     if (origin_class(origin) < 0)
         party_set_identity(race, bg, ab6);
     party5_refresh_all();
-    /* every class carries a tav palette now (mkassets asserts all twelve),
-     * so bank 0 always wears the played class -- no fallback-blue for the
-     * eight that once lacked one. The bound keeps the index in the
-     * [CLS_COUNT] table (UBSan once caught a read past the old [4]). */
-    if (cls >= 0 && cls < CLS_COUNT) memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
+    /* every class carries a tav palette now (mkassets asserts all twelve), so
+     * bank 0 always wears the played class -- no fallback-blue for the eight
+     * that once lacked one. pal_tav_class bounds the index into the [CLS_COUNT]
+     * table (UBSan once caught a read past the old [4]). */
+    pal_tav_class(cls);
     mgba_logf("create race=%d bg=%d ab=%d/%d/%d/%d/%d/%d",
               G.pm[0].race, G.pm[0].background,
               party5[0].ab[0], party5[0].ab[1], party5[0].ab[2],

@@ -41,5 +41,7 @@ void pal_boot(void);          /* load persistent palettes; call once at startup 
 void pal_tav_class(int cls);  /* load class cls's Tav palette into bank 0 */
 void pal_scene_begin(void);   /* free the transient region (room/battle entry) */
 int  pal_use(int id);         /* the bank holding id, loading it transiently if new */
+int  pal_persistent_bank(int id);  /* fixed bank of a persistent id -- pure, no
+                                    * boot needed (member_look's art identity) */
 
 #endif

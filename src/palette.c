@@ -32,6 +32,8 @@ u8 pal_bank[PAL_ID_COUNT];
 static const u8 persist_bank[] = { 0, 1, 2, 3, 4, 5, 7 };
 static int is_persistent(int id) { return id >= 0 && id <= PAL_CURSOR; }
 
+int pal_persistent_bank(int id) { return is_persistent(id) ? persist_bank[id] : -1; }
+
 /* The transient pool, banks {6, 8..15}. Bank 6 first, then the dice banks
  * high-to-low: while stone 3 has enemies transient but the dice still static,
  * this protects the hottest dice colors (physical 10, radiant 9, heal 8) from
@@ -49,24 +51,27 @@ void pal_boot(void) {
         pal_bank[i] = is_persistent(i) ? persist_bank[i] : PAL_NOT_LOADED;
     trans_next = 0;
 
-    /* Stone 1: reproduce the legacy 16-bank OBJ layout byte-for-byte, so the
-     * ROM renders identically while the mechanism is proven (the
-     * pal_boot-vs-pal_obj host test diffs this). The party's own banks
-     * (Astarion 3, Gale 4, Wyll 5) light up in stone 2; here banks 3-6 still
-     * carry the enemies their hard-coded draws expect, and 8-15 the dice.
-     * These transient statics keep pal_bank == NOT_LOADED: the allocator's
-     * view is that no scene has begun, only that raw colors sit in the region
-     * for the drawers stones 3-4 will move onto pal_use. */
-    static const struct { u8 id, bank; } legacy[] = {
-        { PAL_TAV, 0 }, { PAL_LAEZEL, 1 }, { PAL_SHADOW, 2 },
-        { PAL_US, 3 }, { PAL_IMP, 4 }, { PAL_FLAYER, 5 }, { PAL_ZHALK, 6 },
-        { PAL_CURSOR, 7 },
+    /* The persistent set: every party identity owns a bank (Astarion 3,
+     * Gale 4, Wyll 5 now evict the enemies that squatted there), plus the
+     * cursor on 7. Bank 0 stays the class-swapped Tav slot (pal_tav_class).
+     *
+     * Banks 6 and 8-15 still carry raw statics -- Zhalk and the eight dice
+     * colors -- that stones 3 and 4 will move onto pal_use. They keep
+     * pal_bank == NOT_LOADED: the allocator's view is that no scene has begun,
+     * only that colors sit in the transient region for hard-coded drawers.
+     * The enemies that lost 3-5 (Us, imps, flayer) are not loaded anywhere
+     * this stone -- their sprites double up on the party's banks until stone 3
+     * hands them their own transient leases. */
+    static const struct { u8 id, bank; } boot[] = {
+        { PAL_TAV, 0 }, { PAL_LAEZEL, 1 }, { PAL_SHADOW, 2 }, { PAL_ASTARION, 3 },
+        { PAL_GALE, 4 }, { PAL_WYLL, 5 }, { PAL_CURSOR, 7 },
+        { PAL_ZHALK, 6 },
         { PAL_DICE_HEAL, 8 }, { PAL_DICE_RADIANT, 9 }, { PAL_DICE_PHYS, 10 },
         { PAL_DICE_FIRE, 11 }, { PAL_DICE_POISON, 12 }, { PAL_DICE_FORCE, 13 },
         { PAL_DICE_PSYCHIC, 14 }, { PAL_DICE_COLD, 15 },
     };
-    for (unsigned i = 0; i < sizeof legacy / sizeof *legacy; i++)
-        pal_load(legacy[i].id, legacy[i].bank);
+    for (unsigned i = 0; i < sizeof boot / sizeof *boot; i++)
+        pal_load(boot[i].id, boot[i].bank);
 }
 
 void pal_tav_class(int cls) {

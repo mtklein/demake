@@ -2131,7 +2131,7 @@ static const int custom_walk[CLS_COUNT] = {
 
 static void t_member_look_identity(void) {
     sim_reset();
-    /* custom Tav: class walker, Tav palette, no identity sheet */
+    /* custom Tav: class walker, Tav bank 0 (the class palette), no identity sheet */
     for (int cls = 0; cls < CLS_COUNT; cls++) {
         MemberLook L = member_look(ORIG_CUSTOM, cls);
         T_ASSERT(L.objt == custom_walk[cls],
@@ -2142,7 +2142,9 @@ static void t_member_look_identity(void) {
         T_ASSERT(L.objt != OBJT_LAEZEL && L.objt != OBJT_SHADOW,
                  "custom %s borrows a companion sheet", cls_display[cls]);
     }
-    /* identity faces win over class */
+    /* identity faces win over class; each companion owns its persistent OBJ
+     * bank (docs/palettes.md), so no two party members share one -- the death
+     * of the samey-blue party */
     MemberLook lz = member_look(ORIG_LAEZEL, CLS_FIGHTER);
     T_ASSERT(lz.objt == OBJT_LAEZEL && lz.ko == OBJT_LAEZEL_KO && lz.pal == 1,
              "Lae'zel look wrong (objt %d ko %d pal %d)", lz.objt, lz.ko, lz.pal);
@@ -2150,15 +2152,23 @@ static void t_member_look_identity(void) {
     MemberLook sh = member_look(ORIG_SHADOW, CLS_CLERIC);
     T_ASSERT(sh.objt == OBJT_SHADOW && sh.ko == OBJT_SHADOW_KO && sh.pal == 2,
              "Shadowheart look wrong (objt %d ko %d pal %d)", sh.objt, sh.ko, sh.pal);
-    /* origin faces keep the class sprite but take the origin portrait */
+    /* origin faces keep the class sprite but take the origin portrait AND now
+     * their own bank: Astarion 3, Gale 4 (was 0 -- indistinguishable from Tav) */
+    MemberLook as = member_look(ORIG_ASTARION, CLS_ROGUE);
+    T_ASSERT(as.objt == OBJT_HERO && as.por == POR_ASTARION && as.pal == 3,
+             "Astarion look wrong (objt %d por %d pal %d)", as.objt, as.por, as.pal);
     MemberLook ga = member_look(ORIG_GALE, CLS_WIZARD);
-    T_ASSERT(ga.objt == OBJT_HERO && ga.por == POR_GALE,
-             "Gale look wrong (objt %d por %d)", ga.objt, ga.por);
-    /* Wyll is bespoke since the gates: his own walker, KO, palette, face */
+    T_ASSERT(ga.objt == OBJT_HERO && ga.por == POR_GALE && ga.pal == 4,
+             "Gale look wrong (objt %d por %d pal %d)", ga.objt, ga.por, ga.pal);
+    /* Wyll is bespoke since the gates: his own walker, KO, bank 5, face */
     MemberLook wy = member_look(ORIG_WYLL, CLS_WARLOCK);
-    T_ASSERT(wy.objt == OBJT_WYLL && wy.ko == OBJT_WYLL_KO && wy.pal == 4,
+    T_ASSERT(wy.objt == OBJT_WYLL && wy.ko == OBJT_WYLL_KO && wy.pal == 5,
              "Wyll look wrong (objt %d ko %d pal %d)", wy.objt, wy.ko, wy.pal);
     T_ASSERT(wy.por == POR_WYLL, "Wyll portrait %d", wy.por);
+    /* every party member's bank is distinct -- the invariant, checked directly */
+    T_ASSERT(lz.pal != sh.pal && sh.pal != as.pal && as.pal != ga.pal &&
+             ga.pal != wy.pal && lz.pal != 0 && wy.pal != 0,
+             "two party members share an OBJ bank");
     /* party_init wires member 0's face from the chosen origin */
     G.origin = ORIG_SHADOW;
     mk_party(CLS_CLERIC, 1);
@@ -2209,14 +2219,20 @@ static void t_class_select_art(void) {
 
 static int pal_is_transient_bank(int b) { return b == 6 || (b >= 8 && b <= 15); }
 
-static void t_pal_boot_legacy(void) {
+static void t_pal_boot_persistent(void) {
     sim_reset();
     pal_boot();
-    /* byte-identical: pal_boot reproduces the pre-allocator fixed 16-bank OBJ
-     * layout exactly, so stone 1 renders unchanged (pal_obj is the golden the
-     * old video.c memcpy'd wholesale) */
-    T_ASSERT(!memcmp((const void*)PAL_OBJ, pal_obj, 256 * 2),
-             "pal_boot did not reproduce the legacy OBJ palette layout");
+    /* pal_boot loads every party identity + the cursor into its owned bank
+     * with the right colors: the party is distinct by construction */
+    struct { int bank, id; } want[] = {
+        { 0, PAL_TAV }, { 1, PAL_LAEZEL }, { 2, PAL_SHADOW }, { 3, PAL_ASTARION },
+        { 4, PAL_GALE }, { 5, PAL_WYLL }, { 7, PAL_CURSOR },
+    };
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++)
+        T_ASSERT(!memcmp((const void*)(PAL_OBJ + want[i].bank * 16),
+                         pal_colors[want[i].id], 32),
+                 "boot: bank %d does not hold palette id %d",
+                 want[i].bank, want[i].id);
 }
 
 static void t_pal_persistent_banks(void) {
@@ -2374,7 +2390,7 @@ static const Test tests[] = {
     { "name_entry_grid",           t_name_entry_grid },
     { "member_look_identity",      t_member_look_identity },
     { "class_select_art",          t_class_select_art },
-    { "pal_boot_legacy",           t_pal_boot_legacy },
+    { "pal_boot_persistent",       t_pal_boot_persistent },
     { "pal_persistent_banks",      t_pal_persistent_banks },
     { "pal_use_stable_distinct",   t_pal_use_stable_and_distinct },
     { "pal_scene_frees_transient", t_pal_scene_frees_transient },
