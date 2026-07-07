@@ -1141,7 +1141,15 @@ static u16 ws_gen(u32 frame) {
     if (ph == 2) return KEY_A;
     if (ph >= 4) {
         ws_rng ^= ws_rng << 13; ws_rng ^= ws_rng >> 17; ws_rng ^= ws_rng << 5;
-        ws_step = -(int)(ws_rng % 9);
+        /* Idle-gap range widened 9 -> 23 when the headline d20 gained its
+         * tumble: the ~12 extra per-attack frames added a periodic component
+         * that the old 4..12-frame seek cadence phase-locked to (a closed
+         * root->Item->Potion orbit that never picked WildShape). The wider
+         * 4..26-frame jitter decorrelates from the animation cadence -- proven
+         * hang-free across tumble lengths 8..22, so it holds with real margin
+         * around the shipped 12. Same fragility class the eb_gen note calls
+         * out; this is that note's fix, sized for the animated board. */
+        ws_step = -(int)(ws_rng % 23);
     }
     return 0;
 }

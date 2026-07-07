@@ -19,6 +19,7 @@
 #include "rules.h"
 #include "encounter.h"
 #include "audio.h"
+#include "dice_ui.h"
 
 #define ME(t, h, v, p) ((u16)((t) | ((h) << 10) | ((v) << 11) | ((p) << 12)))
 #define TXT ((vu16*)SCREENBLOCK(30))
@@ -179,35 +180,29 @@ static EC* g_act;    /* whose turn it is (engagement tether) */
 static EC* tsel_a;   /* attacker during attack target-select (cursor glyphs) */
 static int tray_n;
 
-static int die_objt(int sides) {
-    switch (sides) {
-        case 4: return OBJT_DIE_D4;
-        case 6: return OBJT_DIE_D6;
-        case 8: return OBJT_DIE_D8;
-        case 10: return OBJT_DIE_D10;
-        case 12: return OBJT_DIE_D12;
-        default: return OBJT_DIE_D20;
-    }
-}
-
+/* one settled die at the next tray slot -- the shared primitive lays out the
+ * face + digits (dice_ui.c); the tray just tracks the running slot/x */
 static void tray_push(int sides, int value, int pal) {
     if (tray_n >= 8) return;
-    int x = 6 + tray_n * 20, y = 26;
-    int base = OBJ_DICE + tray_n * 3;
-    /* digits take the LOWER OAM slots so they render above the die face */
-    obj_set(base + 2, x, y, 1, die_objt(sides), pal, 0);
-    if (value >= 10) {
-        obj_set(base, x + 1, y + 4, 0, OBJ_TILE_COUNT + value / 10, 10, 0);
-        obj_set(base + 1, x + 8, y + 4, 0, OBJ_TILE_COUNT + value % 10, 10, 0);
-    } else {
-        obj_set(base, x + 4, y + 4, 0, OBJ_TILE_COUNT + value, 10, 0);
-        obj_hide(base + 1);
-    }
+    dice_draw_one(OBJ_DICE + tray_n * 3, 6 + tray_n * 20, 26, sides, value, pal);
     tray_n++;
 }
 
 static void tray_dice(const R5Dice* d, int pal) {
     for (int i = 0; i < d->n; i++) tray_push(d->sides, d->rolls[i], pal);
+}
+
+static void pump1(void) { pump(1); }   /* one-frame step for the shared tumble */
+
+/* the headline "does it land" die: tumble it into the next tray slot(s) --
+ * BOTH dice on advantage/disadvantage, spinning together -- then settle. The
+ * damage/bless/rider dice that follow appear as they always have (tray_push);
+ * only the meaningful roll gets the drama, which bounds the added frames. */
+static void tray_headline_d20(const R5Dice* d, int pal) {
+    if (tray_n >= 8) return;
+    dice_roll_headline(OBJ_DICE + tray_n * 3, 6 + tray_n * 20, 20, 26,
+                       d->sides, d->rolls, d->n, pal, pump1);
+    tray_n = (int)(tray_n + d->n);
 }
 
 static void tray_clear(void) {
@@ -229,7 +224,7 @@ static void enc_garnish_clear(void) {
 /* everything an attack rolled, laid out: d20(s), bless, damage, rider */
 static void tray_attack(const R5Attack* at) {
     tray_clear();
-    tray_dice(&at->d20, at->crit ? 9 : 10);
+    tray_headline_d20(&at->d20, at->crit ? 9 : 10);
     if (at->bless.n) tray_dice(&at->bless, 9);
     if (at->hit) {
         tray_dice(&at->dmg, DPAL(at->dmg_type));
@@ -638,7 +633,7 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
     ec_face_toward(a, t);
     R5Save sv = r5_save(&rng, t->c, s->save_ab, dc, 0);
     tray_clear();
-    tray_dice(&sv.d20, 10);
+    tray_headline_d20(&sv.d20, 10);
     char m[48]; char* d = m;
     d = put_str(d, "save "); d = put_num(d, sv.d20.total);
     d = put_str(d, " v DC "); d = put_num(d, sv.dc);
@@ -1375,9 +1370,8 @@ retry:
     REG_BLDCNT = 0x3C43;
     REG_BLDALPHA = (u16)(13 | (7 << 8));
 
-    /* stage popup digits after the obj tiles */
-    memcpy16((vu16*)((u32)OBJ_TILES + OBJ_TILE_COUNT * 32),
-             &ui_tiles[('0' - 32) * 16], 10 * 16);
+    /* stage popup/die-value digits after the obj tiles (shared with the field) */
+    dice_stage_digits();
 
     /* restore spawn sprites first (retry may have marked them GONE) */
     for (int i = 0; i < n; i++) {

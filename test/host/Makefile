@@ -14,10 +14,15 @@ LLVM := /opt/homebrew/opt/llvm/bin
 
 GAME  := $(ROOT)/src/menu.c $(ROOT)/src/data.c $(ROOT)/src/party5.c \
          $(ROOT)/src/encounter.c $(ROOT)/src/game.c
+# dice_ui.c is the shared die/tumble primitive: linked in so encounter's REAL
+# battle path draws through it (not a fake), but kept OUT of GAME so the
+# coverage ratchet still scopes to the five game sources -- the primitive is
+# a handful of lines, fully exercised by every battle attack.
+UI    := $(ROOT)/src/dice_ui.c
 RULES := $(ROOT)/rules/dice.c $(ROOT)/rules/core.c $(ROOT)/rules/features.c
 GENC  := $(GEN)/srd_tables.c $(GEN)/assets.c $(GEN)/screens.c
 HOST  := fake_engine.c sim_main.c
-SRCS  := $(GAME) $(RULES) $(GENC) $(HOST)
+SRCS  := $(GAME) $(UI) $(RULES) $(GENC) $(HOST)
 
 # shim/gba.h must beat src/gba.h. Quoted includes inside src/*.c always
 # search src/ first regardless of -I order, so the shim is force-included

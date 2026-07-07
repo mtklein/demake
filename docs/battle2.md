@@ -49,9 +49,16 @@ popups over each head), producing the turn-order strip along the top edge.
   mark application, etc. The menu greys out what's spent.
 
 **Dice display**: every resolution shows its math in the message bar —
-`d20+5: [14]+5=19 vs AC 13 -- HIT` then `1d8+3: [6]+3=9 slashing` — with a
-d20 sprite tumbling beside it. Nat 20 flashes gold; nat 1 thuds. All data
-comes recorded from `rules/` (R5Attack carries every die thrown).
+`d20+5: [14]+5=19 vs AC 13 -- HIT` then `1d8+3: [6]+3=9 slashing` — with the
+headline d20 sprite *tumbling* into place beside it: the face spins a beat,
+then settles on the rolled value (both dice spinning together on advantage or
+disadvantage). A crit's d20 settles gold. Only the "does it land" die tumbles
+— the damage, bless, and rider dice appear as thrown, which keeps the drama on
+the meaningful roll and bounds the added frames. The tumble is presentational
+only: the value is decided in `rules/` first (R5Attack carries every die
+thrown), then animated toward with a throwaway counter, so nothing on screen
+can move a result. The same primitive draws the field skill-check die
+(`src/dice_ui.c`, shared with `events.c`).
 
 **Party**: the three PCs act on their initiative; allied guests (Us, the
 helm mind flayer) roll initiative too and act on simple scripts, exactly as

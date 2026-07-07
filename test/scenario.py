@@ -312,12 +312,19 @@ def wildshape_check():
     nursery(); surgery()
     walk("DOWN", 1)                      # deck brawl
     wait(650)                            # cutscene + initiative + first menu
-    for _ in range(6):                   # a few turns: DOWN once -> WildShape row
-        tap("DOWN"); tap("A", 3, gap=24)
-        wait(50); shot("wildshape")      # (re)captures until the boar is on screen
-        wait(40)
+    # WildShape is menu row 1. A landed press must sit on row 1: a lone DOWN
+    # fired before the menu opens is wasted, and a following A confirms row 0
+    # (Attack). The tumbling headline d20 shifts each turn's timing, so keep
+    # the DOWN->A pair TIGHT (a ~2-frame window where the menu could open
+    # between them and swallow the DOWN, vs the 11-frame gap tap() leaves) and
+    # vary the idle between pairs, exactly as the host ws_gen note prescribes.
+    # Mash pairs across the druid's turns until the shape takes; then A's
+    # advance the beat and the pairs are harmless.
+    for g in (13, 9, 17, 7, 21, 11, 5, 15, 19, 23, 8, 27, 12, 25):
+        w("hold DOWN 2"); w("hold A 2")  # tight pair -> row 1, then confirm
+        wait(g); shot("wildshape")       # (re)captures until the boar is on screen
     poke(0x0203FF07, 0)
-    tap("A", 10, gap=30)
+    tap("A", 12, gap=28)
     wait(900)
 
 @scn
