@@ -56,6 +56,11 @@
 #else
 #define SAY_WI(t) say(t)
 #endif
+#ifdef POR_FLAYER
+#define SAY_FL(t) say_p(POR_FLAYER, t)
+#else
+#define SAY_FL(t) say(t)
+#endif
 
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
@@ -829,7 +834,7 @@ static void crash_sequence(int flayer_did_it);
 
 static void helm_battle(void) {
     seen |= 0x8000;
-    say("The mind flayer's voice cuts through the din: \"NOW, thrall. The nerves!\"");
+    SAY_FL("The mind flayer's voice cuts through the din: \"NOW, thrall. The nerves!\"");
     if (G.nparty == 1)
         say("You are alone, and the helm is very large. This may sting.");
     dlg_close();
@@ -1008,8 +1013,8 @@ static void flayer_beat(void) {
         dlg_close();
         return;
     }
-    say("Pinned under a rib of the hull: a mind flayer. Dying. Its eyes find yours --");
-    say("-- and COLD FINGERS close around your mind. THRALL. KNEEL. SERVE.");
+    SAY_FL("Pinned under a rib of the hull: a mind flayer. Dying. Its eyes find yours --");
+    SAY_FL("-- and COLD FINGERS close around your mind. THRALL. KNEEL. SERVE.");
     if (field_check(SK_ARCANA, 12)) {
         say("You know this grip now. You picture the ship burning around it, and SHOVE.");
         say("The hold shatters. The creature sags, spent.");
@@ -2147,7 +2152,7 @@ void ev_npc(int idx) {
         return;
     }
     if (idx == n_fl) {
-        say("The mind flayer's eyes flick to you, and your tadpole THRUMS in answer. \"The nerves. Go.\"");
+        SAY_FL("The mind flayer's eyes flick to you, and your tadpole THRUMS in answer. \"The nerves. Go.\"");
         dlg_close();
         return;
     }
