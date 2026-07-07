@@ -51,6 +51,11 @@
 #else
 #define SAY_WY(t) say(t)
 #endif
+#ifdef POR_WITHERS
+#define SAY_WI(t) say_p(POR_WITHERS, t)
+#else
+#define SAY_WI(t) say(t)
+#endif
 
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
@@ -1783,19 +1788,19 @@ static void withers_wake(void) {
     n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
     mgba_log("withers wakes");
     say("A desiccated figure sits up, unhurried, and regards you with two points of lamplight where eyes retired.");
-    say("WITHERS: \"Ah. Visitors. Answer me this, o breathing one: what price would thee set on a single mortal life?\"");
+    SAY_WI("WITHERS: \"Ah. Visitors. Answer me this, o breathing one: what price would thee set on a single mortal life?\"");
     say_keep("The lamplit sockets wait. They have had practice.");
     static const char* const a[] = { "Everything.", "Nothing.",
                                      "Whatever's in its pockets." };
     int c = choose(3, a);
     if (c == 0)
-        say("WITHERS: \"Spoken like one who has not yet had to pay it. Acceptable.\"");
+        SAY_WI("WITHERS: \"Spoken like one who has not yet had to pay it. Acceptable.\"");
     else if (c == 1)
-        say("WITHERS: \"Spoken like coin that resents being spent. Also acceptable.\"");
+        SAY_WI("WITHERS: \"Spoken like coin that resents being spent. Also acceptable.\"");
     else
-        say("WITHERS: \"...Thou art fortunate that death finds honesty refreshing.\"");
-    say("WITHERS: \"Long have I kept the ledgers of the dead, and long enough slept on the job. The world, it seems, still needs its accountant.\"");
-    say("WITHERS: \"I shall walk again in time. Until then -- my services, such as they are, stand open to thee. Ask.\"");
+        SAY_WI("WITHERS: \"...Thou art fortunate that death finds honesty refreshing.\"");
+    SAY_WI("WITHERS: \"Long have I kept the ledgers of the dead, and long enough slept on the job. The world, it seems, still needs its accountant.\"");
+    SAY_WI("WITHERS: \"I shall walk again in time. Until then -- my services, such as they are, stand open to thee. Ask.\"");
     dlg_close();
 }
 
@@ -1804,19 +1809,19 @@ static void withers_wake(void) {
  * re-makes it through the same screen every level-up uses. No class
  * change. No race change. Those are not paths; they are the walker. */
 static void withers_service(void) {
-    say("WITHERS: \"Speak. What does the living world want of Withers?\"");
+    SAY_WI("WITHERS: \"Speak. What does the living world want of Withers?\"");
     say_keep("The sockets glow, patient as ledgers.");
     static const char* const o[] = { "Change a chosen path",
                                      "Ask about death", "Nothing today" };
     int c = choose(3, o);
     if (c == 2) {
-        say("WITHERS: \"A rare wisdom. Walk on.\"");
+        SAY_WI("WITHERS: \"A rare wisdom. Walk on.\"");
         dlg_close();
         return;
     }
     if (c == 1) {
-        say("WITHERS: \"Death is a door, not a wall. Shouldst thou lose a companion, bring flame, or scroll, or patience -- the dead keep every appointment.\"");
-        say("WITHERS: \"For the deeper arrangements, my rates are famously reasonable. In time.\"");
+        SAY_WI("WITHERS: \"Death is a door, not a wall. Shouldst thou lose a companion, bring flame, or scroll, or patience -- the dead keep every appointment.\"");
+        SAY_WI("WITHERS: \"For the deeper arrangements, my rates are famously reasonable. In time.\"");
         dlg_close();
         return;
     }
@@ -1825,14 +1830,14 @@ static void withers_service(void) {
     for (int i = 0; i < G.nparty; i++)
         if (G.pm[i].subclass != 255) { names[n] = G.pm[i].name; map[n] = i; n++; }
     if (!n) {
-        say("WITHERS: \"None of thee has yet chosen a path worth unchoosing. Walk further first.\"");
+        SAY_WI("WITHERS: \"None of thee has yet chosen a path worth unchoosing. Walk further first.\"");
         dlg_close();
         return;
     }
-    say("WITHERS: \"Thy class is thy spine and thy blood is thy blood; Withers reorders neither. But a path chosen within them? That, I unmake.\"");
+    SAY_WI("WITHERS: \"Thy class is thy spine and thy blood is thy blood; Withers reorders neither. But a path chosen within them? That, I unmake.\"");
     say_keep("\"Whose path shall be unwalked?\"");
     int mi = map[choose(n, names)];
-    say("WITHERS: \"So. The road walked becomes a road unwalked. Choose again -- and mean it, this time.\"");
+    SAY_WI("WITHERS: \"So. The road walked becomes a road unwalked. Choose again -- and mean it, this time.\"");
     mgba_logf("withers repick %s", G.pm[mi].name);
     G.pm[mi].subclass = 255;           /* unmake the choice... */
     level_up_choices();                /* ...and the usual machinery re-makes it */
