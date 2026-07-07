@@ -90,6 +90,18 @@ FORMS = {
                 (408, 'TRUMPET chorus: harmon-thin motifs over walking 4s; sax tacet'),
                 (792, 'SAX chorus: enclosure lines, double-time flare in B; tpt tacet'),
                 (1176, 'OUT: A with hits, then settling tag -> seam breathes to head @24')],
+    'GATES':   [(0, 'DROP-IN: chopped break alone; bass raps the hook rhythm b2'),
+                (32, 'VERSE1: rap-cadence hook in Dm, choir answers the gaps'),
+                (160, 'WALL1: gospel dyads pump bVI-bVII-i (Bb-C-Dm) in P4s'),
+                (224, 'VERSE2: hook stuttered, bass roll doubles'),
+                (352, 'WALL2: climb widens Gm-C-Dm; octave-unison riser'),
+                (416, 'GATE: full-band tresillo stutter-lock, noise chokes'),
+                (448, 'SHRED: row-rate melodic-minor rip, Dm/A sweeps to E6'),
+                (512, 'BASS BREAK: wave grabs the hook solo, chips answer'),
+                (544, 'HALF-TIME DROP: anthem slams Dm-Bb-C-A, choir pumps'),
+                (608, 'BUILD: pulse ladder + kick-anchored snare roll'),
+                (640, 'OUT: hook over breathing pads, 8va lap, opens splash'),
+                (768, 'TURN: unison slam -> 8-row void, fall, roll-up -> loop 0')],
 }
 
 def nname(v):

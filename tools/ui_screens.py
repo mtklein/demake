@@ -55,6 +55,7 @@ SCREENS = [
                 row("l", g(2), s("trk8", 15)),
                 row("l", g(2), s("trk9", 15)),
                 row("l", g(2), s("trk10", 15)),
+                row("l", g(2), s("trk11", 15)),
                 BLANK,
                 row("c", l("A:PLAY  B:BACK", 2)),
             ]},

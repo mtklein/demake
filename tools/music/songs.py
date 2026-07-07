@@ -809,7 +809,102 @@ def bossa():
 
 SONGS['BOSSA'] = bossa()
 
-ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE', 'BOSSA']
+
+# ------------------------------------------------------------ GATES (jukebox)
+# TOTAL_ROWS = 800
+# FORM: 0=DROP-IN(chopped break alone; bass raps the hook rhythm in b2)
+#       32=VERSE1(rap-cadence hook, choir answer-melismas in the gaps)
+#       160=WALL1(gospel dyads pump Bb-C-Dm in parallel 4ths)
+#       224=VERSE2(hook stuttered 16th-triple, bass roll doubles)
+#       352=WALL2(climb widens Gm-C-Dm; bar 4 = octave-unison riser)
+#       416=GATE(full-band tresillo stutter-lock, noise chokes with it)
+#       448=SHRED(row-rate melodic-minor rip, Dm/A sweep arps to E6)
+#       512=BASS BREAK(the wave grabs the hook solo; square chips answer)
+#       544=HALF-TIME DROP(anthem slams Dm-Bb-C-A, choir organ-pumps)
+#       608=BUILD(pulse climb + kick-anchored accelerating snare roll)
+#       640=OUT(hook over breathing choir pads, 8va peak, opens splash)
+#       768=TURN(unison slam into an 8-row VOID, fall, roll-up -> loop 0)
+# Grid: speed 4, 16 rows/bar, 4 rows/beat -- a 225 BPM sixteenth grid that
+# reads as a 112.5 half-time frame under the double-time break (the fastest
+# engine rate in the album; BOSS/TADPOLE sit at speed 5). Key: D minor with
+# dorian B-natural sass; shred = D melodic minor + Dm/A sweeps; walls climb
+# bVI-bVII-i. Loop -> row 0: the roll-up slam-cuts to the dry chop, DJ style,
+# and the seam bass hangs on C#3 that only resolves when the D returns in b2.
+# ch0 sq1 25% duty (the MC: staccato x-gated rap cells; walls' top voice)
+# ch1 sq2 50% duty, decay step 2 (the choir: answer figures, parallel walls,
+#     breathing pads; always at-or-below ch0, all strong co-attacks consonant)
+# ch2 wave (write-what-you-hear): x-choked funk ostinato, never above A#3;
+#     grabs the hook verbatim for the bass break
+# ch3 noise 0=kick 1=snare 2=hat 3=open: two-step core (K on 1, S on 4/12,
+#     displaced K on row 9), '.' lets tails ring, 'x' chokes only in the chop
+#     bars, the gate, and the void. No ride anywhere.
+def gates():
+    c0 = (
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x D4 D4 x D4 x F4 D4 x G4 x F4 D4 x C4 D4 x F4 x F4 G4 x A4 A4 x x x x x x x x x') +
+        bars('D4 D4 x D4 x F4 D4 x G4 x F4 D4 x C4 D4 x C5 x C5 A4 x G4 A4 x x x x x x x x x A4 A4 x A4 x C5 A4 x D5 x C5 A4 x G4 A4 x G4 x G4 F4 x D4 C4 x x x x x x x x x') +
+        bars('D4 D4 x D4 x F4 D4 x G4 x F4 D4 x C4 D4 x x x x x x x x x x x x x x x x x A#4 . . . A#4 . C5 . A#4 . . . A#4 . C5 . C5 . . . C5 . D5 . C5 . . . C5 . D5 .') +
+        bars('D5 . . . D5 . F5 . D5 . . . D5 . F5 . D5 . . . . . . . A4 . C5 . D5 . . . D4 D4 D4 x D4 x F4 x G4 G4 x F4 D4 x C4 x F4 x F4 G4 x A4 A4 x x x x x x x x x') +
+        bars('D4 D4 D4 x D4 x F4 x G4 G4 x F4 D4 x C4 x D5 x C5 A4 x C5 A4 x x x x x x x x x A4 A4 A4 x A4 x C5 x D5 D5 x C5 A4 x G4 x A#4 x A#4 A4 x G4 A4 x x x x x x x x x') +
+        bars('D4 D4 D4 x D4 x F4 x G4 G4 x F4 D4 x C4 x x x x x x x x x x x x x x x x x A#4 . . . A#4 . D5 . A#4 . . . A#4 . D5 . C5 . . . C5 . E5 . C5 . . . C5 . E5 .') +
+        bars('D5 . . . D5 . F5 . D5 . . . D5 . F5 . D5 D5 x D5 x F5 x G5 x A5 x x A5 x x x D5 x x D5 x x D5 x D5 x x D5 x x D5 x C5 x x C5 x x C5 x A#4 x x A4 x x G4 x') +
+        bars('A4 B4 C#5 D5 E5 F5 E5 D5 C#5 D5 E5 F5 G5 A5 G5 F5 E5 F5 G5 A5 A#5 A5 G5 F5 E5 F5 E5 D5 C#5 D5 E5 C#5 D5 F5 A5 D6 A5 F5 D5 F5 A5 D6 A5 F5 D5 F5 A5 D6 C#6 A5 E5 A5 C#6 E6 C#6 A5 E5 G5 F5 E5 D5 C#5 D5 x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x A4 x x C5 x D5 x x D5 . . . . . . . . . . . A#4 . . . C5 . . . . . . . A#4 . . . A4 . . .') +
+        bars('G4 . . . . . . . . . . . E4 . . . E4 . . . A4 . . . B4 . . . C#5 . . . D4 x D4 x D4 x D4 x F4 x F4 x F4 x F4 x A4 x A4 x A4 A4 A4 A4 D5 D5 D5 D5 D5 D5 D5 D5') +
+        bars('D4 D4 x D4 x F4 D4 x G4 x F4 D4 x C4 D4 x F4 x F4 G4 x A4 A4 x x x A4 x C5 x D5 x D4 D4 x D4 x F4 D4 x G4 x F4 D4 x C4 D4 x C5 x C5 A4 x G4 A4 x x x G4 x F4 x D4 x') +
+        bars('A4 A4 x A4 x C5 A4 x D5 x C5 A4 x G4 A4 x G4 x G4 F4 x D4 C4 x x x D4 x F4 x G4 x D5 D5 x D5 x F5 D5 x G5 x F5 D5 x C5 D5 x F5 x F5 G5 x A5 A5 x G5 x F5 x D5 x C5 x') +
+        bars('D5 x x x x x x x A4 x G4 x F4 x D4 x x x x x x x x x x x x x x x x x')
+    )
+    c1 = (
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x A3 x x x x x x x x x x x x x x x x F4 x G4 A4 x G4 F4 x') +
+        bars('x x x x x x x A3 x x x x x x x A3 x x x x x x x x D4 x C4 A3 x C4 D4 x x x x x x x x E4 . . . . G4 . . x x x x x x x x x F4 x G4 A4 x C5 A4 x') +
+        bars('x x x x x x x A3 x x x x x x x A3 D4 x C4 x A3 x G3 x A3 x x x x x x x F4 . . . F4 . G4 . F4 . . . F4 . G4 . G4 . . . G4 . A4 . G4 . . . G4 . A4 .') +
+        bars('A4 . . . A4 . A4 . A4 . . . A4 . A4 . F4 . . . . . . . F4 . G4 . A4 . . . x x x x x x x A3 x x x x x x A3 x x x x x x x x x F4 x G4 A4 x G4 F4 x') +
+        bars('x x x x x x x A3 x x x x x x A3 x x x x x x x x x F4 x E4 D4 x E4 F4 x x x x x x x x E4 . . . . . G4 . x x x x x x x x x D4 x F4 G4 x F4 D4 x') +
+        bars('x x x x x x x A3 x x x x x x A3 x F4 x D4 x C4 x A3 x G3 x x x A3 x x x G4 . . . G4 . A#4 . G4 . . . G4 . A#4 . G4 . . . G4 . C5 . G4 . . . G4 . C5 .') +
+        bars('A4 . . . A4 . C5 . A4 . . . A4 . C5 . D4 D4 x D4 x F4 x G4 x A4 x x A4 x x x D4 x x D4 x x D4 x D4 x x D4 x x D4 x C4 x x C4 x x C4 x A#3 x x A3 x x G3 x') +
+        bars('D4 . . . . . . . . . . . . . . . E4 . . . . . . . . . . . . . . . A4 . . . . . . . . . . . . . . . A4 . . . . . . . . . . . . . x x') +
+        bars('x x x x x x x x x x x x x x x x x x x x x x x x F4 x x G4 x A4 x x F4 . . . F4 . . . F4 . . . F4 . . . F4 . . . F4 . . . F4 . . . F4 . . .') +
+        bars('C4 . . . C4 . . . C4 . . . C4 . . . C#4 . . . E4 . . . E4 . . . E4 . . . x D4 x D4 x D4 x D4 x D4 x D4 x D4 x D4 A3 . . . A3 . . . A3 . . . A3 A3 A3 A3') +
+        bars('A3 . . . . . . . . A3 . . . . . . A3 . . . . . . . . A3 . . . . . . A3 . . . . . . . . A3 . . . . . . G3 . . . . . . . . G3 . . . . . .') +
+        bars('D4 . . . . . . . . D4 . . . . . . G3 . . . . . . . . G3 . . . . . . D4 . . . . . . . . D4 . . . . . . F4 . . . . . . . . F4 . . . . . .') +
+        bars('D4 x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x')
+    )
+    c2 = (
+        bars('x x x x x x x x x x x x x x x x D2 D2 x D2 x D2 D2 x A#2 x C3 C3 x C#3 D3 x D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 x x D3 x x D2 x C3 x A#2 x C3 x C#3 x') +
+        bars('D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 x x D3 x x D2 x C3 x A#2 x C3 x C#3 x D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 x x D3 x x D2 x C3 x A#2 x C3 x C#3 x') +
+        bars('D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 x D2 x D3 x D2 x C3 x C3 x A2 x A2 x A#2 x A#2 x A#2 x A#3 x A#2 x A#2 x A#2 x A#3 x C3 x C3 x C3 x C2 x C3 x C3 x C3 x C2 x') +
+        bars('D3 x D3 x D3 x D2 x D3 x D3 x D3 x D2 x D3 x D2 x D3 x D2 x F2 x G2 x A2 x C3 x D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 D3 x D2 D3 x D2 x C3 x C3 A#2 x A#2 C3 C#3') +
+        bars('D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 D3 x D2 D3 x D2 x C3 x C3 A#2 x A#2 C3 C#3 D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 D3 x D2 D3 x D2 x C3 x C3 A#2 x A#2 C3 C#3') +
+        bars('D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 x D2 x D3 x C3 x A#2 x A2 x G#2 x G#2 x G2 x G2 x G2 x G3 x G2 x G2 x G2 x G3 x C3 x C3 x C3 x C2 x C3 x C3 x C3 x C2 x') +
+        bars('D3 x D3 x D3 x D2 x D3 x D3 x D3 x D2 x D2 D2 D3 D3 D2 D2 D3 D3 D2 D3 D2 D3 D3 D3 D3 D3 D2 x x D2 x x D2 x D2 x x D2 x x D2 x C2 x x C2 x x C2 x A#2 x x A2 x x G2 x') +
+        bars('D2 x D2 x D2 x D2 x D2 x D2 x D2 x D2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x C2 x D2 x D2 x D2 x D2 x F2 x F2 x F2 x F2 x A2 x A2 x A2 x A2 x A2 x G2 x F2 x E2 x') +
+        bars('D3 D3 x D3 x F3 D3 x G3 x F3 D3 x C3 D3 x F3 x F3 G3 x A3 A3 x A2 x A#2 x C3 x C#3 x D2 . . . . . . . x x D2 x D2 D3 x x A#2 . . . . . . . x x A#2 x A#2 C3 x x') +
+        bars('C3 . . . . . . . x x C3 x C2 C3 x x A2 . . . . . . . A2 x A2 A2 x x C#3 x D2 x D2 x D2 x D2 x D2 D2 x D2 D2 x D2 D2 D2 D2 D2 x D2 D2 D2 x D2 D2 D3 D3 D3 D3 D3 D3') +
+        bars('D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 x x D3 x x D2 x C3 x A#2 x C3 x C#3 x D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 x x D3 x x D2 x C3 x A#2 x C3 x C#3 x') +
+        bars('D2 x x D3 x x D2 x D3 x D2 x A2 x C3 x D2 D3 x D2 D3 x D2 x C3 x C3 A#2 x A#2 C3 C#3 D2 D3 x D2 D3 x D2 D3 x D2 x D3 D2 x A2 C3 D2 D3 x D2 D3 x D2 x C3 x A#2 A#2 x C3 C#3 x') +
+        bars('D2 x x x x x x x D2 x C3 x A#2 x A2 x G2 x G2 x A2 x A2 x A#2 x A#2 x C3 x C#3 x')
+    )
+    c3 = (
+        [0,REST,0,REST,1,REST,REST,0,REST,0,2,REST,1,REST,1,2,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,3,HOLD,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,0,REST,1,REST,REST,0,REST,1,1,REST,0,REST,1,1,1,0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD,0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD,0,HOLD,2,HOLD,1,HOLD,3,HOLD,1,HOLD,1,HOLD,1,1,1,1,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2] +
+        [0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2] +
+        [0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,0,REST,1,REST,REST,0,0,REST,1,1,REST,0,REST,1,1,0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD,0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD] +
+        [0,HOLD,2,HOLD,1,HOLD,3,HOLD,HOLD,0,2,HOLD,1,HOLD,3,HOLD,0,HOLD,2,HOLD,1,HOLD,2,HOLD,1,HOLD,1,HOLD,1,1,1,1,0,REST,REST,0,REST,REST,0,REST,0,REST,REST,0,REST,REST,0,REST,0,REST,REST,0,REST,REST,0,REST,0,REST,REST,0,1,REST,0,1] +
+        [0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,0,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,0,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,0,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,HOLD,HOLD,1,HOLD,HOLD,HOLD,0,HOLD,1,HOLD,1,1,1,3] +
+        [0,HOLD,2,HOLD,1,HOLD,HOLD,2,HOLD,0,2,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,1,1,1,0,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,1,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,0,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,1,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD] +
+        [0,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,1,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,0,HOLD,HOLD,HOLD,HOLD,HOLD,2,HOLD,1,HOLD,HOLD,HOLD,1,1,1,1,0,HOLD,2,HOLD,1,HOLD,2,HOLD,0,HOLD,1,HOLD,1,HOLD,1,HOLD,0,1,HOLD,1,0,1,1,HOLD,0,1,1,1,1,1,1,1] +
+        [0,HOLD,3,HOLD,1,HOLD,HOLD,2,HOLD,0,3,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,3,HOLD,1,HOLD,HOLD,2,HOLD,0,3,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD] +
+        [0,HOLD,3,HOLD,1,HOLD,HOLD,2,HOLD,0,3,HOLD,1,HOLD,HOLD,2,0,HOLD,2,HOLD,1,HOLD,HOLD,0,HOLD,0,2,HOLD,1,HOLD,1,HOLD,0,HOLD,3,HOLD,1,HOLD,HOLD,2,HOLD,0,3,HOLD,1,HOLD,HOLD,2,0,HOLD,3,HOLD,1,HOLD,HOLD,2,HOLD,0,HOLD,1,1,1,1,1] +
+        [3,REST,REST,REST,REST,REST,REST,REST,1,HOLD,1,HOLD,1,HOLD,1,HOLD,1,HOLD,1,HOLD,1,1,1,HOLD,1,1,1,1,1,1,1,1]
+    )
+    return dict(ch=[c0, c1, c2, c3], loop=0, speed=4,
+                env1=envelope(13, 0, 0, 1), env2=envelope(11, 2, 0, 2), wavevol=0x2000)
+
+SONGS['GATES'] = gates()
+
+ORDER = ['PRELUDE', 'EXPLORE', 'BATTLE', 'BOSS', 'VICTORY', 'CRASH', 'AZURE', 'GAIA', 'TADPOLE', 'SELUNE', 'BOSSA', 'GATES']
 
 # Jukebox display names, one per ORDER entry. mkassets emits song_names[]
 # from this and asserts it stays in step with ORDER -- and that the jukebox
@@ -826,4 +921,5 @@ TITLES = {
     'TADPOLE': 'Tadpole Twist',
     'SELUNE':  'Under Selune',
     'BOSSA':   "Baldur's Bossa",
+    'GATES':   'Gatecrash!',
 }
