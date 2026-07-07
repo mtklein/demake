@@ -115,6 +115,11 @@ void party_init(int cls, const char* name) {
 }
 
 void loot_weapon(int w) {
+    /* a garbage id here is silent on GBA hardware (no faults) -- the Equip
+     * screen just renders a wild pointer. Fail LOUD instead: the panic
+     * screen with breadcrumbs beats a mystery freeze (the Wyll-loots-the-
+     * duelist bug shipped exactly this way). */
+    ASSERT(w >= 0 && w < R5W_COUNT);
     if (G.nwinv < 8) G.winv[G.nwinv++] = (u8)w;
 }
 

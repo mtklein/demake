@@ -208,6 +208,30 @@ def skill_check():
     poke(0x0203FF0F, 3)              # G_SKILL_TEST = SK_ARCANA + 1
     wait(80); shot("skill_done")
 
+# field player-state addresses (src/field.c statics) for deterministic
+# placement -- reaching a specific field tile by scripted walks is timing-
+# fragile; poking the position is the demo-determinism tool for it
+PMOVING, PPX, PPY, PFACE = 0x030005F0, 0x030005F4, 0x030005F8, 0x030005FC
+
+@scn
+def loot_check():
+    """A warlock loots the deck duelist's optional kit, then opens Equip.
+    find[4] indexed by twelve classes handed classes 4..11 (incl. Wyll the
+    warlock) a garbage weapon id and a wild-pointer Equip screen. Placed by
+    poke: the corpse is off every scripted story route."""
+    setup(11, [0, 0, 0, 0, 0])            # CLS_WARLOCK; choose 0 = 'Equip it'
+    intro(); nursery(); surgery()         # ends field-idle in the deck, pre-brawl
+    poke(PMOVING, 0)
+    poke(PPX, 11 * 16); poke(PPY, 6 * 16)  # (11,6): just left of the corpse (12,6)
+    poke(PFACE, 3)                         # face RIGHT -> interact tile (12,6)
+    wait(4)
+    tap("A"); ready()                      # loot + auto-equip; assert the log below
+    tap("START"); wait(20)
+    tap("DOWN"); tap("A"); wait(30)        # open Equip: the wild-pointer render path
+    tap("A"); wait(20)                     # pick member 0's row
+    tap("B"); tap("B"); tap("B"); wait(20)
+    shot("loot_equip")
+
 @scn
 def audit_check():
     """dump the per-class battle-menu + sheet ability tables; the gate

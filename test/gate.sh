@@ -40,7 +40,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
-           audit_check; do
+           loot_check audit_check; do
     python3 test/scenario.py "$scn" > build/gate.script
     if ! out=$(./build/runner build/nautiloid.gba build/gate.script 2>&1); then
         echo "FAIL $scn (runner exited nonzero)"; fail=1; continue
@@ -77,13 +77,17 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # hill-dwarf sage wizard, CON/INT swapped: 8/13/15/14/12/10 + CON+2 WIS+1
         creation_check)                       want="create race=1 bg=3 ab=8/13/17/14/13/10" ;;
         skill_check)                          want="field-check Arcana" ;;
+        # a warlock loots + auto-equips the duelist's kit; the marker proves
+        # the loot fired, and the crash/PANIC checks below prove find[cls]
+        # handed a live weapon, not a wild pointer, to the Equip render
+        loot_check)                           want="duelist find w=" ;;
         audit_check)                          want=""                ;;  # golden diff below
         *)                                    want="enc result=WIN"  ;;
     esac
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night|warryn_check) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night|warryn_check|loot_check) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
     # beach scenarios assert the arc's structure, never exact xp: the wake

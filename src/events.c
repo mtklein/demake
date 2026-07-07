@@ -613,9 +613,26 @@ static void deck_interact(int mx, int my, int m) {
     if (m == MT_GITH_CORPSE) {
         if (mx == 12 && my == 6 && !(G.flags & GF_DUELIST)) {
             G.flags |= GF_DUELIST;
-            static const u8 find[4] = { R5W_RAPIER, R5W_SHORTSWORD,
-                                        R5W_TRIDENT, R5W_DAGGER };
+            /* her kit, per class -- sized by CLS_COUNT and designated so a
+             * new class is a hole the compiler can see, not a wild read
+             * (find[4] indexed by twelve classes handed Wyll a garbage
+             * weapon id and a wild-pointer Equip screen) */
+            static const u8 find[CLS_COUNT] = {
+                [CLS_BARD]      = R5W_RAPIER,
+                [CLS_ROGUE]     = R5W_SHORTSWORD,
+                [CLS_RANGER]    = R5W_TRIDENT,
+                [CLS_WIZARD]    = R5W_DAGGER,
+                [CLS_FIGHTER]   = R5W_LONGSWORD,
+                [CLS_CLERIC]    = R5W_DAGGER,
+                [CLS_BARBARIAN] = R5W_LONGSWORD,
+                [CLS_DRUID]     = R5W_DAGGER,
+                [CLS_MONK]      = R5W_SHORTSWORD,
+                [CLS_PALADIN]   = R5W_LONGSWORD,
+                [CLS_SORCERER]  = R5W_DAGGER,
+                [CLS_WARLOCK]   = R5W_DAGGER,
+            };
             int w = find[G.pm[0].cls];
+            mgba_logf("duelist find w=%d", w);
             say("A githyanki duelist, dead at her post. Her kit survived the fire.");
             if (isclass(CLS_BARD))
                 say("[BARD] Beneath the ash: a dueling rapier, silvered and balanced. It suits your hand like it was made for it.");
@@ -625,6 +642,8 @@ static void deck_interact(int mx, int my, int m) {
                 say("[RANGER] A boarding trident -- made for ship-to-ship slaughter. It throws true.");
             if (isclass(CLS_WIZARD))
                 say("[WIZARD] A balanced throwing dagger. Considerably better than a stick.");
+            if (G.pm[0].cls > CLS_WIZARD)
+                say("Her silvered sidearm survived too. Good steel, and better luck than its last owner's.");
             loot_weapon(w);
             sfx_play(SFX_CONFIRM);
             say_keep("Take it up now?");
