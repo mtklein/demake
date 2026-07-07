@@ -14,6 +14,7 @@ MAPLEG = {
     "x": "scree", "w": "chapel_wall", "q": "tomb_door", "Q": "tomb_door_o",
     "e": "gravestone", "A": "cwall", "F": "cfloor", "N": "sconce",
     "B": "rubble", "b": "bones", "i": "carch", "Y": "sarc_t", "j": "sarc_b",
+    "@": "campfire", "=": "bedroll",
 }
 
 MAPS = {
@@ -125,13 +126,14 @@ MAPS = {
     ],
     # The chapel yard on the bluff — the looter band argues before the tomb
     # door (7,1)-(8,1); gravestones flank the worn path; chest (14,6);
-    # scree pass south (7,9)-(8,9) back down to the dunes.
+    # scree pass south (7,9)-(8,9) back down to the dunes; east gap (15,4)
+    # down into the lee of the bluff, where the camp is (stone 5).
     "chapel": [
         "rrrrrrrrrrrrrrrr",
         "rwwwwwwqqwwwwwwr",
         "rGssessssssessGr",
         "rssssssssssssssr",
-        "rGsessssssssessr",
+        "rGsessssssssesss",
         "rssssssssssssssr",
         "rsesssssssssesTr",
         "rGssssssssssssGr",
@@ -163,6 +165,24 @@ MAPS = {
         "AFFbFFFFFBFFA",
         "AFFFFFFFFFFFA",
         "AAAAAAiAAAAAA",
+    ],
+    # The camp (stone 5's night room) — a hollow in the bluff's lee where
+    # the survivors ring a driftwood fire; the whole room is one screen
+    # (15x10), a single tableau. Landmarks the events layer points at:
+    # west gap (0,4) up the worn path to the chapel yard, the campfire
+    # (7,4), bedrolls (4,2) (7,2) (5,6), companion spots (6,4) (8,4) (7,5)
+    # (6,5); the surf keeps the south edge.
+    "camp": [
+        "rrrrrrrrrrrrrrr",
+        "rGssssssssssGsr",
+        "rsss=ss=sssssrr",
+        "rGsssssssssssGr",
+        "sssssss@ssssssr",
+        "rsssssssssssssr",
+        "rGsss=ssssrssGr",
+        "rssssssssssssGr",
+        "uuuuuuuuuuuuuuu",
+        "UUUUUUUUUUUUUUU",
     ],
     # The sarcophagus chamber (DARK) — Withers sleeps at (6,2), sconces
     # flanking; arch south (6,8) back to the ossuary.

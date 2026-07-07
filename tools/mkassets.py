@@ -636,6 +636,7 @@ def main():
         "extern const u8 metatile_solid[%d];" % len(fsolid),
         "extern const u16 pal_bg[256];",
         "extern const u16 pal_obj[256];",
+        "extern const u16 pal_field_night[16];",
         "extern const u16 pal_tav_classes[4][16];",
     ]
     if pflat:
@@ -650,6 +651,9 @@ def main():
              % (len(fsolid), ",".join(map(str, fsolid))))
     c.append(emit_u16("pal_bg", [v for p in BG_PALS for v in p]))
     c.append(emit_u16("pal_obj", [v for p in OBJ_PALS for v in p]))
+    # moonlight over the field family: the camp room swaps this over BG
+    # palette 3 at room_enter (and every other room restores the daylight)
+    c.append(emit_u16("pal_field_night", pal16(FT.NIGHT_PAL)))
 
     tavorder = ["bard", "rogue", "ranger", "wizard"]
     tavflat = [v for cls in tavorder for v in pal16(SF.PAL_TAV[cls])]
@@ -753,9 +757,14 @@ def render_preview(tiles):
     sheet(tiles, p255(UI_PAL), 16, "preview_ui.png")
 
 def render_field_preview(tiles, lut):
-    """Draw each metatile assembled (2x2) with the field palette."""
+    """Draw each metatile assembled (2x2), by day and by camp night."""
+    for palette, fname in ((FT.PAL, "preview_field.png"),
+                           (FT.NIGHT_PAL, "preview_field_night.png")):
+        _field_sheet(tiles, lut, palette, fname)
+
+def _field_sheet(tiles, lut, palette, fname):
     from pnglib import write_png_scaled
-    pal = p255(FT.PAL)
+    pal = p255(palette)
     n = len(lut) // 4
     cols = 8
     rows = (n + cols - 1) // cols
@@ -772,7 +781,7 @@ def render_field_preview(tiles, lut):
                     c = pal[px[y][x]] if px[y][x] else (30, 18, 30)
                     off = ((qy + y) * w + qx + x) * 3
                     img[off:off + 3] = bytes(c)
-    out = os.path.join(ROOT, "test", "shots", "preview_field.png")
+    out = os.path.join(ROOT, "test", "shots", fname)
     write_png_scaled(out, w, h, img, 3)
     print(f"preview: {out}")
 

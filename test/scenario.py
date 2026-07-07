@@ -549,6 +549,40 @@ def crypt_withers():
     ready()                            # service: change path (0), member (0)
     shot("w_repick")
 
+# --- stone 5: the camp night ----------------------------------------------
+
+@scn
+def camp_night():
+    """First arrival at camp (the chapel yard's east gap): the survivors
+    settle around the fire and Under Selune plays as a story scene --
+    the lyric-sync log and the demo autoskip are the structural marks.
+    Then the campfire rest: Tav poked to 1 hp is healed back to full
+    (camp rest from=1 full=1), for zero xp. Finally the round trip:
+    leave for the yard, walk back in -- the scene must NOT replay (the
+    gate counts exactly one 'camp scene begins')."""
+    beach_setup(0, [0, 0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    _to_chapel()                       # Shadowheart + Lae'zel walk with us
+    walk("RIGHT", 6)                   # (13,8)
+    walk("UP", 4)                      # (13,4)
+    walk("RIGHT", 2)                   # through the east gap (15,4) -> camp
+    wait(2000); shot("n_scene")        # mid-scene: verse 1 over the tableau
+    ready()                            # the scene ends (demo autoskip)
+    shot("n_camp")                     # the night tableau: fire + companions
+    poke(0x0300007A, 1); poke(0x0300007B, 0)   # G.pm[0].hp = 1 (s16 LE, G+34)
+    walk("RIGHT", 4)                   # (5,4), beside the fire circle
+    walk("UP", 1); walk("RIGHT", 2)    # (7,3), north of the fire
+    face_interact("DOWN")              # rest (choice 0 = Rest): full heal
+    shot("n_rest")
+    walk("LEFT", 1)                    # (6,3), above Shadowheart's spot
+    face_interact("DOWN")              # a word by the fire (camp talk log)
+    walk("LEFT", 5)                    # (1,3)
+    walk("DOWN", 1); walk("LEFT", 1)   # (0,4): back up to the chapel yard
+    ready()
+    walk("RIGHT", 1)                   # straight back through the gap
+    ready()                            # second arrival: no scene, just night
+    shot("n_replay")
+
 @scn
 def helm_sleepz():
     setup(3, [0, 1, 0, 0, 2], 2)

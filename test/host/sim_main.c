@@ -1818,6 +1818,51 @@ static void t_title_jukebox_karaoke(void) {
     T_ASSERT(!G_DEMO, "L L should have left attract mode off");
 }
 
+/* Story-mode karaoke (game.c): the camp night's lyric machinery, driven
+ * exactly like the jukebox test above -- but chrome-free, and it ENDS.
+ * Three legs: a Selune lyric renders in sync and START skips (clearing
+ * the rows); left alone it returns when the playback row wraps (the song
+ * played through); under G_DEMO it bows out after the first sung lines so
+ * attract mode and scenarios keep moving. The jukebox keeps its own test
+ * above, untouched -- that is the extraction's contract. */
+static void t_story_karaoke(void) {
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(200000, 0);
+    /* the fake's music_row() is frames&1023: by W200 the playback row sits
+     * on verse 1's back half -- "alive - with me" bright, "all that's
+     * left" dim below it -- the same sheet the jukebox test pins */
+    script_keys("W200 SNAP W20 START");
+    game_story_karaoke(SONG_SELUNE);
+    T_ASSERT(snap_count() == 1, "snap never fired (story mode derailed)");
+    T_ASSERT(snap_contains(0, "alive - with me") || snap_contains(0, "all that's left"),
+             "no Under Selune lyric on the story sheet");
+    T_ASSERT(log_contains("lyric 1 @"), "verse 1 never logged its sync row");
+    T_ASSERT(log_contains("karaoke skip"), "START skip not logged");
+    T_ASSERT(!grid_contains("alive - with me") && !grid_contains("all that's left"),
+             "START skip left lyric rows on screen");
+    /* no chrome: no track title, no BACK hint, no window repaint */
+    T_ASSERT(!grid_contains("Under Selune") && !grid_contains("(B) BACK"),
+             "story mode drew jukebox chrome");
+    /* left alone, it ends when the song has played through (the wrap) */
+    sim_reset();
+    G_DEMO = 0;
+    sim_budget(4000, 0);        /* wrap lands ~frame 1024; a stuck loop
+                                 * would blow this budget */
+    game_story_karaoke(SONG_SELUNE);
+    T_ASSERT(log_contains("karaoke end"), "no natural end at the row wrap");
+    T_ASSERT(sim_frames() <= 1100, "story karaoke overshot the wrap (%u frames)",
+             (unsigned)sim_frames());
+    /* attract mode bows out after the first sung lines */
+    sim_reset();
+    G_DEMO = 1;
+    sim_budget(4000, 0);
+    game_story_karaoke(SONG_SELUNE);
+    T_ASSERT(log_contains("karaoke autoskip"), "G_DEMO never auto-skipped");
+    T_ASSERT(sim_frames() < 400, "autoskip too late (%u frames)",
+             (unsigned)sim_frames());
+}
+
 static void t_crawl_pages(void) {
     sim_reset();
     G_DEMO = 1;
@@ -2001,6 +2046,7 @@ static const Test tests[] = {
     { "ko_survives_refresh",       t_ko_survives_refresh },
     { "audit_native",              t_audit_native },
     { "title_jukebox_karaoke",     t_title_jukebox_karaoke },
+    { "story_karaoke",             t_story_karaoke },
     { "crawl_pages",               t_crawl_pages },
     { "origin_choose_flow",        t_origin_choose_flow },
     { "name_entry_grid",           t_name_entry_grid },

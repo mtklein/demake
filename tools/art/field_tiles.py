@@ -25,6 +25,30 @@ LEGEND = {
     "8": 8, "9": 9, "A": 10, "B": 11, "C": 12, "D": 13, "E": 14, "F": 15,
 }
 
+# The camp night: the same 16 slots re-lit by moonlight. src/events.c loads
+# this over BG palette 3 for RM_CAMP only (every other room restores the
+# daylight PAL above). Cool blue-greys take the sand and stone, the sea goes
+# deep and silver-topped -- and the fire indices (10-13) keep their daytime
+# warmth, so the campfire is the one warm thing in the frame.
+NIGHT_PAL = [
+    (0, 0, 0),     # 0 transparent
+    (1, 1, 3),     # 1 near-black (it was already night here)
+    (3, 2, 7),     # 2 deep purple, moonlit
+    (6, 4, 11),    # 3 mid purple, moonlit
+    (9, 7, 15),    # 4 light purple, moonlit
+    (13, 11, 19),  # 5 highlight, moonlit
+    (10, 11, 17),  # 6 sand under the moon: cool blue-grey
+    (5, 6, 11),    # 7 sand shadow / ring stones
+    (2, 7, 10),    # 8 night sea
+    (7, 14, 16),   # 9 moonlit swell and foam
+    (26, 18, 6),   # 10 ichor amber (ember glow, unchanged)
+    (16, 5, 3),    # 11 deep ember red
+    (30, 14, 3),   # 12 hot orange (the fire, unchanged)
+    (31, 24, 8),   # 13 bright yellow-orange (the fire, unchanged)
+    (8, 4, 3),     # 14 driftwood brown, banked
+    (6, 11, 9),    # 15 dune grass by moonlight
+]
+
 METATILES = {
     # plain fleshy floor
     "floor_a": [
@@ -1055,6 +1079,47 @@ METATILES = {
         "1111111111111111",
         "1111111111111111",
     ],
+    # the campfire (stone 5's hearth): driftwood over embers inside a stone
+    # ring, flame licking up. Fire pixels ride palette 12/13 and embers 10/11
+    # so the night palette leaves them warm while everything else cools.
+    "campfire": [
+        "6666666666666666",
+        "6666666D66666666",
+        "6666666666D66666",
+        "66666D6DD6666666",
+        "666666DDDD666666",
+        "66666DDDDDD66666",
+        "66666DDCDDD66666",
+        "6666DDCCCDDD6666",
+        "6666DCCACCDD6666",
+        "6677DCABACD77666",
+        "6717CABBBAC71766",
+        "67E7EBAEABE7E176",
+        "677EEBEEEBEE7766",
+        "667717EEE7177666",
+        "6667777677776666",
+        "6666666666666666",
+    ],
+    # a bedroll on the sand, top-down: rolled pillow end west (highlit),
+    # a dark seam where the roll stops, creases across the blanket east
+    "bedroll": [
+        "6666666666666666",
+        "6666666666666666",
+        "6666666666666666",
+        "6611111111111666",
+        "6154443233333166",
+        "6145543232343316",
+        "6145543233333316",
+        "6145543232333316",
+        "6144443233433316",
+        "6154432333333166",
+        "6611111111111666",
+        "6666666666666666",
+        "6666666666666666",
+        "6666666666666666",
+        "6666666666666666",
+        "6666666666666666",
+    ],
 }
 
 SOLID = {
@@ -1066,6 +1131,7 @@ SOLID = {
     "sigil",
     "chapel_wall", "tomb_door", "gravestone",
     "cwall", "sconce", "sarc_t", "sarc_b", "sarc_ot", "sarc_ob",
+    "campfire", "bedroll",
 }
 
 ORDER = [
@@ -1080,4 +1146,5 @@ ORDER = [
     "scree", "chapel_wall", "tomb_door", "tomb_door_o", "gravestone",
     "cwall", "cfloor", "sconce", "rubble", "bones", "carch",
     "sarc_t", "sarc_b", "sarc_ot", "sarc_ob",
+    "campfire", "bedroll",
 ]

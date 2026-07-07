@@ -57,6 +57,20 @@ static int n_ast;                    /* the pale elf lurking by the grass */
 static int n_boar;                   /* origin Astarion's staked kill */
 static int n_loot[3];                /* the looter band at the tomb door */
 static int n_withers;                /* the keeper of the crypt's ledgers */
+static int n_camp[4];                /* companions around the campfire */
+static const PMember* camp_member[4];
+
+/* the fire at (7,4); whoever the beach has given back stands in its light */
+static const struct { s8 mx, my, face; } camp_spot[4] = {
+    { 6, 4, 3 }, { 8, 4, 2 }, { 7, 5, 1 }, { 6, 5, 1 },
+};
+
+static void camp_add(int k, const PMember* p) {
+    MemberLook L = member_look(p->face, p->cls);
+    n_camp[k] = field_add_npc(camp_spot[k].mx, camp_spot[k].my,
+                              L.objt, L.pal, camp_spot[k].face, 0);
+    camp_member[k] = p;
+}
 
 /* wandering on-map encounters: per-room patrol slots. Each remembers its
  * stat block, bounty, and the story bit that keeps it dead (ship kills live
@@ -141,6 +155,7 @@ static void heal_pod(void) {
 static int room_song(int id) {
     if (id == RM_HELM) return SONG_BOSS;
     if (id == RM_BEACH || id == RM_DUNES || id == RM_CHAPEL) return SONG_GAIA;
+    if (id == RM_CAMP) return SONG_SELUNE;   /* the song was written for here */
     return SONG_EXPLORE;
 }
 
@@ -178,6 +193,12 @@ void room_enter(int id, int sx, int sy, int face) {
     n_ast = n_boar = -1;
     n_loot[0] = n_loot[1] = n_loot[2] = -1;
     n_withers = -1;
+    n_camp[0] = n_camp[1] = n_camp[2] = n_camp[3] = -1;
+
+    /* the camp is the arc's one night room: the beach tile family re-lit
+     * by moonlight over BG palette 3; every other room restores daylight
+     * (the fire indices stay warm -- see field_tiles.NIGHT_PAL) */
+    memcpy16(PAL_BG + 48, id == RM_CAMP ? pal_field_night : pal_bg + 48, 16);
 
     switch (id) {
         case RM_NURSERY: field_load(map_nursery, MAP_NURSERY_W, MAP_NURSERY_H); break;
@@ -191,6 +212,7 @@ void room_enter(int id, int sx, int sy, int face) {
         case RM_CRYPT:   field_load(map_crypt, MAP_CRYPT_W, MAP_CRYPT_H); break;
         case RM_OSSUARY: field_load(map_ossuary, MAP_OSSUARY_W, MAP_OSSUARY_H); break;
         case RM_SANCTUM: field_load(map_sanctum, MAP_SANCTUM_W, MAP_SANCTUM_H); break;
+        case RM_CAMP:    field_load(map_camp, MAP_CAMP_W, MAP_CAMP_H); break;
     }
     field_spawn(sx, sy, face);
 
@@ -290,6 +312,15 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
             }
             break;
+        case RM_CAMP: {
+            /* the roster knows who made it back: the walking two plus the
+             * bench take the spots around the fire, up to all four */
+            int k = 0;
+            for (int i = 1; i < G.nparty && k < 4; i++) camp_add(k++, &G.pm[i]);
+            for (int r = 0; r < G.nreserve && k < 4; r++) camp_add(k++, &G.reserve[r]);
+            mgba_logf("camp souls=%d", k + 1);
+            break;
+        }
     }
 }
 
@@ -787,6 +818,8 @@ static void beat_xp(u16 xp) {
     }
 }
 
+static void camp_scene(void);   /* stone 5: the night under Selune */
+
 /* open-air room change: no sphincter doors out here */
 static void beach_go(int next, int sx, int sy) {
     G_FIELD_IDLE = 0;
@@ -809,7 +842,13 @@ static void beach_go(int next, int sx, int sy) {
                 say("Voices ahead. Living ones -- and arguing about a door.");
             dlg_close();
         }
+        if (next == RM_CAMP) {
+            say("The path drops into a hollow in the bluff's lee, out of the wind. Driftwood, stacked. A fire ring, laid. The sea keeps time below.");
+            say("It is night here the way it hasn't been anywhere else: soft, blue, and quiet. Camp.");
+            dlg_close();
+        }
     }
+    if (next == RM_CAMP && !(G.bflags & BF_CAMP_SCENE)) camp_scene();
 }
 
 /* stone transitions under the chapel: fade through the dark, then let the
@@ -1314,6 +1353,106 @@ static void chapel_interact(int mx, int my, int m) {
     }
 }
 
+/* ------------------------------------------------------------ the camp
+ * Stone 5: one quiet night under the moon. First arrival plays Under
+ * Selune as a story scene through game.c's story-mode karaoke -- the song
+ * shipped two releases before the scene it was written for. BF_CAMP_SCENE
+ * marks it played; it never replays. The campfire is the long rest
+ * thereafter: full heal, zero xp, repeatable. */
+
+static int camp_has(int face) {
+    for (int i = 1; i < G.nparty; i++) if (G.pm[i].face == face) return 1;
+    for (int r = 0; r < G.nreserve; r++) if (G.reserve[r].face == face) return 1;
+    return 0;
+}
+
+static void camp_scene(void) {
+    G.bflags |= BF_CAMP_SCENE;
+    mgba_logf("camp scene begins souls=%d", G.nparty + G.nreserve);
+    field_wait(30);
+    say("The driftwood catches. Warmth climbs out of the pit and finds every face that made it this far.");
+    if (G.nparty + G.nreserve > 1)
+        say("Nobody talks about the ship, or the worms, or tomorrow. Tonight the fire does the talking.");
+    else
+        say("You feed the fire alone and let the surf argue with the silence. Alive is alive.");
+    URGE("Even the thing behind your eye has gone still tonight. Counting stars, maybe. Or just counting.");
+    if (camp_has(ORIG_SHADOW))
+        SAY_SH("SHADOWHEART: \"The moon is watching us. Selune. ...She and I have history. Tonight I'll allow her the view.\"");
+    else if (G.origin == ORIG_SHADOW)
+        say("You don't look up at her. But you let the moonlight sit on your shoulders without shrugging it off. Tonight, that is the whole truce.");
+    else
+        say("The moon stands full over the water. Selune, sailors call her: the one who stays.");
+    say("Someone hums against the surf, low, half to themselves. The tune knows where it's going.");
+    dlg_close();
+    music(SONG_SELUNE);                   /* from the top, for the sync */
+    game_story_karaoke(SONG_SELUNE);
+    say("The last note hangs, and the surf takes it. One quiet night under the moon -- whatever comes next.");
+    dlg_close();
+    mgba_log("camp scene played");
+}
+
+/* the long rest: full heal for walkers and bench, zero xp, repeatable */
+static void campfire_beat(void) {
+    say("The fire has settled to steady coals. The bedrolls are claimed, argued over, and re-claimed.");
+    say_keep("Rest until you're whole?");
+    static const char* const o[] = { "Rest", "Not yet" };
+    if (choose(2, o) == 1) {
+        dlg_close();
+        return;
+    }
+    int from = G.pm[0].hp;
+    dlg_close();
+    sfx_play(SFX_HEAL);
+    fade_out(24);
+    field_wait(30);
+    party_heal_full();
+    mgba_logf("camp rest from=%d full=%d", from,
+              (G.pm[0].hp == G.pm[0].hpmax &&
+               party5[0].hp == party5[0].hpmax) ? 1 : 0);
+    field_draw();
+    fade_in(24);
+    say("Sleep takes you the way the tide takes the beach: completely. You wake mended, under the same patient moon.");
+    dlg_close();
+}
+
+static void camp_interact(int mx, int my, int m) {
+    (void)mx; (void)my;
+    if (m == MT_CAMPFIRE) { campfire_beat(); return; }
+    if (m == MT_BEDROLL) {
+        say("A bedroll, sand-proofed by optimism. It smells of smoke and borrowed peace.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_ROCK) {
+        say("A ring-stone, fire-warm on one side and night-cold on the other.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_SURF || m == MT_SEA) {
+        say("The sea works the dark shore, patient as ever. Moonlight rides in on every swell.");
+        dlg_close();
+    }
+}
+
+/* a companion by the fire: a word, not a quest */
+static int camp_npc_talk(int idx) {
+    for (int k = 0; k < 4; k++) {
+        if (idx < 0 || idx != n_camp[k] || !camp_member[k]) continue;
+        char m[56];   /* name (7) + the 41-char line + NUL, with headroom */
+        char* d = m;
+        const char* s = camp_member[k]->name;
+        while (*s) *d++ = *s++;
+        s = " watches the fire burn low. \"Still here.\"";
+        while (*s) *d++ = *s++;
+        *d = 0;
+        mgba_logf("camp talk %s", camp_member[k]->name);
+        say(m);
+        dlg_close();
+        return 1;
+    }
+    return 0;
+}
+
 /* ------------------------------------------------------------ the crypt
  * The first DARK rooms (darkvision doctrine, docs/character2.md): the
  * screen dims unless Tav has darkvision or someone carries the lit
@@ -1514,6 +1653,7 @@ void ev_interact(int mx, int my) {
         case RM_CRYPT:
         case RM_OSSUARY:
         case RM_SANCTUM: crypt_interact(mx, my, m); break;
+        case RM_CAMP:    camp_interact(mx, my, m); break;
     }
 }
 
@@ -1547,7 +1687,12 @@ void ev_step(int mx, int my) {
     }
     if (cur_room == RM_CHAPEL) {
         if (my == 9) { beach_go(RM_DUNES, mx, 1); return; }   /* the scree */
+        if (mx == 15) { beach_go(RM_CAMP, 1, 4); return; }    /* the camp path */
         if (m == MT_TOMB_DOOR_O) { crypt_go(RM_CRYPT, 6, 7); return; }
+        return;
+    }
+    if (cur_room == RM_CAMP) {
+        if (mx == 0) beach_go(RM_CHAPEL, 14, 4);   /* back up to the yard */
         return;
     }
     if (cur_room == RM_CRYPT) {
@@ -1624,6 +1769,7 @@ void ev_npc(int idx) {
         wanderer_fight(idx, 1);      /* unaware: enemies surprised */
         return;
     }
+    if (cur_room == RM_CAMP && camp_npc_talk(idx)) return;
     if (idx >= 0 && idx == n_ast) { astarion_beat(); return; }
     if (idx >= 0 && idx == n_boar) { boar_beat(); return; }
     if (idx >= 0 && (idx == n_loot[0] || idx == n_loot[1] || idx == n_loot[2])) {

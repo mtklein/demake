@@ -94,6 +94,8 @@ enum {
     BF_WITHERS_AWAKE= 1 << 16,   /* the sarcophagus opened; he keeps office */
     BF_CHEST_CHAPEL = 1 << 17,   /* chapel yard chest looted */
     BF_CHEST_CRYPT  = 1 << 18,   /* crypt grave-gifts looted */
+    /* stone 5: the camp night */
+    BF_CAMP_SCENE   = 1 << 19,   /* the Under Selune scene played; never again */
 };
 
 #define HERO_CLS (G.pm[0].cls)
@@ -106,6 +108,9 @@ void game_creation(int cls, int origin);   /* pickers + name + party build */
 int  game_race_pick(int origin);           /* -> R5RACE_* entry */
 int  game_bg_pick(int origin);             /* -> R5BG_*, -1 = back */
 int  game_stats_assign(int cls, int race, s8 out[6]);  /* 1 done, 0 = back */
+void game_story_karaoke(int song);  /* synced lyrics over the caller's scene;
+        * returns when the song has played through or START skips (the camp
+        * night; the jukebox keeps its own chrome-and-exit loop) */
 
 void party_init(int cls, const char* name);
 void party_set_identity(int race, int bg, const s8* ab6);  /* hero, post-init */

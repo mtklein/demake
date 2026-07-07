@@ -72,6 +72,28 @@ static void put_center(int y, const char* s, int pal) {
     txt_put(x, y, s, pal);
 }
 
+/* One synced repaint step, shared by the jukebox karaoke and the camp's
+ * story mode: find the lyric entry for playback row r and, if it changed
+ * from cur, repaint the sheet (current line bright, upcoming line dim).
+ * Returns the entry now showing. One painter, two frames around it -- the
+ * lyric sync can never drift between the jukebox and the story scene. */
+static int karaoke_paint(const Lyric* ly, int n, int r, int cur) {
+    int idx = 0;
+    for (int i = 0; i < n; i++) {
+        if ((int)ly[i].row <= r) idx = i; else break;
+    }
+    if (idx != cur) {                       /* line changed: repaint */
+        txt_clear(2, 8, 26, 6);
+        put_center(8, ly[idx].a, 1);        /* current line: bright */
+        put_center(9, ly[idx].b, 1);
+        if (idx + 1 < n) {                  /* upcoming line: dim */
+            put_center(11, ly[idx + 1].a, 2);
+            put_center(12, ly[idx + 1].b, 2);
+        }
+    }
+    return idx;
+}
+
 /* Full-screen synced lyric view; returns when the player presses A/B/Select. */
 static void karaoke(int song) {
     const Lyric* ly;
@@ -90,26 +112,40 @@ static void karaoke(int song) {
     for (;;) {
         frame();
         REG_BG3HOFS = (u16)((++t) >> 3);
-        int r = music_row();
-        int idx = 0;
-        for (int i = 0; i < n; i++) {
-            if ((int)ly[i].row <= r) idx = i; else break;
-        }
-        if (idx != cur) {                       /* line changed: repaint */
-            cur = idx;
-            txt_clear(2, 8, 26, 6);
-            put_center(8, ly[idx].a, 1);        /* current line: bright */
-            put_center(9, ly[idx].b, 1);
-            if (idx + 1 < n) {                  /* upcoming line: dim */
-                put_center(11, ly[idx + 1].a, 2);
-                put_center(12, ly[idx + 1].b, 2);
-            }
-        }
+        cur = karaoke_paint(ly, n, music_row(), cur);
         if (key_hit() & (KEY_A | KEY_B | KEY_SELECT)) break;
     }
     win_clear(1, 3, 28, 14);
     txt_clear(0, 0, 30, 20);
     scr_jukebox();
+}
+
+/* Story-mode karaoke: the camp night plays Under Selune as a scene
+ * (docs/under_selune.md -- this moment is what the song was written for).
+ * The same synced sheet as the jukebox view with none of its chrome: no
+ * window, no title, no BACK hint, no cursor -- the lyric rows paint
+ * straight over whatever tableau the caller has on screen. The caller
+ * starts the song; this returns when it has played through once (the
+ * playback row wraps to the loop point) or when START skips it. Under
+ * G_DEMO it bows out once the first sung lines have shown, so attract
+ * mode and scenarios keep moving; every painted line logs its row for
+ * the lyric-sync asserts. */
+void game_story_karaoke(int song) {
+    const Lyric* ly;
+    int n = song_lyrics(song, &ly);
+    if (!n) return;
+    int cur = -1, last = -1;
+    for (;;) {
+        frame();
+        int r = music_row();
+        if (r < 0 || r < last) { mgba_log("karaoke end"); break; }
+        last = r;
+        int idx = karaoke_paint(ly, n, r, cur);
+        if (idx != cur) { cur = idx; mgba_logf("lyric %d @%d", idx, r); }
+        if (key_hit() & KEY_START) { mgba_log("karaoke skip"); break; }
+        if (G_DEMO && idx >= 2) { mgba_log("karaoke autoskip"); break; }
+    }
+    txt_clear(2, 8, 26, 6);
 }
 
 /* Sound-test screen reached with SELECT from the title. */
