@@ -26,7 +26,11 @@ PALS = {
     4: pal((20, 8, 5), (14, 5, 3), (28, 20, 6), (16, 5, 3), (10, 3, 2), (30, 24, 8), (12, 4, 2), (6, 2, 1)),          # imps (red hide)
     5: pal((14, 10, 20), (9, 6, 14), (6, 4, 10), (12, 8, 18), (8, 5, 12), (20, 16, 26), (9, 6, 13), (5, 3, 8)),       # mind flayer purples
     6: pal((22, 6, 4), (15, 4, 3), (4, 3, 3), (10, 8, 9), (6, 5, 6), (30, 18, 4), (14, 4, 3), (7, 5, 5)),             # Zhalk: red skin, dark armor
-    7: pal((27, 19, 13), (20, 13, 8), (11, 7, 3), (16, 11, 6), (10, 7, 4), (24, 18, 9), (8, 8, 8), (6, 5, 4)),        # chapel looters: sun-baked human bandits
+    # OBJ bank 7 is the UI cursor (mkassets sets it) -- do NOT define PALS[7]
+    # or it clobbers the hand cursor into a sprite's colors. All 16 banks are
+    # spoken for (0 Tav, 1-6 chars, 7 cursor, 8-15 dice); a new sprite SHARES
+    # a char bank, never claims a fresh one. The looters ride Shadowheart's
+    # bank 2 (pale human skin, dark clothes -- reads as tomb-robbers).
 }
 
 SPRITES = {
@@ -49,7 +53,7 @@ SPRITES = {
     "boarw": {"pal": 3, "frames": ["boarw_down0", "boarw_down1", "boarw_up0", "boarw_up1", "boarw_side0", "boarw_side1"]},
     "devf": {"pal": 5, "frames": ["devf0", "devf1"]},
     "scav": {"pal": 4, "frames": ["scav0", "scav1"]},
-    "looter": {"pal": 7, "frames": ["loot0", "loot1"]},   # human tomb-robbers: own gang, not the tiefling scavengers
+    "looter": {"pal": 2, "frames": ["loot0", "loot1"]},   # human tomb-robbers: share Shadowheart's human bank (bank 7 is the cursor)
     "skelf": {"pal": 1, "frames": ["skelf0", "skelf1"]},        # crypt dead
     "withersf": {"pal": 5, "frames": ["withersf0", "withersf1"]},
     "warryn": {"pal": 5, "frames": ["warryn0", "warryn1"]},
