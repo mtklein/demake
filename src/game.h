@@ -96,6 +96,8 @@ enum {
     BF_CHEST_CRYPT  = 1 << 18,   /* crypt grave-gifts looted */
     /* stone 5: the camp night */
     BF_CAMP_SCENE   = 1 << 19,   /* the Under Selune scene played; never again */
+    /* stone 6: the grove gates */
+    BF_WARRYN_SEEN  = 1 << 20,   /* stood close enough; the tadpole knows its kin */
 };
 
 #define HERO_CLS (G.pm[0].cls)

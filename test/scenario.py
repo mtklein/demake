@@ -549,6 +549,28 @@ def crypt_withers():
     ready()                            # service: change path (0), member (0)
     shot("w_repick")
 
+@scn
+def warryn_check():
+    """The masked looter: stand beside him and the tadpole stirs (one
+    flavor line, never explained); talking gives the masked one-liner; the
+    parley fork grows an [Illithid] lever that auto-passes -- the band
+    walks, the masked one first. Then the tomb door still opens."""
+    beach_setup(4, [0, 0, 1], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    _to_chapel()                       # cage choice (0)
+    walk("UP", 4)                      # (7,4), below the band
+    walk("LEFT", 2)                    # (5,4)
+    walk("UP", 1)                      # (5,3): adjacent -- the stir fires
+    ready()
+    shot("y_warryn")
+    face_interact("UP")                # the masked one-liner
+    walk("DOWN", 1); walk("RIGHT", 2)  # back to (7,4)
+    face_interact("UP")                # parley: choice 0 = [Illithid] LEAVE.
+    shot("y_lever")
+    walk("UP", 2)                      # (7,2), beneath the door
+    face_interact("UP")                # door opens; choice 1 = Not yet
+    shot("y_door")
+
 # --- stone 5: the camp night ----------------------------------------------
 
 @scn

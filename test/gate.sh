@@ -35,7 +35,7 @@ fail=0
 for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            beach_full beach_medicine beach_flayer beach_origin \
            beach_recruits beach_reroute_astarion beach_reroute_gale \
-           chapel_fight chapel_parley crypt_withers camp_night \
+           chapel_fight chapel_parley crypt_withers camp_night warryn_check \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
@@ -58,6 +58,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         crypt_withers)                        want="withers repick" ;;
         # the campfire rest healed a poked-to-1-hp Tav back to full
         camp_night)                           want="camp rest from=1 full=1" ;;
+        warryn_check)                         want="warryn lever" ;;
         tether_check)                         want="tether"          ;;
         cone_show)                            want="cone shown npc=" ;;
         panic_check)                          want="PANIC poked"     ;;
@@ -75,7 +76,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     bad=""
     echo "$out" | grep -q "Illegal opcode" && bad="crash"
     echo "$out" | grep -q "TIMEOUT"        && bad="${bad:+$bad,}timeout"
-    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night) ;; *)
+    case "$scn" in tether_check|panic_check|wildshape_check|levelup_check|prepare_check|origin_check|origin_flow_check|durge_check|creation_check|skill_check|audit_check|beach_medicine|beach_origin|beach_recruits|beach_reroute_astarion|beach_reroute_gale|chapel_parley|camp_night|warryn_check) ;; *)
         echo "$out" | grep -q "enc result" || bad="${bad:+$bad,}no-battles" ;;
     esac
     # beach scenarios assert the arc's structure, never exact xp: the wake
@@ -94,7 +95,10 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         beach_reroute_astarion) extra="beach wake|boar beat fed" ;;
         beach_reroute_gale)     extra="beach wake|sigil beat rerouted" ;;
         # stone 4: chapel + crypt + darkvision + Withers, structure only
+        # (the band is four since stone 6: the masked one fights with it)
         chapel_fight)   extra="init Bandit|enc result=WIN|looters resolved|tomb door opens" ;;
+        # stone 6: the masked looter -- noticed, spoken to, levered past
+        warryn_check)   extra="beach wake|warryn stirs|looters resolved|tomb door opens" ;;
         chapel_parley)  extra="field-check Persuasion|looters resolved|tomb door opens|dark room=8 dim=1" ;;
         crypt_withers)  extra="dark room=8 dim=1|init Skeleton|enc result=WIN|withers wakes|dark room=10 dim=1|subclass pick Wyll" ;;
         # stone 5: three souls reach the camp, the scene fires once with a
@@ -126,6 +130,11 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # night, and the Under Selune scene must have fired exactly once
         n=$(echo "$out" | grep -c "camp scene begins")
         [ "$n" -eq 1 ] || bad="${bad:+$bad,}scene-count=$n"
+    fi
+    if [ "$scn" = chapel_fight ]; then
+        # the masked one fights with the band: four bandits enter initiative
+        n=$(echo "$out" | grep -c "init Bandit")
+        [ "$n" -eq 4 ] || bad="${bad:+$bad,}band-count=$n"
     fi
     if [ "$scn" != panic_check ] && echo "$out" | grep -q "PANIC"; then
         bad="${bad:+$bad,}panic"; echo "$out" | grep -A6 "PANIC" | head -10

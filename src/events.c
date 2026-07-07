@@ -56,6 +56,8 @@ static int n_scav[2];                /* the tiefling scavengers */
 static int n_ast;                    /* the pale elf lurking by the grass */
 static int n_boar;                   /* origin Astarion's staked kill */
 static int n_loot[3];                /* the looter band at the tomb door */
+static int n_warryn;                 /* the small looter in the mask. That is
+                                      * all the game will ever say about him. */
 static int n_withers;                /* the keeper of the crypt's ledgers */
 static int n_camp[4];                /* companions around the campfire */
 static const PMember* camp_member[4];
@@ -193,6 +195,7 @@ void room_enter(int id, int sx, int sy, int face) {
     n_shb = n_scav[0] = n_scav[1] = -1;
     n_ast = n_boar = -1;
     n_loot[0] = n_loot[1] = n_loot[2] = -1;
+    n_warryn = -1;
     n_withers = -1;
     n_camp[0] = n_camp[1] = n_camp[2] = n_camp[3] = -1;
 
@@ -304,6 +307,9 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_loot[0] = field_add_npc(6, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
                 n_loot[1] = field_add_npc(8, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
                 n_loot[2] = field_add_npc(7, 3, OBJT_SCAV, 2, 0, NPC_2FRAME);
+                /* and one small figure at the edge of the ring, masked.
+                 * The game never explains him -- the sprite is the story. */
+                n_warryn = field_add_npc(5, 2, OBJT_WARRYN, 5, 0, NPC_2FRAME);
             }
             break;
         case RM_SANCTUM:
@@ -1236,63 +1242,102 @@ static void dunes_interact(int mx, int my, int m) {
 }
 
 /* ------------------------------------------------------------ the chapel
- * Three looters argue before the sealed tomb door. Fight them, or talk
- * past on a field check -- both outcomes open the way; the check route
- * pays less xp (the fight is the consolation prize for a failed bluff). */
+ * Three looters argue before the sealed tomb door -- four, counting the
+ * small one in the mask. Fight them, or talk past on a field check --
+ * both outcomes open the way; the check route pays less xp (the fight is
+ * the consolation prize for a failed bluff). Stand close to the masked
+ * one first and the tadpole opens a third way through the parley. */
 
 static void looters_gone(void) {
     for (int i = 0; i < 3; i++) {
         if (n_loot[i] >= 0) field_remove_npc(n_loot[i]);
         n_loot[i] = -1;
     }
+    if (n_warryn >= 0) field_remove_npc(n_warryn);
+    n_warryn = -1;
     G.bflags |= BF_LOOTERS_GONE;
     mgba_log("looters resolved");
 }
 
+/* stand within a step of the masked looter and the passenger reacts. One
+ * line, once; the game never explains what it recognized. */
+static void warryn_stir(void) {
+    G.bflags |= BF_WARRYN_SEEN;
+    mgba_log("warryn stirs");
+    sfx_noise(12);
+    field_shake(10);
+    say("Behind your eye the passenger LUNGES -- kin straining toward kin. Under the small looter's mask, something strains back.");
+    dlg_close();
+}
+
 static void looter_fight(void) {
     dlg_close();
-    EncSpawn band[3];
+    if (G.bflags & BF_WARRYN_SEEN)
+        say("The small one draws a knife without a word. The other three give it room as they come.");
+    dlg_close();
+    EncSpawn band[4];
+    int n = 0;
     for (int i = 0; i < 3; i++) {
-        band[i].mon = R5M_BANDIT; band[i].npc = (s8)n_loot[i];
-        band[i].xp = 25; band[i].side = 1;
+        band[n].mon = R5M_BANDIT; band[n].npc = (s8)n_loot[i];
+        band[n].xp = 25; band[n].side = 1; n++;
     }
-    encounter_run(band, 3, 0, 0);
+    if (n_warryn >= 0) {   /* the masked one fights with the band, wordless */
+        band[n].mon = R5M_BANDIT; band[n].npc = (s8)n_warryn;
+        band[n].xp = 25; band[n].side = 1; n++;
+    }
+    encounter_run(band, n, 0, 0);
     looters_gone();
     music(room_song(cur_room));
     ev_light();
-    say("The chapel yard is quiet again, minus three careers in tomb-robbery.");
+    say("The chapel yard is quiet again, minus four careers in tomb-robbery.");
+    say("The small one's mask has come half away. You put it back. Some answers the gulls can keep.");
     dlg_close();
 }
 
 static void looter_beat(void) {
     if (G.bflags & BF_LOOTERS_GONE) return;
-    say("Three looters ring the tomb door, all crowbars and sunburn.");
+    say("Three looters ring the tomb door, all crowbars and sunburn. A fourth stands apart -- small, masked, silent.");
     say("\"The seal's half-cracked already! One more pry and we're eating silver for a YEAR --\"");
     say("The tall one sees you first. \"Oi. This dig's CLAIMED. Walk away, hero.\"");
-    URGE("Three pulses, three soft throats. Somewhere behind your eye, the counting starts on its own.");
+    URGE("Four pulses. Three soft throats, and one that sounds... crowded. The counting starts on its own.");
     say_keep("Crowbars shift in dirty hands.");
-    static const char* const o[] = { "[Intimidate] Leave. NOW.",
-                                     "[Persuade] Tombs bite back.",
-                                     "Draw steel" };
-    int c = choose(3, o);
-    if (c == 2) {
+    const char* o[4];
+    int n = 0, lever = -1;
+    if (G.bflags & BF_WARRYN_SEEN) { o[n] = "[Illithid] LEAVE."; lever = n; n++; }
+    o[n++] = "[Intimidate] Leave. NOW.";
+    o[n++] = "[Persuade] Tombs bite back.";
+    o[n++] = "Draw steel";
+    int c = choose(n, o);
+    if (c == n - 1) {
         say("\"Wrong answer,\" the tall one grins, and the crowbars stop being tools.");
         looter_fight();
         return;
     }
-    if (field_check(c == 0 ? SK_INTIMIDATION : SK_PERSUASION, 12)) {
-        if (c == 0)
+    if (c == lever) {
+        /* the passenger speaks through you; the masked one hears it twice */
+        mgba_log("warryn lever");
+        sfx_noise(16);
+        say("You do not raise your voice. Something behind your eye raises it for you, in a register bones understand.");
+        say("The looters' faces empty like tipped cups. The masked one is already walking. The rest follow it down the bluff, and none of them look back.");
+        looters_gone();
+        say("Gained 40 XP.");
+        beat_xp(40);
+        dlg_close();
+        return;
+    }
+    if (field_check(c == lever + 1 ? SK_INTIMIDATION : SK_PERSUASION, 12)) {
+        if (c == lever + 1)
             say("You say it the way graves say things. The crowbars hit the sand before your hand finds a hilt.");
         else
             say("You sketch the curse in loving detail -- the withering, the slow rot, fingernails first. They go pale by rank.");
-        say("\"...The gulls can keep this dump.\" One last greedy look at the door, and they bolt down the bluff.");
+        say("\"...The gulls can keep this dump.\" One last greedy look at the door, and they bolt down the bluff. The masked one goes last, unhurried.");
         looters_gone();
         say("Gained 40 XP.");
         beat_xp(40);
         dlg_close();
     } else {
-        say(c == 0 ? "The tall one spits. \"Heard scarier from the gulls. GET 'EM!\""
-                   : "\"A curse, is it? Funny -- silver cures those. GET 'EM!\"");
+        say(c == lever + 1 ? "The tall one spits. \"Heard scarier from the gulls. GET 'EM!\""
+                           : "\"A curse, is it? Funny -- silver cures those. GET 'EM!\"");
         looter_fight();
     }
 }
@@ -1690,6 +1735,14 @@ void ev_step(int mx, int my) {
         if (my == 9) { beach_go(RM_DUNES, mx, 1); return; }   /* the scree */
         if (mx == 15) { beach_go(RM_CAMP, 1, 4); return; }    /* the camp path */
         if (m == MT_TOMB_DOOR_O) { crypt_go(RM_CRYPT, 6, 7); return; }
+        if (n_warryn >= 0 && !(G.bflags & BF_WARRYN_SEEN)) {
+            /* step within reach of the masked looter (5,2): to those who
+             * look, the tadpole looks back */
+            int dx = mx - 5, dy = my - 2;
+            if (dx < 0) dx = -dx;
+            if (dy < 0) dy = -dy;
+            if (dx + dy <= 1) { warryn_stir(); return; }
+        }
         return;
     }
     if (cur_room == RM_CAMP) {
@@ -1773,6 +1826,13 @@ void ev_npc(int idx) {
     if (cur_room == RM_CAMP && camp_npc_talk(idx)) return;
     if (idx >= 0 && idx == n_ast) { astarion_beat(); return; }
     if (idx >= 0 && idx == n_boar) { boar_beat(); return; }
+    if (idx >= 0 && idx == n_warryn) {
+        if (!(G.bflags & BF_WARRYN_SEEN)) { warryn_stir(); return; }
+        say("The small looter says nothing. The mask shifts -- the way a sleeve shifts when the arm inside is wrong.");
+        say("At its edge, where jaw should be: skin the grey-violet of deep water. You find somewhere else to look.");
+        dlg_close();
+        return;
+    }
     if (idx >= 0 && (idx == n_loot[0] || idx == n_loot[1] || idx == n_loot[2])) {
         looter_beat();
         return;

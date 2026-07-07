@@ -48,6 +48,7 @@ SPRITES = {
     "scav": {"pal": 4, "frames": ["scav0", "scav1"]},
     "skelf": {"pal": 1, "frames": ["skelf0", "skelf1"]},        # crypt dead
     "withersf": {"pal": 5, "frames": ["withersf0", "withersf1"]},
+    "warryn": {"pal": 5, "frames": ["warryn0", "warryn1"]},
     # downed party members (battle KO): one frame each, lying on the ground
     "hero_ko": {"pal": 0, "frames": ["hero_ko"]},
     "laezel_ko": {"pal": 1, "frames": ["laezel_ko"]},
@@ -1151,6 +1152,45 @@ FRAMES = {
         "..1511511511512.",
         "...199....991...",
         "................",
+    ],
+    # ---- Warryn: rock-gnome looter (pal 5), full pale mask under a hood.
+    #      The tells: a skin sliver where mask meets jaw, and a dark
+    #      tentacle tip at the mask's chin that shifts between frames ----
+    "warryn0": [
+        "................",
+        "................",
+        "................",
+        ".......11.......",
+        ".....115511.....",
+        "....16555551....",
+        "...1655555551...",
+        "...1444W44W41...",
+        "...1577777751...",
+        "...1577777751...",
+        "....15737221....",
+        "...1655555561...",
+        "...1699555561...",
+        "....18888881....",
+        "....19911991....",
+        ".....11..11.....",
+    ],
+    "warryn1": [
+        "................",
+        "................",
+        "................",
+        "................",
+        ".......11.......",
+        ".....115511.....",
+        "....16555551....",
+        "...1655555551...",
+        "...1444W44W41...",
+        "...1577777751...",
+        "...1577777751...",
+        "....15773221....",
+        "...1655555561...",
+        "...1699555561...",
+        "....19911991....",
+        ".....11..11.....",
     ],
     # ---- crypt skeleton: bone on the silver ramp (pal 1), brass hilt on
     #      the shortsword; the blade lifts between frames ----
