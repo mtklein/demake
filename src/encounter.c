@@ -157,14 +157,19 @@ static void status_draw(void) {
     }
 }
 
-/* damage-type tint for popup numbers and dice sprites */
-static const u8 dmg_pal_tab[DT_COUNT] = {
-    [DT_SLASHING] = 10, [DT_PIERCING] = 10, [DT_BLUDGEONING] = 10,
-    [DT_FIRE] = 11, [DT_COLD] = 15, [DT_POISON] = 12, [DT_PSYCHIC] = 14,
-    [DT_RADIANT] = 9, [DT_NECROTIC] = 12, [DT_LIGHTNING] = 15,
-    [DT_THUNDER] = 15, [DT_ACID] = 12, [DT_FORCE] = 13,
+/* damage-type tint for popup numbers and dice sprites, now a palette id the
+ * tray leases on use (pal_use). Several types share a color, exactly as the
+ * eight dmgpal ramps did; DPAL returns the live bank. */
+static const u8 dmg_pal_id[DT_COUNT] = {
+    [DT_SLASHING] = PAL_DICE_PHYS, [DT_PIERCING] = PAL_DICE_PHYS,
+    [DT_BLUDGEONING] = PAL_DICE_PHYS,
+    [DT_FIRE] = PAL_DICE_FIRE, [DT_COLD] = PAL_DICE_COLD,
+    [DT_POISON] = PAL_DICE_POISON, [DT_PSYCHIC] = PAL_DICE_PSYCHIC,
+    [DT_RADIANT] = PAL_DICE_RADIANT, [DT_NECROTIC] = PAL_DICE_POISON,
+    [DT_LIGHTNING] = PAL_DICE_COLD, [DT_THUNDER] = PAL_DICE_COLD,
+    [DT_ACID] = PAL_DICE_POISON, [DT_FORCE] = PAL_DICE_FORCE,
 };
-#define DPAL(t) dmg_pal_tab[(t) < DT_COUNT ? (t) : 0]
+#define DPAL(t) pal_use(dmg_pal_id[(t) < DT_COUNT ? (t) : 0])
 
 /* ------------------------------------------------------- the dice tray
  * Every rolled die appears as its polyhedron with the value overdrawn,
@@ -211,6 +216,7 @@ static void tray_headline_d20(const R5Dice* d, int pal) {
 static void tray_clear(void) {
     for (int i = 0; i < 8 * 3; i++) obj_hide(OBJ_DICE + i);
     tray_n = 0;
+    pal_release();   /* the attack's dice colors leave with its dice */
 }
 
 /* battle-end OBJ + state cleanup (tray_clear runs after EVERY attack --
@@ -227,8 +233,8 @@ static void enc_garnish_clear(void) {
 /* everything an attack rolled, laid out: d20(s), bless, damage, rider */
 static void tray_attack(const R5Attack* at) {
     tray_clear();
-    tray_headline_d20(&at->d20, at->crit ? 9 : 10);
-    if (at->bless.n) tray_dice(&at->bless, 9);
+    tray_headline_d20(&at->d20, pal_use(at->crit ? PAL_DICE_RADIANT : PAL_DICE_PHYS));
+    if (at->bless.n) tray_dice(&at->bless, pal_use(PAL_DICE_RADIANT));
     if (at->hit) {
         tray_dice(&at->dmg, DPAL(at->dmg_type));
         if (at->rider_dmg.n) tray_dice(&at->rider_dmg, DPAL(at->rider_type));
@@ -293,7 +299,7 @@ static void garnish_draw(void) {
             if (out) npcs[e->npc].face = 0;
         } else if (out && e->c->hp > 0 && zs < 3) {
             obj_set(OBJ_ZZ + zs, ec_sx(e) + 6, ec_sy(e) - 12, 1,
-                    OBJT_SLEEPZ, 15, 0);
+                    OBJT_SLEEPZ, pal_use(PAL_DICE_COLD), 0);
             zs++;
         }
     }
@@ -314,7 +320,7 @@ static void garnish_draw(void) {
         for (int i = 0; i < 3; i++) {
             int f = i * 8 + (int)((gt >> 2) & 7);           /* 0..23: dots flow */
             obj_set(OBJ_TETH + i, x0 + dx * f / 24 - 4,
-                    y0 + dy * f / 24 - 4, 0, OBJT_GARN, 10, 0);
+                    y0 + dy * f / 24 - 4, 0, OBJT_GARN, pal_use(PAL_DICE_PHYS), 0);
         }
     } else
         for (int i = 0; i < 3; i++) obj_hide(OBJ_TETH + i);
@@ -636,7 +642,7 @@ static void cast_save_spell(EC* a, EC* t, int sp) {
     ec_face_toward(a, t);
     R5Save sv = r5_save(&rng, t->c, s->save_ab, dc, 0);
     tray_clear();
-    tray_headline_d20(&sv.d20, 10);
+    tray_headline_d20(&sv.d20, pal_use(PAL_DICE_PHYS));
     char m[48]; char* d = m;
     d = put_str(d, "save "); d = put_num(d, sv.d20.total);
     d = put_str(d, " v DC "); d = put_num(d, sv.dc);
@@ -683,7 +689,7 @@ static void cast_sleep(EC* a) {
     (void)a;  /* area spell: no single target */
     R5Dice pool = r5_roll(&rng, 5, 8, 0);
     tray_clear();
-    tray_dice(&pool, 14);
+    tray_dice(&pool, pal_use(PAL_DICE_PSYCHIC));
     mgba_logf("sleep pool=%d", pool.total);
     char m[48]; char* d = m;
     d = put_str(d, "Sleep! 5d8 = "); d = put_num(d, pool.total); *d = 0;
@@ -711,11 +717,11 @@ static void cast_heal(EC* a, EC* t, int sp) {
     R5Dice d = r5_roll(&rng, s->dice.n, s->dice.sides, s->dice.mod + mod);
     if (a->c->heal_boost && s->level > 0) d.total += a->c->heal_boost;  /* Life */
     tray_clear();
-    tray_dice(&d, 8);
+    tray_dice(&d, pal_use(PAL_DICE_HEAL));
     sfx_play(SFX_HEAL);
     int wake = t->c->hp <= 0;
     r5_heal(t->c, d.total);
-    popup(ec_sx(t) + 8, ec_sy(t), d.total, 8);
+    popup(ec_sx(t) + 8, ec_sy(t), d.total, pal_use(PAL_DICE_HEAL));
     if (wake) bar_wait("Back on their feet!");
     mgba_logf("heal %s +%d -> %d", t->c->name, d.total, t->c->hp);
     tray_clear();
@@ -855,11 +861,11 @@ static EC* pick5(int side, int allow_downed) {
             EC* old = tsel_a->engaged >= 0 ? &ec[tsel_a->engaged] : 0;
             if (old && old != t && conscious(old) && !old->reacted)
                 obj_set(OBJ_TETH + 3, ec_sx(t) + 6, ec_sy(t) - 16, 1,
-                        OBJT_ALERT, 11, 0);                 /* red !: provokes */
+                        OBJT_ALERT, pal_use(PAL_DICE_FIRE), 0);  /* red !: provokes */
             else obj_hide(OBJ_TETH + 3);
             if (G.pm[tsel_a->pi].cls == CLS_ROGUE && sneak_ok(tsel_a, t))
                 obj_set(OBJ_TETH + 4, ec_sx(t) - 10, ec_sy(t) - 10, 0,
-                        OBJT_GARN + 1, 8, 0);               /* green pip: sneak */
+                        OBJT_GARN + 1, pal_use(PAL_DICE_HEAL), 0);  /* green pip: sneak */
             else obj_hide(OBJ_TETH + 4);
         }
         pump(1);
@@ -901,9 +907,9 @@ static int tactic_turn(EC* a, int tac) {
         (tac == TAC_ALLOUT ? c->hp * 4 < c->hpmax : c->hp * 2 < c->hpmax)) {
         R5Dice d = r5_second_wind(&rng, c);
         tray_clear();
-        tray_dice(&d, 8);
+        tray_dice(&d, pal_use(PAL_DICE_HEAL));
         bar_wait("Second Wind!");
-        popup(ec_sx(a) + 8, ec_sy(a), d.total, 8);
+        popup(ec_sx(a) + 8, ec_sy(a), d.total, pal_use(PAL_DICE_HEAL));
     }
     if (cls == CLS_ROGUE && !a->hidden && foe) {
         a->hidden = 1;
@@ -1140,7 +1146,7 @@ static int pc_turn(EC* a) {
                     R5Dice d = r5_roll(&rng, 2, 4, 2);   /* potion of healing */
                     sfx_play(SFX_HEAL);
                     r5_heal(t->c, d.total);
-                    popup(ec_sx(t) + 8, ec_sy(t), d.total, 8);
+                    popup(ec_sx(t) + 8, ec_sy(t), d.total, pal_use(PAL_DICE_HEAL));
                 } else {
                     if (!G.revivify) { bar_wait("No scrolls!"); break; }
                     EC* t = pick5(0, 1);
@@ -1182,7 +1188,7 @@ static int pc_turn(EC* a) {
                 int amt = c->rsrc[R5R_LAY] < 5 ? c->rsrc[R5R_LAY] : 5;
                 r5_lay_hands(c, t->c, amt);
                 sfx_play(SFX_HEAL);
-                popup(ec_sx(t) + 8, ec_sy(t), amt, 8);
+                popup(ec_sx(t) + 8, ec_sy(t), amt, pal_use(PAL_DICE_HEAL));
                 bar_wait("Healing hands.");
                 action = 1;
                 break;
@@ -1225,9 +1231,9 @@ static int pc_turn(EC* a) {
             case 4: {
                 R5Dice d = r5_second_wind(&rng, c);
                 tray_clear();
-                tray_dice(&d, 8);
+                tray_dice(&d, pal_use(PAL_DICE_HEAL));
                 bar_wait("Second Wind!");
-                popup(ec_sx(a) + 8, ec_sy(a), d.total, 8);
+                popup(ec_sx(a) + 8, ec_sy(a), d.total, pal_use(PAL_DICE_HEAL));
                 bonus = 1;
                 break;
             }
@@ -1420,6 +1426,11 @@ retry:
         add_mon(es[i].mon, es[i].npc, es[i].side, es[i].xp);
     frame_camera();
 
+    /* the combatants are the fight's lasting palettes (the field already leased
+     * them); hold here so every attack's dice colors free back to this line and
+     * only the dice on screen at once count toward the nine transient banks */
+    pal_hold();
+
     crumb(CR_ENC, n);
 
     /* --- initiative, rolled in the open --- */
@@ -1429,7 +1440,7 @@ retry:
         ec[i].init = (s16)(d.total + r5_mod(ec[i].c->ab[R5_DEX]));
         mgba_logf("init %s d20=%d dex=%d -> %d", ec[i].c->name, d.total,
                   r5_mod(ec[i].c->ab[R5_DEX]), ec[i].init);
-        popup(ec_sx(&ec[i]) + 8, ec_sy(&ec[i]) - 4, ec[i].init, 9);
+        popup(ec_sx(&ec[i]) + 8, ec_sy(&ec[i]) - 4, ec[i].init, pal_use(PAL_DICE_RADIANT));
     }
     /* identity-fill ALL slots: monsters that warp in later (nec grows) act
      * at the end of the round via their own slot -- an uninitialized read

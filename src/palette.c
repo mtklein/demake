@@ -40,20 +40,13 @@ int pal_persistent_bank(int id) { return is_persistent(id) ? persist_bank[id] : 
  * an enemy landing on them until stone 4 packs both together. */
 static const u8 trans_pool[] = { 6, 15, 14, 13, 12, 11, 10, 9, 8 };
 #define TRANS_N ((int)(sizeof trans_pool / sizeof *trans_pool))
-static int trans_next;   /* next free slot in trans_pool this scene */
+static int trans_next;         /* next free slot in trans_pool this scene */
+static int trans_peak;         /* high-water this scene (for the budget log) */
+static int hold_mark;          /* base a fight holds its combatants at (pal_hold) */
+static u8 trans_id[TRANS_N];   /* id leasing each occupied slot (for pal_release) */
 
 static void pal_load(int id, int bank) {
     memcpy16(PAL_OBJ + bank * 16, pal_colors[id], 16);
-}
-
-/* Stone 3: the dice are still drawn at fixed banks 8-15 (DPAL, dice_ui) while
- * enemies have gone transient. A crowded fight's enemy may borrow a high dice
- * bank (the pool hands out 15,14,.. before 8,9,10 for exactly this reason);
- * reloading the eight dice colors at every scene entry -- before that scene's
- * enemies allocate -- keeps the borrow from carrying its miscolor into the
- * next room. Stone 4 makes the dice transient and this disappears. */
-static void pal_dice_static(void) {
-    for (int d = 0; d < 8; d++) pal_load(PAL_DICE_HEAL + d, 8 + d);
 }
 
 void pal_boot(void) {
@@ -61,24 +54,14 @@ void pal_boot(void) {
         pal_bank[i] = is_persistent(i) ? persist_bank[i] : PAL_NOT_LOADED;
     trans_next = 0;
 
-    /* The persistent set: every party identity owns a bank (Astarion 3,
-     * Gale 4, Wyll 5 now evict the enemies that squatted there), plus the
-     * cursor on 7. Bank 0 stays the class-swapped Tav slot (pal_tav_class).
-     *
-     * Banks 6 and 8-15 still carry raw statics -- Zhalk and the eight dice
-     * colors -- that stones 3 and 4 will move onto pal_use. They keep
-     * pal_bank == NOT_LOADED: the allocator's view is that no scene has begun,
-     * only that colors sit in the transient region for hard-coded drawers.
-     * The enemies that lost 3-5 (Us, imps, flayer) are not loaded anywhere
-     * this stone -- their sprites double up on the party's banks until stone 3
-     * hands them their own transient leases. */
+    /* Only the persistent set loads at boot: every party identity owns a bank
+     * (Astarion 3, Gale 4, Wyll 5), plus the cursor on 7. Bank 0 stays the
+     * class-swapped Tav slot (pal_tav_class). The transient region (bank 6 and
+     * 8-15) carries nothing until a scene leases it -- enemies and dice colors
+     * both pack into it on demand now, so no palette is frozen there. */
     static const struct { u8 id, bank; } boot[] = {
         { PAL_TAV, 0 }, { PAL_LAEZEL, 1 }, { PAL_SHADOW, 2 }, { PAL_ASTARION, 3 },
         { PAL_GALE, 4 }, { PAL_WYLL, 5 }, { PAL_CURSOR, 7 },
-        { PAL_ZHALK, 6 },
-        { PAL_DICE_HEAL, 8 }, { PAL_DICE_RADIANT, 9 }, { PAL_DICE_PHYS, 10 },
-        { PAL_DICE_FIRE, 11 }, { PAL_DICE_POISON, 12 }, { PAL_DICE_FORCE, 13 },
-        { PAL_DICE_PSYCHIC, 14 }, { PAL_DICE_COLD, 15 },
     };
     for (unsigned i = 0; i < sizeof boot / sizeof *boot; i++)
         pal_load(boot[i].id, boot[i].bank);
@@ -94,7 +77,8 @@ void pal_scene_begin(void) {
     for (int i = 0; i < PAL_ID_COUNT; i++)
         if (!is_persistent(i)) pal_bank[i] = PAL_NOT_LOADED;
     trans_next = 0;
-    pal_dice_static();
+    trans_peak = 0;
+    hold_mark = 0;
 }
 
 int pal_use(int id) {
@@ -102,11 +86,30 @@ int pal_use(int id) {
     if (pal_bank[id] != PAL_NOT_LOADED) return pal_bank[id];   /* stable within a scene */
     if (trans_next >= TRANS_N)
         panic("pal_use: scene transient budget exceeded", (u32)id);
-    int bank = trans_pool[trans_next++];
+    int slot = trans_next++;
+    int bank = trans_pool[slot];
     if (bank <= 5 || bank == 7)                       /* the pool must never yield */
         panic("pal_use: transient alloc hit a persistent bank", (u32)bank);
+    trans_id[slot] = (u8)id;
     pal_load(id, bank);
     pal_bank[id] = (u8)bank;
-    mgba_logf("pal id=%d bank=%d used=%d/%d", id, bank, trans_next, TRANS_N);
+    if (trans_next > trans_peak) {           /* log each new high-water: the live
+                                              * per-scene budget, like the ratchets */
+        trans_peak = trans_next;
+        mgba_logf("pal peak=%d/%d id=%d", trans_peak, TRANS_N, id);
+    }
     return bank;
+}
+
+/* A scene's short-lived leases (a battle's per-attack dice colors) sit ABOVE a
+ * held mark taken once its lasting palettes -- the combatants -- are in.
+ * pal_release frees everything leased since pal_hold, so only the palettes on
+ * screen AT ONCE count against the nine banks, never a whole fight's cumulative
+ * damage types. The mark lives here, not in encounter.c: a static .bss there
+ * would sit ahead of field.c in the link and shift the player-state addresses
+ * the scenarios poke. */
+void pal_hold(void) { hold_mark = trans_next; }
+void pal_release(void) {
+    for (int s = hold_mark; s < trans_next; s++) pal_bank[trans_id[s]] = PAL_NOT_LOADED;
+    trans_next = hold_mark;
 }

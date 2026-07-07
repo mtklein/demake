@@ -5,6 +5,7 @@
 #include "field.h"
 #include "game.h"
 #include "rules.h"
+#include "palette.h"   /* the patrol cone + alert marker lease dice colors */
 
 static const u8* fmeta;
 static int fw, fh;
@@ -307,7 +308,7 @@ static void cone_draw(void) {
              * the half-plane test to drift */
             int watched = sense_r(n, dx, dy) == rf;
             obj_set(OBJ_CONE + k, scx + dx - 4, scy + dy - 4, 0,
-                    OBJT_GARN, watched ? 9 : 13, 2);
+                    OBJT_GARN, pal_use(watched ? PAL_DICE_RADIANT : PAL_DICE_FORCE), 2);
         }
         return;
     }
@@ -353,7 +354,7 @@ static void draw_alert(void) {
     if (alert_t > 0 && alert_npc >= 0 && !(npcs[alert_npc].flags & NPC_GONE)) {
         alert_t--;
         obj_set(OBJ_ALERT, npcs[alert_npc].x - cam_x,
-                npcs[alert_npc].y - cam_y - 16, 1, OBJT_ALERT, 9, 0);
+                npcs[alert_npc].y - cam_y - 16, 1, OBJT_ALERT, pal_use(PAL_DICE_RADIANT), 0);
     } else obj_hide(OBJ_ALERT);
 #else
     if (alert_t > 0) alert_t--;

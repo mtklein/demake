@@ -43,5 +43,9 @@ void pal_scene_begin(void);   /* free the transient region (room/battle entry) *
 int  pal_use(int id);         /* the bank holding id, loading it transiently if new */
 int  pal_persistent_bank(int id);  /* fixed bank of a persistent id -- pure, no
                                     * boot needed (member_look's art identity) */
+void pal_hold(void);          /* mark the transient high-water once a scene's lasting
+                               * palettes (a fight's combatants) are in */
+void pal_release(void);       /* free every transient leased since pal_hold (a battle
+                               * pops each attack's dice colors back to the mark) */
 
 #endif

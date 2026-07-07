@@ -1,9 +1,11 @@
 # OBJ palettes — a per-scene resource, not a per-game one
 
-> **Status: DESIGN, building.** Replaces the static 16-bank assignment that
-> forced the 2026-07-08 "black cursor" and "samey blue party" bugs. The
-> allocator lands in stones (core → party → enemies → dice); each is
-> gate-green and this Status line flips to SHIPPED when the last lands.
+> **Status: SHIPPED.** Replaced the static 16-bank assignment that forced the
+> 2026-07-08 "black cursor" and "samey blue party" bugs. Landed in four
+> gate-green stones (core → party → enemies → dice); src/palette.{c,h} is the
+> allocator, test/host the invariant suite (t_pal_*). Every real fight fits the
+> nine transient banks with headroom — the worst cases are the helm and the
+> grove gates, and each scene logs its live peak as `pal peak=N/9`.
 
 ## The problem this fixes
 
@@ -52,9 +54,12 @@ into the transient banks and hands each drawer its current bank.
 The two regions never sum past sixteen because they never coexist beyond a
 scene's real need: persistent is 7 (cursor + six party); transient is 9, and
 a battle's honest draw — a few enemy types + the handful of damage colors in
-play + garnish — fits with headroom. The dice stop reserving eight banks for
-a game that rarely shows three damage types in one fight; they load a type's
-color the first time that type is rolled.
+play + garnish — fits with headroom. The dice stop reserving eight banks for a
+game that rarely shows three damage types *at once*: a fight leases a damage
+color when its dice are on screen and frees it when the tray clears (`pal_hold`
+once the combatants are in, `pal_release` per attack), so only the palettes
+**simultaneously** on screen count against the nine — never a whole 15-round
+fight's cumulative damage types.
 
 ## The API (src/palette.c/.h)
 
@@ -67,18 +72,24 @@ the *data* is unchanged, only the *bank assignment* moves to runtime).
   into their fixed banks and record `pal_bank[id]`.
 - `pal_tav_class(cls)` — load class `cls`'s Tav palette into bank 0.
 - `pal_scene_begin()` — free the transient region (invalidate its `pal_bank`
-  entries); called from `room_enter` and at `encounter_run` start.
+  entries); called from `room_enter`. A battle inherits the room's combatants
+  rather than repacking them, so `encounter_run` does not scene-begin.
 - `pal_use(id)` — return the bank holding palette `id`, loading it into the
   next free transient bank on first request this scene. Persistent ids
   return their fixed bank immediately.
+- `pal_hold()` / `pal_release()` — a fight `pal_hold`s once its combatants are
+  leased, then `pal_release`s each attack to free that attack's dice colors
+  back to the mark (simultaneous, not cumulative).
 - `pal_bank[id]` — the current bank of a loaded palette (0xFF = not loaded);
   what a drawer passes to `obj_set`.
 
 Drawers stop hard-coding bank numbers. `member_look` returns each member's
-persistent bank. `field_add_npc` for an enemy passes `pal_use(PAL_that_mob)`.
-`DPAL(type)` becomes `pal_use(PAL_DICE_BASE + type)`. The cursor uses its
-persistent bank. ~A handful of source points change; the ~31 `obj_set` call
-sites mostly read their bank from those sources, not from constants.
+persistent bank (via `pal_persistent_bank`). `field_add_npc` for an enemy
+passes `pal_use(PAL_that_mob)`; for an ally, its persistent bank. `DPAL(type)`
+becomes `pal_use(dmg_pal_id[type])` — a small table folding the 13 damage types
+onto the eight dice colors, exactly as the old dmgpal ramps did. The cursor
+uses its persistent bank. ~A handful of source points change; the `obj_set`
+call sites read their bank from those sources, not from constants.
 
 ## Why this is also the testable answer
 

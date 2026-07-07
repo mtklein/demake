@@ -2312,6 +2312,37 @@ static void t_pal_budget_overflow(void) {
              "a 10th distinct transient pal_use must trip the budget assert (got %d)", r);
 }
 
+static void t_pal_mark_reset(void) {
+    sim_reset();
+    pal_boot();
+    pal_scene_begin();
+    /* a scene's lasting palettes (a fight's combatants) sit below the held mark */
+    int e0 = pal_use(PAL_GOBLIN), e1 = pal_use(PAL_ZEVLOR);
+    pal_hold();
+    /* an attack leases its dice colors above the mark, distinct from combatants */
+    int d0 = pal_use(PAL_DICE_PHYS), d1 = pal_use(PAL_DICE_FIRE);
+    T_ASSERT(d0 != e0 && d0 != e1 && d1 != d0, "dice collided with a combatant");
+    /* clearing the attack frees its dice but keeps the combatants below the mark */
+    pal_release();
+    T_ASSERT(pal_bank[PAL_DICE_PHYS] == PAL_NOT_LOADED &&
+             pal_bank[PAL_DICE_FIRE] == PAL_NOT_LOADED, "release did not free dice");
+    T_ASSERT(pal_bank[PAL_GOBLIN] == e0 && pal_bank[PAL_ZEVLOR] == e1,
+             "release wrongly freed a combatant below the mark");
+    /* the freed slot is reused: the next attack's color takes it back */
+    T_ASSERT(pal_use(PAL_DICE_COLD) == d0, "a freed dice slot was not reused");
+    pal_release();
+    /* SIMULTANEOUS, not cumulative: a long fight rolls every damage type but,
+     * freed each attack, never overruns the nine banks (this would panic if it
+     * leaked) */
+    for (int i = 0; i < 200; i++) {
+        pal_use(PAL_DICE_PHYS); pal_use(PAL_DICE_RADIANT); pal_use(PAL_DICE_HEAL);
+        pal_use(PAL_DICE_POISON); pal_use(PAL_DICE_FORCE);
+        pal_release();
+    }
+    T_ASSERT(pal_bank[PAL_GOBLIN] == e0 && pal_bank[PAL_ZEVLOR] == e1,
+             "the held combatants were lost across the fight");
+}
+
 static void t_pal_tav_class(void) {
     sim_reset();
     pal_boot();
@@ -2395,6 +2426,7 @@ static const Test tests[] = {
     { "pal_use_stable_distinct",   t_pal_use_stable_and_distinct },
     { "pal_scene_frees_transient", t_pal_scene_frees_transient },
     { "pal_budget_overflow",       t_pal_budget_overflow },
+    { "pal_mark_reset",            t_pal_mark_reset },
     { "pal_tav_class",             t_pal_tav_class },
     { "menu_crawl_fuzz",           t_menu_crawl_fuzz },
 };

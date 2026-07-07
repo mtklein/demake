@@ -7,6 +7,7 @@
 #include "assets.h"
 #include "engine.h"
 #include "dice_ui.h"
+#include "palette.h"   /* the value digits + tumble draw in physical/white */
 
 #define DICE_TUMBLE_F 12      /* headline spin length in frames (~0.2s) */
 #define DICE_KEEP_F   8       /* resolve-beat length (advantage/disadvantage) */
@@ -29,12 +30,13 @@ void dice_stage_digits(void) {
 
 void dice_draw_one(int base, int x, int y, int sides, int value, int pal) {
     /* digits take the LOWER OAM slots so they render above the die face */
+    int dpal = pal_use(PAL_DICE_PHYS);   /* white value digits over any die tint */
     obj_set(base + 2, x, y, 1, die_objt(sides), pal, 0);
     if (value >= 10) {
-        obj_set(base, x + 1, y + 4, 0, OBJ_TILE_COUNT + value / 10, 10, 0);
-        obj_set(base + 1, x + 8, y + 4, 0, OBJ_TILE_COUNT + value % 10, 10, 0);
+        obj_set(base, x + 1, y + 4, 0, OBJ_TILE_COUNT + value / 10, dpal, 0);
+        obj_set(base + 1, x + 8, y + 4, 0, OBJ_TILE_COUNT + value % 10, dpal, 0);
     } else {
-        obj_set(base, x + 4, y + 4, 0, OBJ_TILE_COUNT + value, 10, 0);
+        obj_set(base, x + 4, y + 4, 0, OBJ_TILE_COUNT + value, dpal, 0);
         obj_hide(base + 1);
     }
 }
@@ -57,7 +59,7 @@ int dice_roll_headline(int base, int x0, int spacing, int y, int sides,
         for (int i = 0; i < n; i++) {
             s = s * 1664525u + 1013904589u;
             dice_draw_one(base + i * 3, x0 + i * spacing, y, sides,
-                          1 + (int)(s % (u32)sides), 10);
+                          1 + (int)(s % (u32)sides), pal_use(PAL_DICE_PHYS));
         }
         step();
     }
