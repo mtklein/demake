@@ -755,7 +755,7 @@ static EC* nearest_foe(EC* a, int want_side) {
 
 static void warp_cambion(void) {
     if (nwarp >= 2 || nec >= MAXEC) return;
-    int npc = field_add_npc(14, 3, OBJT_ZHALKF, 6, 2, 0);
+    int npc = field_add_npc(14, 3, OBJT_ZHALKF, pal_use(PAL_ZHALK), 2, 0);
     if (npc < 0) return;
     warp_npc[nwarp++] = npc;
     add_mon(R5M_CAMBION, npc, 1, 150);
@@ -1359,10 +1359,12 @@ int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise) {
     G_FIELD_IDLE = 0;
     r5_seed(&rng, rnd());
 
-    /* the fight is its own scene: free the transient OBJ banks the field left
-     * allocated (patrol cones, alert markers) so the battle gets a clean
-     * budget for its combatants and dice colors */
-    pal_scene_begin();
+    /* The battle inherits the field's palette state: the combatants are the
+     * same field NPCs the room allocated (room_enter -> pal_use), and the dice
+     * still draw at their fixed banks 8-15. So no pal_scene_begin here -- it
+     * would (via the dice reload) trample enemies that borrowed a high bank.
+     * Stone 4, once the dice are transient too, restores a battle scene_begin
+     * that repacks combatants and dice cleanly. */
 
 retry:
     for (int i = 0; i < nwarp; i++) field_remove_npc(warp_npc[i]);

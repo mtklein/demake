@@ -46,6 +46,16 @@ static void pal_load(int id, int bank) {
     memcpy16(PAL_OBJ + bank * 16, pal_colors[id], 16);
 }
 
+/* Stone 3: the dice are still drawn at fixed banks 8-15 (DPAL, dice_ui) while
+ * enemies have gone transient. A crowded fight's enemy may borrow a high dice
+ * bank (the pool hands out 15,14,.. before 8,9,10 for exactly this reason);
+ * reloading the eight dice colors at every scene entry -- before that scene's
+ * enemies allocate -- keeps the borrow from carrying its miscolor into the
+ * next room. Stone 4 makes the dice transient and this disappears. */
+static void pal_dice_static(void) {
+    for (int d = 0; d < 8; d++) pal_load(PAL_DICE_HEAL + d, 8 + d);
+}
+
 void pal_boot(void) {
     for (int i = 0; i < PAL_ID_COUNT; i++)
         pal_bank[i] = is_persistent(i) ? persist_bank[i] : PAL_NOT_LOADED;
@@ -84,6 +94,7 @@ void pal_scene_begin(void) {
     for (int i = 0; i < PAL_ID_COUNT; i++)
         if (!is_persistent(i)) pal_bank[i] = PAL_NOT_LOADED;
     trans_next = 0;
+    pal_dice_static();
 }
 
 int pal_use(int id) {
@@ -96,5 +107,6 @@ int pal_use(int id) {
         panic("pal_use: transient alloc hit a persistent bank", (u32)bank);
     pal_load(id, bank);
     pal_bank[id] = (u8)bank;
+    mgba_logf("pal id=%d bank=%d used=%d/%d", id, bank, trans_next, TRANS_N);
     return bank;
 }

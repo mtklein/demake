@@ -119,12 +119,12 @@ static void wander_latch(int s) {
     else G.bflags |= wander_bit[s];
 }
 
-static void add_wanderer(int slot, int mx, int my, int objt, int pal, int face,
+static void add_wanderer(int slot, int mx, int my, int objt, int pal_id, int face,
                          int mon, u16 xp, int ship, u32 bit, int radius) {
     wander_ship[slot] = (u8)ship;
     wander_bit[slot] = bit;
-    if (wander_word(slot) & bit) return;   /* already slain: stays slain */
-    int i = field_add_npc(mx, my, objt, pal, face, NPC_2FRAME);
+    if (wander_word(slot) & bit) return;   /* already slain: stays slain (no bank spent) */
+    int i = field_add_npc(mx, my, objt, pal_use(pal_id), face, NPC_2FRAME);
     if (i < 0) return;
     field_npc_patrol(i, radius);
     n_wander[slot] = i;
@@ -281,33 +281,33 @@ void room_enter(int id, int sx, int sy, int face) {
     switch (id) {
         case RM_SURGERY:
             if (G.flags & GF_US_FREED) field_set_meta(7, 2, MT_MYRNATH_EMPTY);
-            if (us_with_us()) n_us = field_add_npc(9, 3, OBJT_US, 3, 0, NPC_2FRAME);
+            if (us_with_us()) n_us = field_add_npc(9, 3, OBJT_US, pal_use(PAL_US), 0, NPC_2FRAME);
             break;
         case RM_DECK:
             if (!(G.flags & GF_DECK_FOUGHT)) {
-                n_lz = field_add_npc(6, 3, OBJT_LAEZEL, 1, 0, 0);
-                n_imp[0] = field_add_npc(4, 1, OBJT_IMPF, 4, 0, NPC_2FRAME);
-                n_imp[1] = field_add_npc(8, 1, OBJT_IMPF, 4, 0, NPC_2FRAME);
-                n_imp[2] = field_add_npc(6, 2, OBJT_IMPF, 4, 0, NPC_2FRAME);
+                n_lz = field_add_npc(6, 3, OBJT_LAEZEL, pal_persistent_bank(PAL_LAEZEL), 0, 0);
+                n_imp[0] = field_add_npc(4, 1, OBJT_IMPF, pal_use(PAL_IMP), 0, NPC_2FRAME);
+                n_imp[1] = field_add_npc(8, 1, OBJT_IMPF, pal_use(PAL_IMP), 0, NPC_2FRAME);
+                n_imp[2] = field_add_npc(6, 2, OBJT_IMPF, pal_use(PAL_IMP), 0, NPC_2FRAME);
             }
-            if (us_with_us()) n_us = field_add_npc(12, 5, OBJT_US, 3, 0, NPC_2FRAME);
+            if (us_with_us()) n_us = field_add_npc(12, 5, OBJT_US, pal_use(PAL_US), 0, NPC_2FRAME);
             if (G.flags & GF_DECK_FOUGHT)
                 /* a straggler imp prowls the far rail -- avoidable */
-                add_wanderer(0, 16, 7, OBJT_IMPF, 4, 0,
+                add_wanderer(0, 16, 7, OBJT_IMPF, PAL_IMP, 0,
                              R5M_LESSER_IMP, 40, 1, GF_W_DECK, 28);
             break;
         case RM_PODS:
             if (sh_room_open) field_set_meta(6, 2, MT_POD_O);
             if (G.flags & GF_RUNE) field_set_meta(5, 4, MT_CONSOLE_LIT);
-            if (sh_waiting) n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
-            if (us_with_us()) n_us = field_add_npc(14, 8, OBJT_US, 3, 0, NPC_2FRAME);
-            add_wanderer(1, 15, 2, OBJT_IMPF, 4, 0,
+            if (sh_waiting) n_sh = field_add_npc(6, 3, OBJT_SHADOW, pal_persistent_bank(PAL_SHADOW), 0, 0);
+            if (us_with_us()) n_us = field_add_npc(14, 8, OBJT_US, pal_use(PAL_US), 0, NPC_2FRAME);
+            add_wanderer(1, 15, 2, OBJT_IMPF, PAL_IMP, 0,
                          R5M_LESSER_IMP, 40, 1, GF_W_PODS, 28);
             break;
         case RM_HELM:
-            n_zh = field_add_npc(4, 2, OBJT_ZHALKF, 6, 3, NPC_2FRAME);
-            n_fl = field_add_npc(7, 2, OBJT_FLAYERF, 5, 2, NPC_2FRAME);
-            if (us_with_us()) n_us = field_add_npc(12, 7, OBJT_US, 3, 0, NPC_2FRAME);
+            n_zh = field_add_npc(4, 2, OBJT_ZHALKF, pal_use(PAL_ZHALK), 3, NPC_2FRAME);
+            n_fl = field_add_npc(7, 2, OBJT_FLAYERF, pal_use(PAL_FLAYER), 2, NPC_2FRAME);
+            if (us_with_us()) n_us = field_add_npc(12, 7, OBJT_US, pal_use(PAL_US), 0, NPC_2FRAME);
             break;
         case RM_BEACH:
             if (G.origin == ORIG_SHADOW) {
@@ -317,22 +317,22 @@ void room_enter(int id, int sx, int sy, int face) {
                 mgba_log("beach reroute shadowheart");
             } else if (!(G.bflags & BF_SH_RECOVERED)) {
                 if (G.flags & GF_SH_FREED)
-                    n_shb = field_add_npc(11, 6, OBJT_SHADOW, 2, 2, 0);
+                    n_shb = field_add_npc(11, 6, OBJT_SHADOW, pal_persistent_bank(PAL_SHADOW), 2, 0);
                 else
-                    n_shb = field_add_npc(4, 7, OBJT_SHADOW_KO, 2, 0, 0);
+                    n_shb = field_add_npc(4, 7, OBJT_SHADOW_KO, pal_persistent_bank(PAL_SHADOW), 0, 0);
             }
             if (G.origin == ORIG_ASTARION) {
                 /* story surgery: the lurker with the knife is the player.
                  * What remains of his beat is the kill he staked out. */
                 if (!(G.bflags & BF_BOAR_DRAINED))
-                    n_boar = field_add_npc(2, 5, OBJT_BOARW, 3, 2, 0);
+                    n_boar = field_add_npc(2, 5, OBJT_BOARW, pal_use(PAL_BOAR), 2, 0);
                 mgba_log("beach reroute astarion");
             } else if (!(G.bflags & BF_AST_RECRUITED)) {
                 /* the rogue walker IS his recruited look (member_look) */
                 MemberLook L = member_look(ORIG_ASTARION, CLS_ROGUE);
                 n_ast = field_add_npc(2, 5, L.objt, L.pal, 0, 0);
             }
-            add_wanderer(0, 15, 2, OBJT_DEVF, 5, 0,
+            add_wanderer(0, 15, 2, OBJT_DEVF, PAL_DEVOURER, 0,
                          R5M_DEVOURER, 50, 0, BF_DEV_CRASH, 28);
             break;
         case RM_DUNES:
@@ -346,12 +346,12 @@ void room_enter(int id, int sx, int sy, int face) {
                 field_set_meta(2, 2, MT_CAGE_OPEN);
             }
             if (!(G.bflags & BF_SCAVS_GONE)) {
-                n_scav[0] = field_add_npc(1, 3, OBJT_SCAV, 4, 0, NPC_2FRAME);
-                n_scav[1] = field_add_npc(3, 3, OBJT_SCAV, 4, 0, NPC_2FRAME);
+                n_scav[0] = field_add_npc(1, 3, OBJT_SCAV, pal_use(PAL_SCAV), 0, NPC_2FRAME);
+                n_scav[1] = field_add_npc(3, 3, OBJT_SCAV, pal_use(PAL_SCAV), 0, NPC_2FRAME);
             }
-            add_wanderer(0, 12, 7, OBJT_DEVF, 5, 0,
+            add_wanderer(0, 12, 7, OBJT_DEVF, PAL_DEVOURER, 0,
                          R5M_DEVOURER, 50, 0, BF_DEV_DUNE, 28);
-            add_wanderer(1, 5, 9, OBJT_DEVF, 5, 0,
+            add_wanderer(1, 5, 9, OBJT_DEVF, PAL_DEVOURER, 0,
                          R5M_DEVOURER, 50, 0, BF_DEV_DUNE2, 28);
             break;
         case RM_CHAPEL:
@@ -363,19 +363,19 @@ void room_enter(int id, int sx, int sy, int face) {
                 /* the band argues before the door: human tomb-robbers in
                  * their own bare-headed, pry-bar silhouette -- not the
                  * hooded tiefling scavengers of the beach */
-                n_loot[0] = field_add_npc(6, 2, OBJT_LOOTER, 7, 0, NPC_2FRAME);
-                n_loot[1] = field_add_npc(8, 2, OBJT_LOOTER, 7, 0, NPC_2FRAME);
-                n_loot[2] = field_add_npc(7, 3, OBJT_LOOTER, 7, 0, NPC_2FRAME);
+                n_loot[0] = field_add_npc(6, 2, OBJT_LOOTER, pal_use(PAL_LOOTER), 0, NPC_2FRAME);
+                n_loot[1] = field_add_npc(8, 2, OBJT_LOOTER, pal_use(PAL_LOOTER), 0, NPC_2FRAME);
+                n_loot[2] = field_add_npc(7, 3, OBJT_LOOTER, pal_use(PAL_LOOTER), 0, NPC_2FRAME);
                 /* and one small figure at the edge of the ring, masked.
                  * The game never explains him -- the sprite is the story. */
-                n_warryn = field_add_npc(5, 2, OBJT_WARRYN, 5, 0, NPC_2FRAME);
+                n_warryn = field_add_npc(5, 2, OBJT_WARRYN, pal_use(PAL_WARRYN), 0, NPC_2FRAME);
             }
             break;
         case RM_SANCTUM:
             if (G.bflags & BF_WITHERS_AWAKE) {
                 field_set_meta(6, 2, MT_SARC_OT);
                 field_set_meta(6, 3, MT_SARC_OB);
-                n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
+                n_withers = field_add_npc(7, 4, OBJT_WITHERSF, pal_use(PAL_WITHERS), 0, NPC_2FRAME);
             }
             break;
         case RM_CAMP: {
@@ -389,22 +389,22 @@ void room_enter(int id, int sx, int sy, int face) {
         }
         case RM_GATES:
             /* Zevlor holds the door, before and after */
-            n_zev = field_add_npc(7, 2, OBJT_ZEVLOR, 6, 0, 0);
+            n_zev = field_add_npc(7, 2, OBJT_ZEVLOR, pal_use(PAL_ZEVLOR), 0, 0);
             if (!(G.bflags & BF_GATES_WON)) {
                 /* the assault, mid-swing: the Blade of Frontiers out front
                  * with two goblins on him, the rest pressing the wall */
                 if (G.origin != ORIG_WYLL) {
-                    n_wyllg = field_add_npc(5, 5, OBJT_WYLL, 4, 3, 0);
+                    n_wyllg = field_add_npc(5, 5, OBJT_WYLL, pal_persistent_bank(PAL_WYLL), 3, 0);
                     mgba_log("gates wyll dueling");
                 } else {
                     mgba_log("gates reroute wyll");
                 }
-                n_gob[0] = field_add_npc(4, 5, OBJT_GOBF, 1, 3, NPC_2FRAME);
-                n_gob[1] = field_add_npc(6, 5, OBJT_GOBF, 1, 2, NPC_2FRAME);
-                n_gob[2] = field_add_npc(6, 3, OBJT_GOBF, 1, 1, NPC_2FRAME);
-                n_gob[3] = field_add_npc(9, 4, OBJT_GOBF, 1, 2, NPC_2FRAME);
-                n_gob[4] = field_add_npc(8, 6, OBJT_GOBF, 1, 1, NPC_2FRAME);
-                n_gob[5] = field_add_npc(9, 3, OBJT_GOBBOSS, 1, 1, NPC_2FRAME);
+                n_gob[0] = field_add_npc(4, 5, OBJT_GOBF, pal_use(PAL_GOBLIN), 3, NPC_2FRAME);
+                n_gob[1] = field_add_npc(6, 5, OBJT_GOBF, pal_use(PAL_GOBLIN), 2, NPC_2FRAME);
+                n_gob[2] = field_add_npc(6, 3, OBJT_GOBF, pal_use(PAL_GOBLIN), 1, NPC_2FRAME);
+                n_gob[3] = field_add_npc(9, 4, OBJT_GOBF, pal_use(PAL_GOBLIN), 2, NPC_2FRAME);
+                n_gob[4] = field_add_npc(8, 6, OBJT_GOBF, pal_use(PAL_GOBLIN), 1, NPC_2FRAME);
+                n_gob[5] = field_add_npc(9, 3, OBJT_GOBBOSS, pal_use(PAL_GOBLIN), 1, NPC_2FRAME);
             }
             break;
     }
@@ -566,7 +566,7 @@ static void us_extraction(void) {
         G.flags |= GF_US_MUTILATED;
     } else {
         SAY_US("US: \"Us. Yes. US.\"");
-        n_us = field_add_npc(9, 3, OBJT_US, 3, 0, NPC_2FRAME);
+        n_us = field_add_npc(9, 3, OBJT_US, pal_use(PAL_US), 0, NPC_2FRAME);
     }
     dlg_close();
 }
@@ -734,7 +734,7 @@ static void open_sh_pod(void) {
     sfx_noise(16);
     field_set_meta(6, 2, MT_POD_O);
     sh_room_open = 1;
-    n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
+    n_sh = field_add_npc(6, 3, OBJT_SHADOW, pal_persistent_bank(PAL_SHADOW), 0, 0);
     field_wait(20);
     say("The pod bursts in a gush of fluid. A dark-haired woman spills out, gasping, clutching a wound that isn't there.");
     SAY_SH("SHADOWHEART: \"At last. I thought I was going to die in that blasted tube.\"");
@@ -804,8 +804,8 @@ static void victims_console(void) {
     say("The victims' eyes snap open -- white, furious, EMPTY. They tear free of the wires!");
     dlg_close();
     {
-        int t0 = field_add_npc(9, 4, OBJT_SHADOW, 5, 0, 0);
-        int t1 = field_add_npc(11, 4, OBJT_SHADOW, 5, 0, 0);
+        int t0 = field_add_npc(9, 4, OBJT_SHADOW, pal_use(PAL_FLAYER), 0, 0);
+        int t1 = field_add_npc(11, 4, OBJT_SHADOW, pal_use(PAL_FLAYER), 0, 0);
         EncSpawn th[2] = {
             { R5M_THRALL, (s8)t0, 60, 1 },
             { R5M_THRALL, (s8)t1, 60, 1 },
@@ -870,8 +870,8 @@ static void helm_battle(void) {
         say("You are alone, and the helm is very large. This may sting.");
     dlg_close();
     /* Zhalk and the flayer ARE the combatants; vermin join them */
-    int i0 = field_add_npc(5, 4, OBJT_IMPF, 4, 0, NPC_2FRAME);
-    int i1 = field_add_npc(9, 4, OBJT_IMPF, 4, 0, NPC_2FRAME);
+    int i0 = field_add_npc(5, 4, OBJT_IMPF, pal_use(PAL_IMP), 0, NPC_2FRAME);
+    int i1 = field_add_npc(9, 4, OBJT_IMPF, pal_use(PAL_IMP), 0, NPC_2FRAME);
     EncSpawn hs[6];
     int nh = 0;
     hs[nh].mon = R5M_ZHALK; hs[nh].npc = (s8)n_zh; hs[nh].xp = 300; hs[nh].side = 1; nh++;
@@ -1816,9 +1816,9 @@ static void bones_rise(void) {
     sfx_noise(20);
     say("The bones KNIT. Three of the dead stand up, wearing the crypt's silence like armor.");
     dlg_close();
-    int s0 = field_add_npc(4, 3, OBJT_SKELF, 1, 0, NPC_2FRAME);
-    int s1 = field_add_npc(8, 3, OBJT_SKELF, 1, 0, NPC_2FRAME);
-    int s2 = field_add_npc(6, 2, OBJT_SKELF, 1, 0, NPC_2FRAME);
+    int s0 = field_add_npc(4, 3, OBJT_SKELF, pal_use(PAL_SKELETON), 0, NPC_2FRAME);
+    int s1 = field_add_npc(8, 3, OBJT_SKELF, pal_use(PAL_SKELETON), 0, NPC_2FRAME);
+    int s2 = field_add_npc(6, 2, OBJT_SKELF, pal_use(PAL_SKELETON), 0, NPC_2FRAME);
     EncSpawn sk[3] = {
         { R5M_SKELETON, (s8)s0, 30, 1 },
         { R5M_SKELETON, (s8)s1, 30, 1 },
@@ -1855,7 +1855,7 @@ static void withers_wake(void) {
     field_set_meta(6, 2, MT_SARC_OT);
     field_set_meta(6, 3, MT_SARC_OB);
     G.bflags |= BF_WITHERS_AWAKE;
-    n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
+    n_withers = field_add_npc(7, 4, OBJT_WITHERSF, pal_use(PAL_WITHERS), 0, NPC_2FRAME);
     mgba_log("withers wakes");
     say("A desiccated figure sits up, unhurried, and regards you with two points of lamplight where eyes retired.");
     SAY_WI("WITHERS: \"Ah. Visitors. Answer me this, o breathing one: what price would thee set on a single mortal life?\"");
