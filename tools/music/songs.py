@@ -601,7 +601,7 @@ def gaia():
 SONGS['GAIA'] = gaia()
 
 
-# ------------------------------------------------------------ TADPOLE (jukebox)
+# ------------------------------------------------- TADPOLE (the beach; jukebox debut)
 # TOTAL_ROWS = 592
 # FORM: 0 A (E-hijaz riff x8, cliff-hold @112) | 128 A' (riff x6, ramp, DIVE @244)
 #     | 256 B (Am-G-F-E vamp, echo->stabs, cliff-hold @368) | 384 BREAK (drums roll)

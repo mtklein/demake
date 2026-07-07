@@ -154,7 +154,8 @@ static void heal_pod(void) {
 
 static int room_song(int id) {
     if (id == RM_HELM) return SONG_BOSS;
-    if (id == RM_BEACH || id == RM_DUNES || id == RM_CHAPEL) return SONG_GAIA;
+    if (id == RM_BEACH || id == RM_DUNES) return SONG_TADPOLE;  /* surf, on the surf */
+    if (id == RM_CHAPEL) return SONG_GAIA;   /* consecrated ground keeps the hymn */
     if (id == RM_CAMP) return SONG_SELUNE;   /* the song was written for here */
     return SONG_EXPLORE;
 }
