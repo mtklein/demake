@@ -25,6 +25,9 @@ def tap(k, n=1, gap=8):
     for _ in range(n):
         w(f"hold {k} 3"); w(f"wait {gap}")
 def walk(k, steps):
+    """<= 8 steps per call: a step costs 9 held frames (1 setup + 8 moves),
+    so an 8*steps hold shorts longer walks by a tile -- split them."""
+    assert steps <= 8, f"walk({k},{steps}): split walks longer than 8"
     _pre_turn(k)
     w(f"hold {k} {steps * 8}"); w("wait 12")   # settle before next command
 
@@ -42,6 +45,7 @@ def ready(maxf=9000):
     w(f"until {IDLE:08x} 01 {maxf}")
     _face[0] = 'DOWN'   # room spawns face down
 def done(maxf=90000): w(f"until {DONE:08x} 01 {maxf}")
+def tally(maxf=40000): w(f"until {DONE:08x} 03 {maxf}")   # the arc's true end
 
 def setup(cls, choices, battle_mode=0):
     poke(DEMO, 1); poke(BATTLE, battle_mode); poke(CLASS, cls)
@@ -625,11 +629,104 @@ def gates_wyll():
     _to_gates()
     shot("g_gates")                    # the assault tableau, pre-battle
     walk("LEFT", 4)                    # (10,4): close with the fight
-    ready(30000)                       # battle + victory beat + recruit
+    tally()                            # battle + victory + recruit + ledger
+    wait(30); shot("g_tally")          # the accounting, over the held gates
+    ready(30000)                       # the demo advances it back to field
     shot("g_won")
     walk("RIGHT", 3); walk("DOWN", 2)  # (13,6), above the Hellrider cache
     face_interact("DOWN")
     shot("g_cache")
+
+@scn
+def gates_full():
+    """The whole arc, one sitting, thorough: ship (Us freed, the deck
+    brawl, Shadowheart's pod, the thralls woken violently) -> the crash ->
+    every recovery and recruit on the beach -> all three devourers -> the
+    masked one noticed -> the band by steel -> the ossuary dead -> the
+    camp night and a rest -> the grove gates. XP is structural on this
+    route: 605 pre-gates, so crossing 900 -- level 3, the arc's promise --
+    lands DURING the gates victory. The tally closes the arc (G_DONE=3),
+    and a last walk back to camp seats all six souls around the fire."""
+    setup(0, [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 3, 0, 0])
+    intro(); nursery(); surgery(); deck()
+    # pods, with a detour to wake the sleepers the loud way
+    walk("RIGHT", 1); walk("DOWN", 4); walk("RIGHT", 3)   # the rune corpse
+    ready()
+    walk("LEFT", 7)                       # (5,5), below the pod console
+    tap("UP"); tap("A"); ready()          # slot rune; Shadowheart joins
+    walk("RIGHT", 5)                      # (10,5), below the victims
+    tap("UP"); tap("A"); ready(24000)     # AGGRESSION: the thralls rise
+    walk("LEFT", 2); walk("DOWN", 5); ready()   # door -> helm
+    walk("UP", 5)                         # the transponder countdown
+    done()                                # the crash lands on the sand
+    ready()
+    face_interact("RIGHT")                # Shadowheart, upright ashore
+    walk("LEFT", 4); walk("UP", 2); ready()     # the dying flayer: ENDED
+    walk("DOWN", 1); walk("LEFT", 2); ready()   # the pale elf's lure
+    walk("RIGHT", 6); walk("UP", 4)       # (10,1)
+    walk("RIGHT", 5)                      # (15,1): behind the devourer
+    tap("DOWN"); tap("A"); ready(24000)   # crash-site devourer falls
+    walk("LEFT", 5); walk("UP", 1); ready()     # the dune gap
+    # devourer 1 watches southward with x-drift: climb column 9 (out of its
+    # reach even mid-step -- column 10 can trip its cone) and come along
+    # row 6 into its blind rear
+    walk("LEFT", 1); walk("UP", 4)        # (9,6)
+    walk("RIGHT", 3)                      # (12,6): behind dune devourer 1
+    tap("DOWN"); tap("A"); ready(24000)
+    walk("DOWN", 2); walk("LEFT", 7)      # (5,8): straight above devourer 2
+    tap("DOWN"); tap("A"); ready(24000)   # its rear arc never reaches row 8
+    walk("LEFT", 1); walk("UP", 2)        # (4,6): the west corridor
+    walk("UP", 4); walk("LEFT", 1)        # (3,2), beside the cage
+    face_interact("LEFT")                 # Lae'zel -> the bench
+    walk("DOWN", 1)                       # (3,3)
+    walk("RIGHT", 6); walk("RIGHT", 6)    # (15,3) (walks cap at 8 steps)
+    walk("DOWN", 4)                       # (15,7), above the sigil
+    face_interact("DOWN")                 # Gale -> the bench: five souls
+    walk("UP", 4)                         # (15,3)
+    # five souls: swap Lae'zel in for Astarion before the chapel -- the
+    # bench exists to answer exactly this fight (and the swap is part of
+    # the thorough route's proof)
+    tap("START"); wait(20)
+    tap("DOWN", 5, gap=12); tap("A"); wait(20)   # -> Party
+    tap("DOWN"); tap("A"); wait(20)       # walking slot 2 (Astarion)...
+    tap("A"); wait(30)                    # ...swaps with reserve 0 (Lae'zel)
+    tap("B"); wait(10); tap("B"); wait(20)
+    walk("LEFT", 6); walk("LEFT", 6)      # (3,3)
+    walk("UP", 2)                         # (3,1)
+    walk("RIGHT", 4)                      # (7,1)
+    walk("UP", 1); ready()                # the pass -> the chapel yard
+    walk("UP", 4)                         # (7,4), below the band
+    walk("LEFT", 2); walk("UP", 1)        # (5,3): the masked one stirs
+    ready()
+    walk("DOWN", 1); walk("RIGHT", 2)     # back to (7,4)
+    tap("UP"); tap("A")                   # parley; choice 3 = Draw steel
+    ready(24000)                          # four bandits fall
+    walk("UP", 2)                         # (7,2)
+    face_interact("UP")                   # the tomb door; choice 0 = Descend
+    walk("UP", 7); ready()                # crypt arch -> the ossuary
+    walk("UP", 3); ready(24000)           # the bones knit; put them down
+    walk("DOWN", 4); ready()              # back through the arch -> crypt
+    walk("DOWN", 7); ready()              # out the south arch -> chapel
+    walk("DOWN", 1); walk("RIGHT", 6)     # (13,3), around the east stone
+    walk("DOWN", 1); walk("RIGHT", 2)     # the east gap -> camp
+    ready()                               # Under Selune plays (autoskip)
+    walk("RIGHT", 4); walk("UP", 1); walk("RIGHT", 2)   # (7,3), by the fire
+    face_interact("DOWN")                 # rest (choice 0): a night counted
+    walk("LEFT", 6)                       # (1,3)
+    walk("DOWN", 1); walk("LEFT", 1); ready()   # west gap -> chapel (14,4)
+    walk("DOWN", 1)                       # (14,5), under the gravestones
+    walk("LEFT", 7); walk("LEFT", 6)      # (1,5)
+    walk("UP", 1); walk("LEFT", 1); ready()     # the grove road -> gates
+    walk("LEFT", 4)                       # close with the assault
+    tally()                               # battle, level 3, Wyll, THE LEDGER
+    wait(30); shot("f_tally")
+    ready(30000)                          # the demo turns the page
+    walk("RIGHT", 5); ready()             # back east -> chapel
+    walk("DOWN", 1)                       # (1,5)
+    walk("RIGHT", 6); walk("RIGHT", 6)    # (13,5)
+    walk("UP", 1); walk("RIGHT", 2)       # the east gap -> camp
+    ready()
+    shot("f_six")                         # six souls around the fire
 
 @scn
 def gates_reroute_wyll():
@@ -643,6 +740,7 @@ def gates_reroute_wyll():
     _to_gates()
     shot("g_reroute")
     walk("LEFT", 4)                    # close with the fight
+    tally()                            # the ledger fires for origins too
     ready(30000)
     shot("g_reroute_won")
 

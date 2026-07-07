@@ -166,24 +166,29 @@ SCREENS = [
         ],
     },
     {
-        # Dormant since the beach arc's stone 2: the crash no longer ends the
-        # game, so nothing calls scr_tally today. The accounting returns at
-        # the grove-gates finale (stone 6) -- keep the layout warm for it.
+        # The arc's accounting (stone 6): shown once, over the held gates,
+        # when the assault breaks. Rows cover the whole road -- the ship
+        # outcomes the old crash tally carried (Everburn dropped: its state
+        # is exactly Zhalk's), plus the beach's own ledger. events.c
+        # gates_tally fills the slots and fires G_DONE=3 here.
         "name": "tally",
         "wins": [
-            {"id": "box", "y": 2, "rows": [
-                row("c", l("ESCAPE THE NAUTILOID", 1)),
+            {"id": "box", "y": 0, "rows": [
+                row("c", l("THE ROAD TO THE GROVE", 1)),
                 BLANK,
                 row("sp", s("who", 8), g(2), s("cls", 8)),
-                BLANK,
                 row("sp", l("Us freed", 0), g(2), s("v_us", 6)),
                 row("sp", l("Lae'zel", 0), g(2), s("v_lz", 6)),
                 row("sp", l("Shadowheart", 0), g(2), s("v_sh", 6)),
                 row("sp", l("Cmdr Zhalk", 0), g(2), s("v_zh", 6)),
-                row("sp", l("Everburn Blade", 0), g(2), s("v_eb", 6)),
+                row("sp", l("The mind flayer", 0), g(2), s("v_fl", 6)),
+                row("sp", l("The masked one", 0), g(2), s("v_wr", 6)),
+                row("sp", l("Souls at the fire", 0), g(2), s("v_so", 6)),
+                row("sp", l("Camp nights", 0), g(2), s("v_cn", 6)),
+                row("sp", l("The grove gates", 0), g(2), s("v_gt", 6)),
                 BLANK,
-                row("c", l("THE ADVENTURE BEGINS", 0)),
-                row("c", l("...IN BALDUR'S GATE", 0)),
+                row("c", l("THE GROVE STANDS.", 0)),
+                row("c", l("BALDUR'S GATE AWAITS.", 0)),
                 BLANK,
                 row("c", l("PRESS START", 2)),
             ]},

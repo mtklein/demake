@@ -1,11 +1,17 @@
 # The Ravaged Beach — Act 1 begins
 
-> **Status: RATIFIED 2026-07-06.** Scope set in conversation: the full
-> stretch from the crash to the grove-gates battle as finale. No save
-> system (emulator save states cover a game this size; revisit only if
-> playtime badly outgrows a sitting). Party stays three on foot,
-> CT-style, with **swap available any time out of combat** — not gated
-> to camp.
+> **Status: SHIPPED 2026-07-06.** All six stones landed the day the scope
+> was ratified. The arc ends at the held grove gates: Wyll is the
+> roster's sixth soul, level 3 lands at the finale, and the tally closes
+> the accounting (G_DONE=3, the full-run sync point). The grove interior
+> remains a different release. The ratified scope below is kept as the
+> binding design record.
+>
+> Original ratification: the full stretch from the crash to the
+> grove-gates battle as finale. No save system (emulator save states
+> cover a game this size; revisit only if playtime badly outgrows a
+> sitting). Party stays three on foot, CT-style, with **swap available
+> any time out of combat** — not gated to camp.
 
 The nautiloid burns down into Avernus and the tally promises "THE ADVENTURE
 BEGINS ...IN BALDUR'S GATE." This release keeps that promise: wake alone on

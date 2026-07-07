@@ -121,8 +121,11 @@ typedef volatile u8 vu8; typedef volatile u16 vu16; typedef volatile u32 vu32;
 #define G_DEMO_BEACH  (*(vu8*)0x0203FF04)   /* poke 1: skip the ship, boot at the
                                                beach wake with G_BEACH_FLAGS */
 #define G_FIELD_IDLE  (*(vu8*)0x0203FF05)   /* 1 = field_run looping (input ok) */
-#define G_DONE        (*(vu8*)0x0203FF06)   /* 2 = crash cutscene, 1 = beach wake
-                                               (the prologue's "done" moment) */
+#define G_DONE        (*(vu8*)0x0203FF06)   /* story sync points, layered in
+                                               order reached: 2 = crash
+                                               cutscene, 1 = beach wake,
+                                               3 = the gates tally (the
+                                               arc's true end) */
 #define G_MANUAL_BAT  (*(vu8*)0x0203FF07)   /* 1 = interactive battle even in demo */
 /* creation-flow pokes: 0 keeps the legacy race-none/preset sheet every
  * pre-Character-2.0 scenario runs in; the screens still show and

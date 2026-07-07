@@ -7,6 +7,7 @@
 #include "events.h"
 #include "encounter.h"
 #include "party5.h"
+#include "screens.h"     /* the tally layout (tools/ui_screens.py) */
 
 /* Speaker lines upgrade to portraits automatically as each portrait lands
  * in tools/art/portraits.py (missing art falls back to plain say). */
@@ -1507,9 +1508,10 @@ static void campfire_beat(void) {
     fade_out(24);
     field_wait(30);
     party_heal_full();
-    mgba_logf("camp rest from=%d full=%d", from,
+    G.rests++;                       /* a camp night, counted for the tally */
+    mgba_logf("camp rest from=%d full=%d rests=%d", from,
               (G.pm[0].hp == G.pm[0].hpmax &&
-               party5[0].hp == party5[0].hpmax) ? 1 : 0);
+               party5[0].hp == party5[0].hpmax) ? 1 : 0, G.rests);
     field_draw();
     fade_in(24);
     say("Sleep takes you the way the tide takes the beach: completely. You wake mended, under the same patient moon.");
@@ -1562,6 +1564,61 @@ static int camp_npc_talk(int idx) {
  * The great door itself never opens: the grove interior is another
  * release's story, and nothing here presumes its shape. */
 
+/* The prologue's accounting, resurrected as the whole arc's: the ledger of
+ * the road from the wreck to the held gates, drawn over the field. G_DONE
+ * layers in the order the story reaches its moments (2 = crash, 1 = wake);
+ * 3 is the arc's true end, and the full-run scenarios sync here exactly as
+ * they once did on the crash tally. START (or the demo's patience) returns
+ * to the field -- main stays finishable, and the beach stays walkable
+ * after its credits moment. */
+static void gates_tally(void) {
+    music(SONG_PRELUDE);             /* the title theme closes the ledger */
+    scr_tally();
+    static const char* const clsn[CLS_COUNT] = { "Bard", "Rogue", "Ranger",
+        "Wizard", "Fighter", "Cleric", "Barbarian", "Druid", "Monk",
+        "Paladin", "Sorcerer", "Warlock" };
+    txt_put_n(SCR_TALLY_WHO_X, SCR_TALLY_WHO_Y, G.pm[0].name, 0, SCR_TALLY_WHO_W);
+    txt_put_n(SCR_TALLY_CLS_X, SCR_TALLY_CLS_Y, clsn[G.pm[0].cls], 0, SCR_TALLY_CLS_W);
+#define TVAL(slot, cond, yes, no) \
+    txt_put_n(SCR_TALLY_##slot##_X, SCR_TALLY_##slot##_Y, (cond) ? (yes) : (no), \
+              (cond) ? 1 : 2, SCR_TALLY_##slot##_W)
+    TVAL(V_US, us_with_us(), "YES", (G.flags & GF_US_MUTILATED) ? "HURT" : "no");
+    if (G.origin == ORIG_LAEZEL)
+        txt_put_n(SCR_TALLY_V_LZ_X, SCR_TALLY_V_LZ_Y, "YOU", 1, SCR_TALLY_V_LZ_W);
+    else
+        TVAL(V_LZ, G.bflags & BF_LZ_RECOVERED, "ALLY", "caged");
+    if (G.origin == ORIG_SHADOW)
+        txt_put_n(SCR_TALLY_V_SH_X, SCR_TALLY_V_SH_Y, "YOU", 1, SCR_TALLY_V_SH_W);
+    else
+        TVAL(V_SH, G.bflags & BF_SH_RECOVERED, "SAVED", "lost");
+    TVAL(V_ZH, G.flags & GF_ZHALK_DEAD, "SLAIN", "fled");
+    TVAL(V_FL, G.bflags & BF_FLAYER_SLAIN, "ENDED",
+         (G.bflags & BF_FLAYER_DONE) ? "tide" : "-");
+    TVAL(V_WR, G.bflags & BF_WARRYN_SEEN, "SEEN", "unseen");
+#undef TVAL
+    txt_put_n(SCR_TALLY_V_GT_X, SCR_TALLY_V_GT_Y, "HELD", 1, SCR_TALLY_V_GT_W);
+    {   /* the numbers: souls gathered, camp nights slept */
+        char b[8]; char* d;
+        d = put_num(b, G.nparty + G.nreserve); *d = 0;
+        txt_put_n(SCR_TALLY_V_SO_X, SCR_TALLY_V_SO_Y, b, 1, SCR_TALLY_V_SO_W);
+        d = put_num(b, G.rests); *d = 0;
+        txt_put_n(SCR_TALLY_V_CN_X, SCR_TALLY_V_CN_Y, b,
+                  G.rests ? 1 : 2, SCR_TALLY_V_CN_W);
+    }
+    mgba_logf("gates tally souls=%d rests=%d flags=%x",
+              G.nparty + G.nreserve, G.rests, G.flags);
+    G_DONE = 3;
+    for (;;) {
+        frame();
+        if (key_hit() & KEY_START) break;
+        if (G_DEMO) { field_wait(120); break; }
+    }
+    sfx_play(SFX_CONFIRM);
+    win_clear(0, 0, 30, 20);
+    music(room_song(cur_room));
+    field_draw();
+}
+
 static void gates_victory(void) {
     int zev_up = n_zev >= 0 && !(npcs[n_zev].flags & NPC_GONE);
     say("The last goblin folds. For one long breath the beaten ground holds still -- then the wall above erupts in ragged tiefling cheering.");
@@ -1588,6 +1645,7 @@ static void gates_victory(void) {
     }
     say("The great door stays barred. Beyond it: voices, weeping, counting. The grove keeps its own story -- this one ends at the wall.");
     dlg_close();
+    gates_tally();                   /* the accounting returns; G_DONE = 3 */
 }
 
 static void gates_battle(void) {

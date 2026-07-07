@@ -36,7 +36,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            beach_full beach_medicine beach_flayer beach_origin \
            beach_recruits beach_reroute_astarion beach_reroute_gale \
            chapel_fight chapel_parley crypt_withers camp_night warryn_check \
-           gates_wyll gates_reroute_wyll \
+           gates_wyll gates_reroute_wyll gates_full \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
@@ -63,6 +63,9 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # the sixth soul: walking party full, so Wyll lands on the bench
         gates_wyll)                           want="gates recruit wyll walk=3 reserve=1" ;;
         gates_reroute_wyll)                   want="gates reroute wyll" ;;
+        # the thorough route's ledger, exact and xp-proof: six souls
+        # gathered, one camp night slept (fixed by the route, not the dice)
+        gates_full)                           want="gates tally souls=6 rests=1" ;;
         tether_check)                         want="tether"          ;;
         cone_show)                            want="cone shown npc=" ;;
         panic_check)                          want="PANIC poked"     ;;
@@ -104,9 +107,17 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # stone 6: the masked looter -- noticed, spoken to, levered past
         warryn_check)   extra="beach wake|warryn stirs|looters resolved|tomb door opens" ;;
         # stone 6: the gates -- goblins + warchief in initiative, BOTH allies
-        # take real side-2 turns, the assault breaks, the sixth soul lands
-        gates_wyll)     extra="beach wake|gates wyll dueling|init Goblin|init Warchief|init Zevlor|init Wyll|Zevlor side2|Wyll side2|enc result=WIN|gates held" ;;
-        gates_reroute_wyll) extra="beach wake|init Goblin|init Warchief|init Zevlor|Zevlor side2|enc result=WIN|gates held" ;;
+        # take real side-2 turns, the assault breaks, the sixth soul lands,
+        # and the tally closes the arc (G_DONE=3)
+        gates_wyll)     extra="beach wake|gates wyll dueling|init Goblin|init Warchief|init Zevlor|init Wyll|Zevlor side2|Wyll side2|enc result=WIN|gates held|gates tally" ;;
+        gates_reroute_wyll) extra="beach wake|init Goblin|init Warchief|init Zevlor|Zevlor side2|enc result=WIN|gates held|gates tally" ;;
+        # the whole arc, thorough: ship battles + connect, every recovery
+        # and recruit, the masked one, three devourers, the band, the dead,
+        # the camp night, then the gates -- with the level-3 reveal firing
+        # AT the finale (subclass pick TAV is the bard's L3 moment; Wyll
+        # joins already at 3 and takes the Fiend through party_add) and six
+        # souls at the fire afterward
+        gates_full)     extra="result=CONNECTED|init Thrall|beach recover shadowheart|flayer beat finished|beach recruit astarion walk=3 reserve=0|init Devourer|beach recover laezel|beach recruit gale walk=3 reserve=2|party swap in=LAE'ZEL out=ASTAR.|warryn stirs|init Bandit|init Skeleton|camp scene begins|camp rest from=|init Goblin|init Warchief|Zevlor side2|Wyll side2|subclass pick TAV|subclass canon LAE'ZEL|subclass canon WYLL|gates recruit wyll walk=3 reserve=3|gates held|camp souls=6" ;;
         chapel_parley)  extra="field-check Persuasion|looters resolved|tomb door opens|dark room=8 dim=1" ;;
         crypt_withers)  extra="dark room=8 dim=1|init Skeleton|enc result=WIN|withers wakes|dark room=10 dim=1|subclass pick Wyll" ;;
         # stone 5: three souls reach the camp, the scene fires once with a

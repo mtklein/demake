@@ -43,8 +43,10 @@ typedef struct {
     u8 rtactic[RESERVE_MAX];      /* their TAC_* preference */
     u8 nreserve;
     u32 bflags;                   /* BF_* beach-arc story bits (GF_ is full;
-                                   * widened in place -- it is the LAST field,
-                                   * so the poked addresses before it hold) */
+                                   * widened in place) */
+    u8 rests;                     /* camp nights slept -- the tally's ledger.
+                                   * New fields append at the END, after every
+                                   * address the scenarios poke. */
 } Game;
 enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
        ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
