@@ -55,27 +55,38 @@ static int n_shb;                    /* Shadowheart ashore (met or unconscious) 
 static int n_scav[2];                /* the tiefling scavengers */
 static int n_ast;                    /* the pale elf lurking by the grass */
 static int n_boar;                   /* origin Astarion's staked kill */
+static int n_loot[3];                /* the looter band at the tomb door */
+static int n_withers;                /* the keeper of the crypt's ledgers */
 
 /* wandering on-map encounters: per-room patrol slots. Each remembers its
  * stat block, bounty, and the story bit that keeps it dead (ship kills live
- * in G.flags, beach kills in G.bflags). */
+ * in G.flags, beach kills in G.bflags -- u16 and u32 words, so the slot
+ * carries which word rather than a pointer of either width). */
 static int n_wander[2] = { -1, -1 };
 static u8  wander_mon[2];
 static u16 wander_xp[2];
-static u16* wander_word[2];
-static u16 wander_bit[2];
+static u8  wander_ship[2];           /* 1 = G.flags, 0 = G.bflags */
+static u32 wander_bit[2];
+
+static u32 wander_word(int s) {
+    return wander_ship[s] ? G.flags : G.bflags;
+}
+static void wander_latch(int s) {
+    if (wander_ship[s]) G.flags |= (u16)wander_bit[s];
+    else G.bflags |= wander_bit[s];
+}
 
 static void add_wanderer(int slot, int mx, int my, int objt, int pal, int face,
-                         int mon, u16 xp, u16* word, u16 bit, int radius) {
-    if (*word & bit) return;             /* already slain: stays slain */
+                         int mon, u16 xp, int ship, u32 bit, int radius) {
+    wander_ship[slot] = (u8)ship;
+    wander_bit[slot] = bit;
+    if (wander_word(slot) & bit) return;   /* already slain: stays slain */
     int i = field_add_npc(mx, my, objt, pal, face, NPC_2FRAME);
     if (i < 0) return;
     field_npc_patrol(i, radius);
     n_wander[slot] = i;
     wander_mon[slot] = (u8)mon;
     wander_xp[slot] = xp;
-    wander_word[slot] = word;
-    wander_bit[slot] = bit;
 }
 
 static int isclass(int c) { return G.pm[0].cls == c; }
@@ -129,20 +140,44 @@ static void heal_pod(void) {
 
 static int room_song(int id) {
     if (id == RM_HELM) return SONG_BOSS;
-    if (id == RM_BEACH || id == RM_DUNES) return SONG_GAIA;
+    if (id == RM_BEACH || id == RM_DUNES || id == RM_CHAPEL) return SONG_GAIA;
     return SONG_EXPLORE;
+}
+
+/* The darkvision doctrine's field half (docs/character2.md): DARK rooms dim
+ * the screen a half-step, keyed off Tav's own darkvision; the equipped
+ * Everburn Blade lights the room outright (encounter_dark answers both, and
+ * the battle-side disadvantage keys per-actor off the same flag). */
+static int room_dark(int id) {
+    return id == RM_CRYPT || id == RM_OSSUARY || id == RM_SANCTUM;
+}
+
+void ev_light(void) {
+    int dim = encounter_dark() && !(party5[0].traits & TR_DARKVISION);
+    if (dim) {
+        REG_BLDCNT = 0x00DC;   /* darken field + sky + sprites (BG2|BG3|OBJ);
+                                * the text layers stay readable */
+        REG_BLDY = 8;          /* the half-step */
+    } else {
+        REG_BLDCNT = 0;
+        REG_BLDY = 0;
+    }
+    mgba_logf("dark room=%d dim=%d", cur_room, dim);
 }
 
 void room_enter(int id, int sx, int sy, int face) {
     mgba_logf("room_enter %d at %d,%d flags=%x", id, sx, sy, G.flags);
     music(room_song(id));
     cur_room = id;
+    encounter_set_dark(room_dark(id));
     crumb(CR_ROOM, id);
     n_us = n_lz = n_sh = n_zh = n_fl = -1;
     n_imp[0] = n_imp[1] = n_imp[2] = -1;
     n_wander[0] = n_wander[1] = -1;
     n_shb = n_scav[0] = n_scav[1] = -1;
     n_ast = n_boar = -1;
+    n_loot[0] = n_loot[1] = n_loot[2] = -1;
+    n_withers = -1;
 
     switch (id) {
         case RM_NURSERY: field_load(map_nursery, MAP_NURSERY_W, MAP_NURSERY_H); break;
@@ -152,6 +187,10 @@ void room_enter(int id, int sx, int sy, int face) {
         case RM_HELM:    field_load(map_helm, MAP_HELM_W, MAP_HELM_H); break;
         case RM_BEACH:   field_load(map_beach, MAP_BEACH_W, MAP_BEACH_H); break;
         case RM_DUNES:   field_load(map_dunes, MAP_DUNES_W, MAP_DUNES_H); break;
+        case RM_CHAPEL:  field_load(map_chapel, MAP_CHAPEL_W, MAP_CHAPEL_H); break;
+        case RM_CRYPT:   field_load(map_crypt, MAP_CRYPT_W, MAP_CRYPT_H); break;
+        case RM_OSSUARY: field_load(map_ossuary, MAP_OSSUARY_W, MAP_OSSUARY_H); break;
+        case RM_SANCTUM: field_load(map_sanctum, MAP_SANCTUM_W, MAP_SANCTUM_H); break;
     }
     field_spawn(sx, sy, face);
 
@@ -171,7 +210,7 @@ void room_enter(int id, int sx, int sy, int face) {
             if (G.flags & GF_DECK_FOUGHT)
                 /* a straggler imp prowls the far rail -- avoidable */
                 add_wanderer(0, 16, 7, OBJT_IMPF, 4, 0,
-                             R5M_LESSER_IMP, 40, &G.flags, GF_W_DECK, 28);
+                             R5M_LESSER_IMP, 40, 1, GF_W_DECK, 28);
             break;
         case RM_PODS:
             if (sh_room_open) field_set_meta(6, 2, MT_POD_O);
@@ -179,7 +218,7 @@ void room_enter(int id, int sx, int sy, int face) {
             if (sh_waiting) n_sh = field_add_npc(6, 3, OBJT_SHADOW, 2, 0, 0);
             if (us_with_us()) n_us = field_add_npc(14, 8, OBJT_US, 3, 0, NPC_2FRAME);
             add_wanderer(1, 15, 2, OBJT_IMPF, 4, 0,
-                         R5M_LESSER_IMP, 40, &G.flags, GF_W_PODS, 28);
+                         R5M_LESSER_IMP, 40, 1, GF_W_PODS, 28);
             break;
         case RM_HELM:
             n_zh = field_add_npc(4, 2, OBJT_ZHALKF, 6, 3, NPC_2FRAME);
@@ -210,7 +249,7 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_ast = field_add_npc(2, 5, L.objt, L.pal, 0, 0);
             }
             add_wanderer(0, 15, 2, OBJT_DEVF, 5, 0,
-                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_CRASH, 28);
+                         R5M_DEVOURER, 50, 0, BF_DEV_CRASH, 28);
             break;
         case RM_DUNES:
             if (G.origin == ORIG_GALE) mgba_log("beach reroute gale");
@@ -227,9 +266,29 @@ void room_enter(int id, int sx, int sy, int face) {
                 n_scav[1] = field_add_npc(3, 3, OBJT_SCAV, 4, 0, NPC_2FRAME);
             }
             add_wanderer(0, 12, 7, OBJT_DEVF, 5, 0,
-                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_DUNE, 28);
+                         R5M_DEVOURER, 50, 0, BF_DEV_DUNE, 28);
             add_wanderer(1, 5, 9, OBJT_DEVF, 5, 0,
-                         R5M_DEVOURER, 50, &G.bflags, BF_DEV_DUNE2, 28);
+                         R5M_DEVOURER, 50, 0, BF_DEV_DUNE2, 28);
+            break;
+        case RM_CHAPEL:
+            if (G.bflags & BF_TOMB_OPEN) {
+                field_set_meta(7, 1, MT_TOMB_DOOR_O);
+                field_set_meta(8, 1, MT_TOMB_DOOR_O);
+            }
+            if (!(G.bflags & BF_LOOTERS_GONE)) {
+                /* the band argues before the door: human scavengers in the
+                 * scav silhouette, palette-swapped out of tiefling red */
+                n_loot[0] = field_add_npc(6, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
+                n_loot[1] = field_add_npc(8, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
+                n_loot[2] = field_add_npc(7, 3, OBJT_SCAV, 2, 0, NPC_2FRAME);
+            }
+            break;
+        case RM_SANCTUM:
+            if (G.bflags & BF_WITHERS_AWAKE) {
+                field_set_meta(6, 2, MT_SARC_OT);
+                field_set_meta(6, 3, MT_SARC_OB);
+                n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
+            }
             break;
     }
 }
@@ -737,11 +796,52 @@ static void beach_go(int next, int sx, int sy) {
     room_enter(next, sx, sy, 0);
     field_draw();
     fade_in(14);
+    ev_light();
     if (!(seen & (1 << next))) {
         seen |= (u16)(1 << next);
         if (next == RM_DUNES) {
             say("The dunes swallow the surf-sound. Small tracks stitch every slope: clawed, busy, WRONG.");
             dlg_close();
+        }
+        if (next == RM_CHAPEL) {
+            say("The scree tops out on a bluff. A ruined chapel leans over its own graveyard; crows keep the roofline like sentries.");
+            if (!(G.bflags & BF_LOOTERS_GONE))
+                say("Voices ahead. Living ones -- and arguing about a door.");
+            dlg_close();
+        }
+    }
+}
+
+/* stone transitions under the chapel: fade through the dark, then let the
+ * room's darkness (or the Everburn) set the light */
+static void crypt_go(int next, int sx, int sy) {
+    G_FIELD_IDLE = 0;
+    sfx_play(SFX_CONFIRM);
+    fade_out(14);
+    dlg_close();
+    room_enter(next, sx, sy, 0);
+    field_draw();
+    fade_in(14);
+    ev_light();
+    if (!(seen & (1 << next))) {
+        seen |= (u16)(1 << next);
+        switch (next) {
+            case RM_CRYPT:
+                say("A buried chapel-hall. The air tastes of cold stone and colder prayers.");
+                if (encounter_dark() && !(party5[0].traits & TR_DARKVISION))
+                    say("The dark presses close. Torchless, aim past arm's reach is a gamble in here.");
+                dlg_close();
+                break;
+            case RM_OSSUARY:
+                say("Bones. Drifts of them, raked against the walls like autumn leaves.");
+                say("Some are stacked with care. Some are... arranged.");
+                dlg_close();
+                break;
+            case RM_SANCTUM:
+                say("A vaulted chamber. One great sarcophagus holds it the way a throne holds a court.");
+                say("The cold flames lean toward it. Respectfully.");
+                dlg_close();
+                break;
         }
     }
 }
@@ -1068,10 +1168,14 @@ static void dunes_interact(int mx, int my, int m) {
     if (m == MT_CAGE || m == MT_CAGE_OPEN) { cage_beat(); return; }
     if (m == MT_ROCK) {
         if (my == 0) {
-            /* stone 4's door: the chapel on the bluff, teased not opened */
-            say("The path climbs north between the rocks. On the bluff above: a ruined chapel, crows wheeling over it.");
-            say("Rockfall chokes the pass. You'd need to clear it -- another day.");
+            say("The rockfall that choked this pass lies levered aside -- fresh pry-marks, boot prints going UP.");
+            say("On the bluff above: the ruined chapel, crows wheeling over it. Somebody beat you to the climb.");
         } else say("Sea-worn stone, warm in the sun.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_SCREE) {
+        say("Broken rock, settled into a climbable ramp. The chapel bluff is a scramble up.");
         dlg_close();
         return;
     }
@@ -1087,6 +1191,278 @@ static void dunes_interact(int mx, int my, int m) {
     }
     if (m == MT_DUNE) {
         say("Wind-carved sand, tufted with grass. The dunes go on and on.");
+        dlg_close();
+    }
+}
+
+/* ------------------------------------------------------------ the chapel
+ * Three looters argue before the sealed tomb door. Fight them, or talk
+ * past on a field check -- both outcomes open the way; the check route
+ * pays less xp (the fight is the consolation prize for a failed bluff). */
+
+static void looters_gone(void) {
+    for (int i = 0; i < 3; i++) {
+        if (n_loot[i] >= 0) field_remove_npc(n_loot[i]);
+        n_loot[i] = -1;
+    }
+    G.bflags |= BF_LOOTERS_GONE;
+    mgba_log("looters resolved");
+}
+
+static void looter_fight(void) {
+    dlg_close();
+    EncSpawn band[3];
+    for (int i = 0; i < 3; i++) {
+        band[i].mon = R5M_BANDIT; band[i].npc = (s8)n_loot[i];
+        band[i].xp = 25; band[i].side = 1;
+    }
+    encounter_run(band, 3, 0, 0);
+    looters_gone();
+    music(room_song(cur_room));
+    ev_light();
+    say("The chapel yard is quiet again, minus three careers in tomb-robbery.");
+    dlg_close();
+}
+
+static void looter_beat(void) {
+    if (G.bflags & BF_LOOTERS_GONE) return;
+    say("Three looters ring the tomb door, all crowbars and sunburn.");
+    say("\"The seal's half-cracked already! One more pry and we're eating silver for a YEAR --\"");
+    say("The tall one sees you first. \"Oi. This dig's CLAIMED. Walk away, hero.\"");
+    URGE("Three pulses, three soft throats. Somewhere behind your eye, the counting starts on its own.");
+    say_keep("Crowbars shift in dirty hands.");
+    static const char* const o[] = { "[Intimidate] Leave. NOW.",
+                                     "[Persuade] Tombs bite back.",
+                                     "Draw steel" };
+    int c = choose(3, o);
+    if (c == 2) {
+        say("\"Wrong answer,\" the tall one grins, and the crowbars stop being tools.");
+        looter_fight();
+        return;
+    }
+    if (field_check(c == 0 ? SK_INTIMIDATION : SK_PERSUASION, 12)) {
+        if (c == 0)
+            say("You say it the way graves say things. The crowbars hit the sand before your hand finds a hilt.");
+        else
+            say("You sketch the curse in loving detail -- the withering, the slow rot, fingernails first. They go pale by rank.");
+        say("\"...The gulls can keep this dump.\" One last greedy look at the door, and they bolt down the bluff.");
+        looters_gone();
+        say("Gained 40 XP.");
+        beat_xp(40);
+        dlg_close();
+    } else {
+        say(c == 0 ? "The tall one spits. \"Heard scarier from the gulls. GET 'EM!\""
+                   : "\"A curse, is it? Funny -- silver cures those. GET 'EM!\"");
+        looter_fight();
+    }
+}
+
+static void tomb_door_beat(void) {
+    if (!(G.bflags & BF_LOOTERS_GONE)) { looter_beat(); return; }
+    if (!(G.bflags & BF_TOMB_OPEN)) {
+        G.bflags |= BF_TOMB_OPEN;
+        say("The looters' crowbars finished what the centuries started: the ward-seal hangs split.");
+        field_shake(16);
+        sfx_noise(14);
+        field_set_meta(7, 1, MT_TOMB_DOOR_O);
+        field_set_meta(8, 1, MT_TOMB_DOOR_O);
+        sfx_play(SFX_CONFIRM);
+        say("Stone grinds over stone. Cold air pours out: old dark, older quiet.");
+        say("Press onward into the tomb?");
+        mgba_log("tomb door opens");
+        static const char* const o[] = { "Descend", "Not yet" };
+        if (choose(2, o) == 0) { crypt_go(RM_CRYPT, 6, 7); return; }
+        dlg_close();
+        return;
+    }
+    /* the door is a solid slab: interacting with the open tomb steps
+     * through (there is no walkable door tile to trip an ev_step) */
+    crypt_go(RM_CRYPT, 6, 7);
+}
+
+static void chapel_interact(int mx, int my, int m) {
+    (void)mx; (void)my;
+    if (m == MT_TOMB_DOOR || m == MT_TOMB_DOOR_O) { tomb_door_beat(); return; }
+    if (m == MT_GRAVESTONE) {
+        say("A leaning headstone. The name is weathered away; the moss keeps whatever is left.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CHAPEL_WALL) {
+        say("Chapel masonry, older than the dunes beneath it. Someone built to last, and lost anyway.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CHEST) {
+        if (!(G.bflags & BF_CHEST_CHAPEL)) {
+            G.bflags |= BF_CHEST_CHAPEL;
+            sfx_play(SFX_CONFIRM);
+            say("The looters' camp chest, packed for a long dig: two Potions, barely watered down.");
+            G.potions = (u8)(G.potions + 2);
+        } else say("Empty. Their canteens you leave on principle.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_SCREE) {
+        say("The cleared rockfall. The dunes are a scramble below.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_ROCK) {
+        say("Wind-bitten bluff stone. The crows relocate, unhurried, and watch you from one ledge over.");
+        dlg_close();
+    }
+}
+
+/* ------------------------------------------------------------ the crypt
+ * The first DARK rooms (darkvision doctrine, docs/character2.md): the
+ * screen dims unless Tav has darkvision or someone carries the lit
+ * Everburn; in battle, no-darkvision actors shoot and cast at
+ * disadvantage while the crypt's dead see just fine. */
+
+static void bones_rise(void) {
+    say("The drifts here run deeper. Sword-hilts stick out of them like grave-flowers.");
+    field_shake(20);
+    sfx_noise(20);
+    say("The bones KNIT. Three of the dead stand up, wearing the crypt's silence like armor.");
+    dlg_close();
+    int s0 = field_add_npc(4, 3, OBJT_SKELF, 1, 0, NPC_2FRAME);
+    int s1 = field_add_npc(8, 3, OBJT_SKELF, 1, 0, NPC_2FRAME);
+    int s2 = field_add_npc(6, 2, OBJT_SKELF, 1, 0, NPC_2FRAME);
+    EncSpawn sk[3] = {
+        { R5M_SKELETON, (s8)s0, 30, 1 },
+        { R5M_SKELETON, (s8)s1, 30, 1 },
+        { R5M_SKELETON, (s8)s2, 30, 1 },
+    };
+    encounter_run(sk, 3, 0, 2);        /* they rise around you: ambush */
+    G.bflags |= BF_CRYPT_BONES;
+    music(room_song(cur_room));
+    ev_light();
+    say("The bones lie back down -- disarmed, in every sense that matters.");
+    dlg_close();
+}
+
+/* --- the sarcophagus, and the one who does not sleep in it --- */
+
+static void withers_wake(void) {
+    if (G.bflags & BF_WITHERS_AWAKE) {
+        say("The sarcophagus stands open. Its tenant keeps office three feet to the left.");
+        dlg_close();
+        return;
+    }
+    say("The great sarcophagus. Its lid is carved with a sleeping judge, scales folded across the chest.");
+    URGE("Something under that lid is not dead enough. Your hands itch to amend it -- one way, or the other.");
+    say_keep("Old instinct says leave it. Older curiosity says knock.");
+    static const char* const o[] = { "Open the sarcophagus", "Leave it sealed" };
+    if (choose(2, o) == 1) {
+        say("You let the judge sleep. For now.");
+        dlg_close();
+        return;
+    }
+    field_shake(24);
+    sfx_noise(20);
+    say("The lid grinds aside on its own. Your hands, it turns out, were only invited.");
+    field_set_meta(6, 2, MT_SARC_OT);
+    field_set_meta(6, 3, MT_SARC_OB);
+    G.bflags |= BF_WITHERS_AWAKE;
+    n_withers = field_add_npc(7, 4, OBJT_WITHERSF, 5, 0, NPC_2FRAME);
+    mgba_log("withers wakes");
+    say("A desiccated figure sits up, unhurried, and regards you with two points of lamplight where eyes retired.");
+    say("WITHERS: \"Ah. Visitors. Answer me this, o breathing one: what price would thee set on a single mortal life?\"");
+    say_keep("The lamplit sockets wait. They have had practice.");
+    static const char* const a[] = { "Everything.", "Nothing.",
+                                     "Whatever's in its pockets." };
+    int c = choose(3, a);
+    if (c == 0)
+        say("WITHERS: \"Spoken like one who has not yet had to pay it. Acceptable.\"");
+    else if (c == 1)
+        say("WITHERS: \"Spoken like coin that resents being spent. Also acceptable.\"");
+    else
+        say("WITHERS: \"...Thou art fortunate that death finds honesty refreshing.\"");
+    say("WITHERS: \"Long have I kept the ledgers of the dead, and long enough slept on the job. The world, it seems, still needs its accountant.\"");
+    say("WITHERS: \"I shall walk again in time. Until then -- my services, such as they are, stand open to thee. Ask.\"");
+    dlg_close();
+}
+
+/* Withers' service: revival flavor, and the subclass re-pick. The re-pick
+ * CALLS the existing machinery -- unmake the choice, then level_up_choices
+ * re-makes it through the same screen every level-up uses. No class
+ * change. No race change. Those are not paths; they are the walker. */
+static void withers_service(void) {
+    say("WITHERS: \"Speak. What does the living world want of Withers?\"");
+    say_keep("The sockets glow, patient as ledgers.");
+    static const char* const o[] = { "Change a chosen path",
+                                     "Ask about death", "Nothing today" };
+    int c = choose(3, o);
+    if (c == 2) {
+        say("WITHERS: \"A rare wisdom. Walk on.\"");
+        dlg_close();
+        return;
+    }
+    if (c == 1) {
+        say("WITHERS: \"Death is a door, not a wall. Shouldst thou lose a companion, bring flame, or scroll, or patience -- the dead keep every appointment.\"");
+        say("WITHERS: \"For the deeper arrangements, my rates are famously reasonable. In time.\"");
+        dlg_close();
+        return;
+    }
+    const char* names[3];
+    int map[3], n = 0;
+    for (int i = 0; i < G.nparty; i++)
+        if (G.pm[i].subclass != 255) { names[n] = G.pm[i].name; map[n] = i; n++; }
+    if (!n) {
+        say("WITHERS: \"None of thee has yet chosen a path worth unchoosing. Walk further first.\"");
+        dlg_close();
+        return;
+    }
+    say("WITHERS: \"Thy class is thy spine and thy blood is thy blood; Withers reorders neither. But a path chosen within them? That, I unmake.\"");
+    say_keep("\"Whose path shall be unwalked?\"");
+    int mi = map[choose(n, names)];
+    say("WITHERS: \"So. The road walked becomes a road unwalked. Choose again -- and mean it, this time.\"");
+    mgba_logf("withers repick %s", G.pm[mi].name);
+    G.pm[mi].subclass = 255;           /* unmake the choice... */
+    level_up_choices();                /* ...and the usual machinery re-makes it */
+}
+
+static void crypt_interact(int mx, int my, int m) {
+    (void)mx; (void)my;
+    if (m == MT_SARC_T || m == MT_SARC_B || m == MT_SARC_OT || m == MT_SARC_OB) {
+        withers_wake();
+        return;
+    }
+    if (m == MT_CHEST) {
+        if (!(G.bflags & BF_CHEST_CRYPT)) {
+            G.bflags |= BF_CHEST_CRYPT;
+            sfx_play(SFX_CONFIRM);
+            say("Grave-gifts for a journey no one took: a Scroll of Revivify, wax-sealed against the damp.");
+            G.revivify++;
+        } else say("The rest of the gifts are dust, and the dust is spoken for.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_SCONCE) {
+        say("A sconce of cold teal flame. It has burned since before the language you swear in.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_BONES) {
+        say(cur_room == RM_OSSUARY && !(G.bflags & BF_CRYPT_BONES)
+            ? "Old bones, drifted deep. You could swear the near ones are holding their breath."
+            : "Old bones, stacked by patient hands. You leave the arrangement be.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_RUBBLE) {
+        say("A fallen column drum. The ceiling it held has been managing without it for centuries.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CARCH) {
+        say("Worn steps, and the dark keeping them.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CWALL) {
+        say("Dressed stone, laid dry and true. The masons are downstairs now, in the drifts.");
         dlg_close();
     }
 }
@@ -1134,6 +1510,10 @@ void ev_interact(int mx, int my) {
         case RM_HELM:    helm_interact(mx, my, m); break;
         case RM_BEACH:   beach_interact(mx, my, m); break;
         case RM_DUNES:   dunes_interact(mx, my, m); break;
+        case RM_CHAPEL:  chapel_interact(mx, my, m); break;
+        case RM_CRYPT:
+        case RM_OSSUARY:
+        case RM_SANCTUM: crypt_interact(mx, my, m); break;
     }
 }
 
@@ -1161,7 +1541,28 @@ void ev_step(int mx, int my) {
         return;
     }
     if (cur_room == RM_DUNES) {
-        if (my == 11) beach_go(RM_BEACH, mx, 1);   /* back to the crash site */
+        if (my == 11) { beach_go(RM_BEACH, mx, 1); return; }  /* crash site */
+        if (my == 0) { beach_go(RM_CHAPEL, mx, 8); return; }  /* the bluff */
+        return;
+    }
+    if (cur_room == RM_CHAPEL) {
+        if (my == 9) { beach_go(RM_DUNES, mx, 1); return; }   /* the scree */
+        if (m == MT_TOMB_DOOR_O) { crypt_go(RM_CRYPT, 6, 7); return; }
+        return;
+    }
+    if (cur_room == RM_CRYPT) {
+        if (my == 8) { crypt_go(RM_CHAPEL, 7, 2); return; }
+        if (my == 0) { crypt_go(RM_OSSUARY, 6, 7); return; }
+        return;
+    }
+    if (cur_room == RM_OSSUARY) {
+        if (my == 8) { crypt_go(RM_CRYPT, 6, 1); return; }
+        if (my == 0) { crypt_go(RM_SANCTUM, 6, 7); return; }
+        if (!(G.bflags & BF_CRYPT_BONES) && my <= 4) { bones_rise(); return; }
+        return;
+    }
+    if (cur_room == RM_SANCTUM) {
+        if (my == 8) crypt_go(RM_OSSUARY, 6, 1);
         return;
     }
     if (m == MT_DOOR_C) {
@@ -1199,8 +1600,9 @@ static void wanderer_fight(int idx, int surprise) {
     int s = idx == n_wander[0] ? 0 : 1;
     EncSpawn sp = { wander_mon[s], (s8)idx, wander_xp[s], 1 };
     if (encounter_run(&sp, 1, 0, surprise) == ENC_WIN)
-        *wander_word[s] |= wander_bit[s];
+        wander_latch(s);
     music(room_song(cur_room));
+    ev_light();
 }
 
 void ev_aggro(int idx) {
@@ -1224,6 +1626,11 @@ void ev_npc(int idx) {
     }
     if (idx >= 0 && idx == n_ast) { astarion_beat(); return; }
     if (idx >= 0 && idx == n_boar) { boar_beat(); return; }
+    if (idx >= 0 && (idx == n_loot[0] || idx == n_loot[1] || idx == n_loot[2])) {
+        looter_beat();
+        return;
+    }
+    if (idx >= 0 && idx == n_withers) { withers_service(); return; }
     if (idx >= 0 && idx == n_shb) {
         if (G.flags & GF_SH_FREED) sh_shore_meet();
         else sh_shore_wake();

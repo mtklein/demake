@@ -404,6 +404,7 @@ void field_run(void) {
                 void field_menu(void);
                 cone_hide();
                 field_menu();
+                ev_light();   /* Equip may have (un)sheathed the Everburn */
             }
         } else {
             ppx += tdx * 2; ppy += tdy * 2;

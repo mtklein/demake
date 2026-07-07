@@ -11,6 +11,9 @@ MAPLEG = {
     "s": "sand", "S": "sand_d", "u": "surf", "U": "sea", "k": "wreck",
     "G": "sand_g", "r": "rock", "n": "dune", "<": "wreck_l", ">": "wreck_r",
     "y": "flayer_dying", "Z": "cage", "z": "cage_open", "*": "sigil",
+    "x": "scree", "w": "chapel_wall", "q": "tomb_door", "Q": "tomb_door_o",
+    "e": "gravestone", "A": "cwall", "F": "cfloor", "N": "sconce",
+    "B": "rubble", "b": "bones", "i": "carch", "Y": "sarc_t", "j": "sarc_b",
 }
 
 MAPS = {
@@ -102,12 +105,12 @@ MAPS = {
         "UUUUUUUUUUUUUUUUUUUU",
     ],
     # The dune path — inland toward the chapel bluff (stone 4's door).
-    # Landmarks: south gap (9,11)-(10,11) back to the crash site, blocked
-    # north pass (7,0)-(8,0), Lae'zel's cage (2,2) with scavengers at (1,3)
-    # and (3,3), cache chest (14,2), Gale's portal sigil (15,8), devourer
-    # patrols (12,7) and (5,9).
+    # Landmarks: south gap (9,11)-(10,11) back to the crash site, the
+    # cleared north pass (7,0)-(8,0) up to the chapel, Lae'zel's cage (2,2)
+    # with scavengers at (1,3) and (3,3), cache chest (14,2), Gale's portal
+    # sigil (15,8), devourer patrols (12,7) and (5,9).
     "dunes": [
-        "nnnnnnnrrnnnnnnnnn",
+        "nnnnnnnxxnnnnnnnnn",
         "nsssSssssssssssssn",
         "nsZsssssssssssTssn",
         "nssssssGsssSsssssn",
@@ -119,5 +122,59 @@ MAPS = {
         "nssssssSssssssssGn",
         "nsGsssssssssSssssn",
         "nnnnnnnnnssnnnnnnn",
+    ],
+    # The chapel yard on the bluff — the looter band argues before the tomb
+    # door (7,1)-(8,1); gravestones flank the worn path; chest (14,6);
+    # scree pass south (7,9)-(8,9) back down to the dunes.
+    "chapel": [
+        "rrrrrrrrrrrrrrrr",
+        "rwwwwwwqqwwwwwwr",
+        "rGssessssssessGr",
+        "rssssssssssssssr",
+        "rGsessssssssessr",
+        "rssssssssssssssr",
+        "rsesssssssssesTr",
+        "rGssssssssssssGr",
+        "rssGsssssssssssr",
+        "rrrrrrrxxrrrrrrr",
+    ],
+    # The crypt entry hall (DARK) — pillars, rubble, grave-gift chest
+    # (10,4); arch north (6,0) to the ossuary, arch south (6,8) out.
+    "crypt": [
+        "AANAAAiAAAANA",
+        "AFFFFFFFFFFFA",
+        "AFAFFBFFFAFFA",
+        "AFFFFFFbFFFFA",
+        "ABFFFFFFFFTFA",
+        "AFFAFFFFAFFFA",
+        "AFFFbFFFFFBFA",
+        "AFFFFFFFFFFFA",
+        "AAAAAAiAAAAAA",
+    ],
+    # The ossuary (DARK) — the floor is ankle-deep in old bones; three of
+    # them stand up (ambush at my<=4); arches north/south.
+    "ossuary": [
+        "AAAANAiANAAAA",
+        "AFFBFFFFFbFFA",
+        "AbFFFFFFFFFBA",
+        "AFFFbFFFFFFFA",
+        "AFFFFFFFFFFbA",
+        "ABFFFFbFFFFFA",
+        "AFFbFFFFFBFFA",
+        "AFFFFFFFFFFFA",
+        "AAAAAAiAAAAAA",
+    ],
+    # The sarcophagus chamber (DARK) — Withers sleeps at (6,2), sconces
+    # flanking; arch south (6,8) back to the ossuary.
+    "sanctum": [
+        "AAAAANANAAAAA",
+        "AFFFFFFFFFFFA",
+        "AFFFFFYFFFFFA",
+        "AFFFFFjFFFFFA",
+        "AFBFFFFFFbFFA",
+        "AFFFFbFFFFBFA",
+        "AFFFFFFFFFFFA",
+        "AFFFFFFFFFFFA",
+        "AAAAAAiAAAAAA",
     ],
 }

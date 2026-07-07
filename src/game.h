@@ -41,7 +41,9 @@ typedef struct {
     u8 rweapon[RESERVE_MAX];      /* their equipped R5W_* */
     u8 rtactic[RESERVE_MAX];      /* their TAC_* preference */
     u8 nreserve;
-    u16 bflags;                   /* BF_* beach-arc story bits (GF_ is full) */
+    u32 bflags;                   /* BF_* beach-arc story bits (GF_ is full;
+                                   * widened in place -- it is the LAST field,
+                                   * so the poked addresses before it hold) */
 } Game;
 enum { ORIG_ASTARION, ORIG_GALE, ORIG_KARLACH, ORIG_LAEZEL, ORIG_SHADOW,
        ORIG_WYLL, ORIG_DURGE, ORIG_CUSTOM, ORIG_COUNT };
@@ -85,6 +87,13 @@ enum {
     BF_AST_RECRUITED= 1 << 10,   /* Astarion's knife beat resolved: he walks */
     BF_GALE_RECRUITED=1 << 11,   /* Gale pulled through the portal sigil */
     BF_BOAR_DRAINED = 1 << 12,   /* origin Astarion fed on his staked kill */
+    /* stone 4: the chapel on the bluff and the crypt beneath */
+    BF_LOOTERS_GONE = 1 << 13,   /* the band before the tomb door resolved */
+    BF_TOMB_OPEN    = 1 << 14,   /* the sealed door ground aside */
+    BF_CRYPT_BONES  = 1 << 15,   /* the ossuary ambush put back down */
+    BF_WITHERS_AWAKE= 1 << 16,   /* the sarcophagus opened; he keeps office */
+    BF_CHEST_CHAPEL = 1 << 17,   /* chapel yard chest looted */
+    BF_CHEST_CRYPT  = 1 << 18,   /* crypt grave-gifts looted */
 };
 
 #define HERO_CLS (G.pm[0].cls)

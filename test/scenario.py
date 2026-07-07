@@ -468,6 +468,87 @@ def beach_reroute_gale():
     face_interact("UP")                # a professional opinion
     shot("b_reroute_gale")
 
+# --- stone 4: the chapel, the crypt, darkvision's debut, Withers ----------
+
+def _to_chapel():
+    """wake -> Shadowheart -> the cage (Lae'zel) -> the cleared north pass.
+    Consumes ONE choice (the cage's 'Open the cage')."""
+    face_interact("RIGHT")             # Shadowheart, upright at (11,6)
+    walk("UP", 6)                      # the dune gap
+    ready()
+    walk("UP", 4); walk("LEFT", 6)     # (4,6): west corridor
+    walk("UP", 4); walk("LEFT", 1)     # (3,2), beside the cage
+    face_interact("LEFT")              # Lae'zel rejoins (choice 0)
+    walk("UP", 1)                      # (3,1)
+    walk("RIGHT", 4)                   # (7,1), below the pass
+    walk("UP", 1)                      # the cleared rockfall -> chapel
+    ready()
+
+@scn
+def chapel_fight():
+    """The looter band, the hard way: 'Draw steel' ends the parley, three
+    SRD bandits fall, and the split-sealed tomb door grinds open. The band
+    blocks the central approach, so a UP-facing A meets them first."""
+    beach_setup(4, [0, 2, 1], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    _to_chapel()
+    shot("c_chapel")
+    walk("UP", 4)                      # (7,4), nose-to-nose with the band
+    face_interact("UP")                # choice 1 = Draw steel -> the fight
+    shot("c_fight")
+    walk("UP", 2)                      # (7,2), beneath the door
+    face_interact("UP")                # opens; choice 2 = Not yet (stay)
+    shot("c_door")
+
+@scn
+def chapel_parley():
+    """The check-past fork: the bard talks (Persuasion, rolled in the
+    open). Pass, the band bolts for less xp; fail, the fight happens --
+    either way the beat resolves and the door opens, and the crypt beyond
+    dims for a no-darkvision Tav (dark room dim=1)."""
+    beach_setup(0, [0, 1, 0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    _to_chapel()
+    walk("UP", 4)                      # (7,4): up to the arguing band
+    face_interact("UP")                # choice 1 = Persuade (rolled in the open)
+    shot("c_parley")
+    walk("UP", 2)
+    face_interact("UP")                # open + choice 2 = Descend into the dark
+    ready()
+    shot("c_dark")                     # the crypt dims (dark room dim=1)
+
+@scn
+def crypt_withers():
+    """The crypt, end to end: DARK entry hall (screen dims for a
+    no-darkvision Tav), the ossuary ambush (SRD skeletons rise around the
+    party), and Withers -- wake beat, then the subclass re-pick service.
+    Tav is origin Wyll (warlock, Fiend subclass from level 1), so there is
+    a real chosen path for Withers to unmake and the machinery to re-make.
+    Shadowheart and Lae'zel still recover (Wyll has no beach reroute)."""
+    beach_setup(11, [0, 0, 0, 0, 0, 0, 0, 0],
+                flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT, origin=5)
+    beach_boot()
+    _to_chapel()
+    walk("UP", 4)                      # up to the band
+    face_interact("UP")                # choice 0 = Intimidate: they bolt
+    walk("UP", 2)                      # (7,2)
+    face_interact("UP")                # opens; choice 0 = Descend -> the crypt
+    ready()
+    shot("w_crypt")                    # DARK marker: dim=1 in the log
+    walk("UP", 7)                      # up column 6 onto the north arch
+    ready()                            # arch -> ossuary (spawn 6,7)
+    walk("UP", 3)                      # (6,4): the bones knit upright
+    ready(24000)
+    shot("w_bones")
+    walk("UP", 4)                      # onto the north arch -> sanctum
+    ready()
+    walk("UP", 3)                      # (6,4), at the sarcophagus foot
+    face_interact("UP")                # wake beat: open (0), answer (0)
+    shot("w_withers")
+    tap("DOWN"); tap("RIGHT"); tap("A")  # Withers, in office beside the tomb
+    ready()                            # service: change path (0), member (0)
+    shot("w_repick")
+
 @scn
 def helm_sleepz():
     setup(3, [0, 1, 0, 0, 2], 2)
