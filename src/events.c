@@ -330,11 +330,12 @@ void room_enter(int id, int sx, int sy, int face) {
                 field_set_meta(8, 1, MT_TOMB_DOOR_O);
             }
             if (!(G.bflags & BF_LOOTERS_GONE)) {
-                /* the band argues before the door: human scavengers in the
-                 * scav silhouette, palette-swapped out of tiefling red */
-                n_loot[0] = field_add_npc(6, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
-                n_loot[1] = field_add_npc(8, 2, OBJT_SCAV, 2, 0, NPC_2FRAME);
-                n_loot[2] = field_add_npc(7, 3, OBJT_SCAV, 2, 0, NPC_2FRAME);
+                /* the band argues before the door: human tomb-robbers in
+                 * their own bare-headed, pry-bar silhouette -- not the
+                 * hooded tiefling scavengers of the beach */
+                n_loot[0] = field_add_npc(6, 2, OBJT_LOOTER, 7, 0, NPC_2FRAME);
+                n_loot[1] = field_add_npc(8, 2, OBJT_LOOTER, 7, 0, NPC_2FRAME);
+                n_loot[2] = field_add_npc(7, 3, OBJT_LOOTER, 7, 0, NPC_2FRAME);
                 /* and one small figure at the edge of the ring, masked.
                  * The game never explains him -- the sprite is the story. */
                 n_warryn = field_add_npc(5, 2, OBJT_WARRYN, 5, 0, NPC_2FRAME);
