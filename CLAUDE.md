@@ -94,6 +94,20 @@ behavioral tests had to be back-filled in bulk. Don't repeat that.
 - House taste: genre-authentic grammar over pastiche; percussion sits under
   the melody (the ride-fatigue lesson); hymn-grammar passages land hardest.
 
+## Art
+
+- Named characters get bespoke walkers and portraits — reuse reads as
+  placeholder, custom reads as alive (Withers' ledger-keeper vs the
+  looters wearing scavenger sprites). The more faces the game has, the
+  more interesting it feels; err toward commissioning.
+- bg3.wiki is the reference for canon likenesses (appearance, bearing,
+  costume) — always redrawn as original pixel art in our palettes, never
+  traced or copied assets; the fan-homage line in docs/under_selune.md is
+  the framing for every likeness we take.
+- The preview loop is mandatory: render with tools/topng.py in the true
+  palette and LOOK at every asset (and at it in-game, under the room's
+  lighting) before accepting it.
+
 ## Licensing bright lines
 
 - SRD 5.1/5.2.1 content is CC-BY-4.0: keep the attribution block in
