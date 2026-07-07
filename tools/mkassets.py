@@ -460,6 +460,52 @@ OBJ_PALS[13] = dmgpal((20, 12, 31))   # force
 OBJ_PALS[14] = dmgpal((30, 13, 26))   # psychic
 OBJ_PALS[15] = dmgpal((13, 22, 31))   # cold/lightning
 
+# ---------------------------------------------------------------- OBJ palette ids
+# The OBJ palette allocator (src/palette.c, docs/palettes.md) names every
+# 16-color OBJ palette by a stable id and assigns its bank at RUNTIME instead
+# of freezing one 16-bank layout for the whole game. This table is that id
+# namespace: one row per id, in the SAME order as src/palette.h's PAL_* enum
+# (a _Static_assert in palette.c binds PAL_* to the emitted PALI_* so a reorder
+# breaks the build). The legacy ids reuse the exact OBJ_PALS bank contents, so
+# stone 1's pal_boot reproduces the old fixed layout byte-for-byte (the
+# pal_boot-vs-pal_obj host test proves it); the bespoke party + looter schemes
+# come from SF.PAL_CHARS -- the banks they never had before the allocator.
+def obj_palette_table():
+    ch = lambda k: pal16(SF.PAL_CHARS[k])
+    return [
+        # -- persistent: every party identity + the UI cursor own a fixed bank --
+        ("TAV",      OBJ_PALS[0]),   # zeros; the class palette is swapped in live
+        ("LAEZEL",   OBJ_PALS[1]),
+        ("SHADOW",   OBJ_PALS[2]),
+        ("ASTARION", ch("astarion")),
+        ("GALE",     ch("gale")),
+        ("WYLL",     ch("wyll")),
+        ("CURSOR",   OBJ_PALS[7]),
+        # -- transient: enemies & field NPCs, packed per scene --
+        ("US",       OBJ_PALS[3]),
+        ("IMP",      OBJ_PALS[4]),
+        ("FLAYER",   OBJ_PALS[5]),
+        ("ZHALK",    OBJ_PALS[6]),
+        ("ZEVLOR",   OBJ_PALS[6]),   # the Hellrider reuses the cambion's scheme
+        ("BOAR",     OBJ_PALS[3]),
+        ("SCAV",     OBJ_PALS[4]),
+        ("DEVOURER", OBJ_PALS[5]),
+        ("LOOTER",   ch("looter")),
+        ("WARRYN",   OBJ_PALS[5]),
+        ("WITHERS",  OBJ_PALS[5]),
+        ("SKELETON", OBJ_PALS[1]),
+        ("GOBLIN",   OBJ_PALS[1]),
+        # -- transient: dice / garnish damage-type colors (freed in stone 4) --
+        ("DICE_HEAL",    OBJ_PALS[8]),
+        ("DICE_RADIANT", OBJ_PALS[9]),
+        ("DICE_PHYS",    OBJ_PALS[10]),
+        ("DICE_FIRE",    OBJ_PALS[11]),
+        ("DICE_POISON",  OBJ_PALS[12]),
+        ("DICE_FORCE",   OBJ_PALS[13]),
+        ("DICE_PSYCHIC", OBJ_PALS[14]),
+        ("DICE_COLD",    OBJ_PALS[15]),
+    ]
+
 def sky_tiles():
     """8 simple Avernus sky tiles: 2 variants x 4 gradient bands, BG pal 4."""
     import random
@@ -650,6 +696,14 @@ def main():
         "extern const u16 pal_field_night[16];",
         "extern const u16 pal_tav_classes[12][16];",   # one per CLS_*
     ]
+    # OBJ palette allocator id table (docs/palettes.md): PALI_* index defines +
+    # the colors table, one row per palette id. pal_obj above stays as the
+    # stone-1 golden the pal_boot-vs-legacy host test diffs against.
+    paltab = obj_palette_table()
+    for i, (nm, _) in enumerate(paltab):
+        h.append(f"#define PALI_{nm} {i}")
+    h.append(f"#define PALI_N {len(paltab)}")
+    h.append(f"extern const u16 pal_colors[PALI_N][16];")
     if pflat:
         h.append("extern const u16 portrait_tiles[%d];" % len(pflat))
         c.append(emit_u16("portrait_tiles", pflat))
@@ -662,6 +716,11 @@ def main():
              % (len(fsolid), ",".join(map(str, fsolid))))
     c.append(emit_u16("pal_bg", [v for p in BG_PALS for v in p]))
     c.append(emit_u16("pal_obj", [v for p in OBJ_PALS for v in p]))
+    c.append("const u16 pal_colors[%d][16] = {" % len(paltab))
+    for nm, row in paltab:
+        assert len(row) == 16, (nm, len(row))
+        c.append("  {" + ",".join("0x%04x" % v for v in row) + "},  /* PAL_%s */" % nm)
+    c.append("};")
     # moonlight over the field family: the camp room swaps this over BG
     # palette 3 at room_enter (and every other room restores the daylight)
     c.append(emit_u16("pal_field_night", pal16(FT.NIGHT_PAL)))

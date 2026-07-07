@@ -18,6 +18,7 @@
 #include "encounter.h"
 #include "assets.h"
 #include "dice_ui.h"
+#include "palette.h"
 
 void field_menu(void);        /* menu.c  */
 int game_class_select(void);  /* game.c  */
@@ -2199,6 +2200,115 @@ static void t_class_select_art(void) {
     }
 }
 
+/* ---------------------------------------------------------------- palette allocator
+ * The OBJ palette allocator (src/palette.c, docs/palettes.md): persistent ids
+ * own fixed banks; transient ids pack into {6, 8..15} per scene. Pure data +
+ * logic, fully host-reachable -- these pin the invariants the doc makes
+ * checkable, so the seam every drawer will read from is proven before the
+ * drawers move onto it. */
+
+static int pal_is_transient_bank(int b) { return b == 6 || (b >= 8 && b <= 15); }
+
+static void t_pal_boot_legacy(void) {
+    sim_reset();
+    pal_boot();
+    /* byte-identical: pal_boot reproduces the pre-allocator fixed 16-bank OBJ
+     * layout exactly, so stone 1 renders unchanged (pal_obj is the golden the
+     * old video.c memcpy'd wholesale) */
+    T_ASSERT(!memcmp((const void*)PAL_OBJ, pal_obj, 256 * 2),
+             "pal_boot did not reproduce the legacy OBJ palette layout");
+}
+
+static void t_pal_persistent_banks(void) {
+    sim_reset();
+    pal_boot();
+    struct { int id, bank; } want[] = {
+        { PAL_TAV, 0 }, { PAL_LAEZEL, 1 }, { PAL_SHADOW, 2 }, { PAL_ASTARION, 3 },
+        { PAL_GALE, 4 }, { PAL_WYLL, 5 }, { PAL_CURSOR, 7 },
+    };
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++) {
+        T_ASSERT(pal_use(want[i].id) == want[i].bank,
+                 "persistent id %d wants bank %d, got %d",
+                 want[i].id, want[i].bank, pal_use(want[i].id));
+        T_ASSERT(pal_bank[want[i].id] == want[i].bank,
+                 "pal_bank[%d] = %d, want %d", want[i].id,
+                 pal_bank[want[i].id], want[i].bank);
+    }
+    /* a persistent request never consumes a transient slot: after all seven,
+     * the whole nine-bank pool is still free (else this overruns and panics) */
+    pal_scene_begin();
+    for (unsigned i = 0; i < sizeof want / sizeof *want; i++) pal_use(want[i].id);
+    for (int i = 0; i < 9; i++) pal_use(PAL_US + i);
+}
+
+static void t_pal_use_stable_and_distinct(void) {
+    sim_reset();
+    pal_boot();
+    pal_scene_begin();
+    int g = pal_use(PAL_GOBLIN);
+    T_ASSERT(pal_is_transient_bank(g), "goblin got bank %d, not transient", g);
+    T_ASSERT(pal_use(PAL_GOBLIN) == g, "pal_use not stable within a scene");
+    T_ASSERT(pal_bank[PAL_GOBLIN] == g, "pal_bank disagrees with pal_use");
+
+    /* fill the pool; distinct ids never collide, each loads its own colors */
+    pal_scene_begin();
+    int seen[16] = { 0 };
+    int ids[9] = { PAL_US, PAL_IMP, PAL_FLAYER, PAL_ZHALK, PAL_ZEVLOR,
+                   PAL_BOAR, PAL_SCAV, PAL_DEVOURER, PAL_LOOTER };
+    for (int i = 0; i < 9; i++) {
+        int b = pal_use(ids[i]);
+        T_ASSERT(pal_is_transient_bank(b), "id %d got non-transient bank %d", ids[i], b);
+        T_ASSERT(!seen[b], "two distinct ids collided on bank %d", b);
+        seen[b] = 1;
+        T_ASSERT(!memcmp((const void*)(PAL_OBJ + b * 16), pal_colors[ids[i]], 32),
+                 "id %d bank %d holds the wrong colors", ids[i], b);
+    }
+}
+
+static void t_pal_scene_frees_transient(void) {
+    sim_reset();
+    pal_boot();
+    pal_scene_begin();
+    pal_use(PAL_GOBLIN);
+    T_ASSERT(pal_bank[PAL_GOBLIN] != PAL_NOT_LOADED, "goblin should be loaded");
+    /* a fresh scene frees transient bookkeeping but leaves persistent banks */
+    pal_scene_begin();
+    T_ASSERT(pal_bank[PAL_GOBLIN] == PAL_NOT_LOADED, "scene_begin did not free the goblin");
+    T_ASSERT(pal_bank[PAL_LAEZEL] == 1 && pal_bank[PAL_WYLL] == 5 &&
+             pal_bank[PAL_CURSOR] == 7,
+             "scene_begin wrongly freed a persistent bank");
+    T_ASSERT(pal_use(PAL_IMP) == 6,
+             "a fresh scene's first transient should be bank 6");
+}
+
+static void pal_overflow_helper(void) {
+    pal_scene_begin();
+    int ids[10] = { PAL_US, PAL_IMP, PAL_FLAYER, PAL_ZHALK, PAL_ZEVLOR,
+                    PAL_BOAR, PAL_SCAV, PAL_DEVOURER, PAL_LOOTER, PAL_WARRYN };
+    for (int i = 0; i < 10; i++) pal_use(ids[i]);   /* the 10th overruns 9 banks */
+}
+
+static void t_pal_budget_overflow(void) {
+    sim_reset();
+    pal_boot();
+    int r = sim_guard(pal_overflow_helper);
+    T_ASSERT(r == 1,
+             "a 10th distinct transient pal_use must trip the budget assert (got %d)", r);
+}
+
+static void t_pal_tav_class(void) {
+    sim_reset();
+    pal_boot();
+    for (int cls = 0; cls < CLS_COUNT; cls++) {
+        pal_tav_class(cls);
+        T_ASSERT(!memcmp((const void*)PAL_OBJ, pal_tav_classes[cls], 32),
+                 "pal_tav_class(%d) did not load the class palette into bank 0", cls);
+        T_ASSERT(pal_bank[PAL_TAV] == 0, "Tav must stay on bank 0");
+    }
+    pal_tav_class(-1);          /* out of range: a no-op, not a wild write */
+    pal_tav_class(CLS_COUNT);
+}
+
 /* ---------------------------------------------------------------- runner */
 
 typedef struct { const char* name; void (*fn)(void); } Test;
@@ -2264,6 +2374,12 @@ static const Test tests[] = {
     { "name_entry_grid",           t_name_entry_grid },
     { "member_look_identity",      t_member_look_identity },
     { "class_select_art",          t_class_select_art },
+    { "pal_boot_legacy",           t_pal_boot_legacy },
+    { "pal_persistent_banks",      t_pal_persistent_banks },
+    { "pal_use_stable_distinct",   t_pal_use_stable_and_distinct },
+    { "pal_scene_frees_transient", t_pal_scene_frees_transient },
+    { "pal_budget_overflow",       t_pal_budget_overflow },
+    { "pal_tav_class",             t_pal_tav_class },
     { "menu_crawl_fuzz",           t_menu_crawl_fuzz },
 };
 

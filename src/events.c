@@ -9,6 +9,7 @@
 #include "party5.h"
 #include "screens.h"     /* the tally layout (tools/ui_screens.py) */
 #include "dice_ui.h"     /* the shared tumbling die, over the dialog */
+#include "palette.h"     /* per-scene OBJ palette allocator */
 
 /* Speaker lines upgrade to portraits automatically as each portrait lands
  * in tools/art/portraits.py (missing art falls back to plain say). */
@@ -239,6 +240,8 @@ void room_enter(int id, int sx, int sy, int face) {
     mgba_logf("room_enter %d at %d,%d flags=%x", id, sx, sy, G.flags);
     music(room_song(id));
     cur_room = id;
+    pal_scene_begin();                    /* free the transient OBJ banks; this
+                                           * room packs its own NPCs/dice into them */
     encounter_set_dark(room_dark(id));
     crumb(CR_ROOM, id);
     n_us = n_lz = n_sh = n_zh = n_fl = -1;

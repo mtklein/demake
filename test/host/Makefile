@@ -14,11 +14,12 @@ LLVM := /opt/homebrew/opt/llvm/bin
 
 GAME  := $(ROOT)/src/menu.c $(ROOT)/src/data.c $(ROOT)/src/party5.c \
          $(ROOT)/src/encounter.c $(ROOT)/src/game.c
-# dice_ui.c is the shared die/tumble primitive: linked in so encounter's REAL
-# battle path draws through it (not a fake), but kept OUT of GAME so the
-# coverage ratchet still scopes to the five game sources -- the primitive is
-# a handful of lines, fully exercised by every battle attack.
-UI    := $(ROOT)/src/dice_ui.c
+# dice_ui.c is the shared die/tumble primitive; palette.c is the OBJ palette
+# allocator (docs/palettes.md). Both are linked so encounter's/game's REAL
+# paths run through them (not fakes), but kept OUT of GAME so the coverage
+# ratchet still scopes to the five game sources -- both are small and behavior-
+# asserted directly (dice by every battle attack, palette by the t_pal_* suite).
+UI    := $(ROOT)/src/dice_ui.c $(ROOT)/src/palette.c
 RULES := $(ROOT)/rules/dice.c $(ROOT)/rules/core.c $(ROOT)/rules/features.c
 GENC  := $(GEN)/srd_tables.c $(GEN)/assets.c $(GEN)/screens.c
 HOST  := fake_engine.c sim_main.c

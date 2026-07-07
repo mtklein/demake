@@ -34,6 +34,29 @@ PAL_TAV = {
     "warlock":   pal((24, 18, 13), (18, 12, 9),  (5, 4, 7),    (9, 5, 14),   (5, 3, 8),    (14, 20, 12), (7, 4, 10),   (5, 3, 7)),    # dark eggplant coat, eldritch-green pact
 }
 
+# Bespoke persistent palettes owned by the OBJ palette allocator
+# (docs/palettes.md). Every party identity owns a bank; before the allocator
+# Astarion and Gale doubled up on Tav's bank 0 and Wyll rode the imp bank 4 --
+# "almost all the player sprites the same blue". These give each their own
+# scheme, keyed by NAME (the allocator maps name -> id -> bank at runtime).
+# LOOTER moves off the cursor bank it was squatting (the events.c pal-7 leak)
+# into its own transient bank, wearing the sun-baked-bandit browns its walker
+# was drawn against.
+PAL_CHARS = {
+    # Astarion: pale high elf, silver-white hair, deep-burgundy noble coat
+    "astarion": pal((27, 23, 21), (21, 17, 16), (27, 27, 29), (15, 3, 7),
+                    (9, 2, 4),    (25, 21, 14), (9, 6, 8),     (6, 3, 4)),
+    # Gale: warm human skin, brown hair, indigo scholar's robe, gold trim
+    "gale":     pal((25, 19, 14), (19, 13, 9),  (12, 7, 3),   (9, 8, 22),
+                    (5, 4, 14),   (26, 20, 6),  (7, 6, 15),    (5, 4, 9)),
+    # Wyll, Blade of Frontiers: brown skin, black hair, wine-russet coat, gold
+    "wyll":     pal((21, 13, 9),  (15, 8, 5),   (3, 2, 3),    (17, 6, 6),
+                    (10, 3, 3),   (28, 22, 8),  (9, 6, 5),     (6, 4, 3)),
+    # chapel looters: sun-baked human bandits, their own bank at last
+    "looter":   pal((27, 19, 13), (20, 13, 8),  (11, 7, 3),   (16, 11, 6),
+                    (10, 7, 4),   (24, 18, 9),  (8, 8, 8),     (6, 5, 4)),
+}
+
 PALS = {
     1: pal((20, 22, 8), (14, 16, 5), (3, 3, 3), (22, 22, 24), (14, 14, 17), (26, 20, 4), (12, 12, 15), (8, 8, 10)),   # Lae'zel: gith skin, silver armor
     2: pal((25, 20, 16), (19, 14, 11), (2, 2, 3), (10, 10, 13), (6, 6, 9), (18, 14, 22), (6, 6, 8), (5, 4, 5)),       # Shadowheart

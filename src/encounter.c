@@ -20,6 +20,7 @@
 #include "encounter.h"
 #include "audio.h"
 #include "dice_ui.h"
+#include "palette.h"     /* per-scene OBJ palette allocator */
 
 #define ME(t, h, v, p) ((u16)((t) | ((h) << 10) | ((v) << 11) | ((p) << 12)))
 #define TXT ((vu16*)SCREENBLOCK(30))
@@ -1357,6 +1358,11 @@ int encounter_run(const EncSpawn* es, int n, int helm_rounds, int surprise) {
     }
     G_FIELD_IDLE = 0;
     r5_seed(&rng, rnd());
+
+    /* the fight is its own scene: free the transient OBJ banks the field left
+     * allocated (patrol cones, alert markers) so the battle gets a clean
+     * budget for its combatants and dice colors */
+    pal_scene_begin();
 
 retry:
     for (int i = 0; i < nwarp; i++) field_remove_npc(warp_npc[i]);

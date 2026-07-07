@@ -1,10 +1,12 @@
 #include "gba.h"
 #include "assets.h"
+#include "palette.h"
 
 void vid_init_ui(void) {
     memcpy16(CHARBLOCK(0), ui_tiles, UI_TILE_COUNT * 16);
     memcpy16(PAL_BG, pal_bg, 256);
-    memcpy16(PAL_OBJ, pal_obj, 256);
+    pal_boot();                          /* OBJ banks: persistent party + cursor,
+                                          * transient enemies/dice per scene */
     memset16(SCREENBLOCK(30), 0, 1024);   /* text map  */
     memset16(SCREENBLOCK(31), 0, 1024);   /* window map */
     REG_BG0CNT = BGCNT_CB(0) | BGCNT_SB(30) | BGCNT_PRIO(0);
