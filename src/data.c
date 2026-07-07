@@ -170,7 +170,7 @@ static void party_add(const char* name, int cls, int face) {
     PMember* p;
     if (walk) p = &G.pm[G.nparty++];
     else if (G.nreserve < RESERVE_MAX) p = &G.reserve[G.nreserve];
-    else return;                    /* the arc caps the roster at 5 souls */
+    else return;                    /* the arc caps the roster at 6 souls */
     strcpy8(p->name, name);
     p->cls = (u8)cls; p->level = 1; p->xp = G.pm[0].xp; p->face = (u8)face;
     p->subclass = 255;   /* explicit: slot 0s and stale occupants both read
@@ -206,6 +206,11 @@ void party_add_shadowheart(void) {
 /* beach recruits (events.c: the knife beat and the sigil beat) */
 void party_add_astarion(void) { party_add("ASTAR.", CLS_ROGUE, ORIG_ASTARION); }
 void party_add_gale(void)     { party_add("GALE", CLS_WIZARD, ORIG_GALE); }
+
+/* the gates victory (events.c): the Blade of Frontiers makes six. His canon
+ * identity -- human, folk hero, the Fiend from level 1 -- rides the origins
+ * table through party_add like every other soul. */
+void party_add_wyll(void)     { party_add("WYLL", CLS_WARLOCK, ORIG_WYLL); }
 
 /* exchange walking slot i (1..2 -- Tav holds 0) with reserve slot r;
  * weapon and tactic travel with their member */

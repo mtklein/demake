@@ -234,6 +234,10 @@ MONSTER_MAP = [  # (enum, source dict, key) in rules.h R5M_ order
     ("R5M_THRALL", "ovr", "awakened thrall"),
     ("R5M_SKELETON", "srd", "skeleton"),
     ("R5M_BANDIT", "srd", "bandit"),
+    ("R5M_GOBLIN", "srd", "goblin"),
+    ("R5M_GOB_BOSS", "ovr", "goblin warchief"),
+    ("R5M_ZEVLOR", "ovr", "zevlor"),
+    ("R5M_WYLL", "ovr", "wyll ally"),
 ]
 
 def attack_init(a):

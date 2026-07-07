@@ -1100,6 +1100,65 @@ METATILES = {
         "6667777677776666",
         "6666666666666666",
     ],
+    # ---- stone 6: the grove gates ----
+    # palisade wall: sharpened driftwood logs lashed upright, deep shadow
+    # in the gaps between points; earth-banked footing. Tiles horizontally.
+    "palis": [
+        "7177171771717177",
+        "7E77E7177E7E7777",
+        "7E77E77E77E7E7E7",
+        "7E77E77E77E7E7E7",
+        "7EE7E77E77E7E7E7",
+        "7E77EE7E77E7EEE7",
+        "7E77E77EE7E7E7E7",
+        "7E77E77E77EE77E7",
+        "7E77E77E77E7E7E7",
+        "77E7E7E7E7E777E7",
+        "7E77E77E77E7E7E7",
+        "7E7E77E77E7E7EE7",
+        "7777777777777777",
+        "6667766677666776",
+        "E77EEEE77EE7E7EE",
+        "E1EEE1EEEE1EE1EE",
+    ],
+    # the grove's great door, left half: iron-banded timber, ward-carving
+    "gate_l": [
+        "7777777777777777",
+        "7666666666666666",
+        "76EEEEEEEEEEEEEE",
+        "76E7777777777777",
+        "76E7666666666666",
+        "76E7677777777777",
+        "76E76777777777A7",
+        "76E7677777777777",
+        "76E7677777998777",
+        "76E7677777889977",
+        "76E7677777798877",
+        "76E76777777A9777",
+        "76E7677777777777",
+        "76E7666666666666",
+        "76EEEEEEEEEEEEEE",
+        "7777777777777777",
+    ],
+    # the great door, right half: mirrored bands, the bar's shadow
+    "gate_r": [
+        "7777777777777777",
+        "6666666666666667",
+        "EEEEEEEEEEEEE1E7",
+        "777777777777717E",
+        "666666666666717E",
+        "777777777777717E",
+        "7A7777777777717E",
+        "777777777777717E",
+        "778997777777717E",
+        "779988777777717E",
+        "778897777777717E",
+        "7779A7777777717E",
+        "777777777777717E",
+        "666666666666717E",
+        "EEEEEEEEEEEEE1E7",
+        "7777777777777777",
+    ],
     # a bedroll on the sand, top-down: rolled pillow end west (highlit),
     # a dark seam where the roll stops, creases across the blanket east
     "bedroll": [
@@ -1132,6 +1191,7 @@ SOLID = {
     "chapel_wall", "tomb_door", "gravestone",
     "cwall", "sconce", "sarc_t", "sarc_b", "sarc_ot", "sarc_ob",
     "campfire", "bedroll",
+    "palis", "gate_l", "gate_r",
 }
 
 ORDER = [
@@ -1147,4 +1207,5 @@ ORDER = [
     "cwall", "cfloor", "sconce", "rubble", "bones", "carch",
     "sarc_t", "sarc_b", "sarc_ot", "sarc_ob",
     "campfire", "bedroll",
+    "palis", "gate_l", "gate_r",
 ]

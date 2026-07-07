@@ -102,6 +102,48 @@ MONSTERS = {
         "resistances": ["cold", "fire", "poison"], "immunities": [],
         "senses": {"darkvision": 60, "passive_perception": 13},
     },
+    # The goblin boss is a Monster Manual variant, in no SRD -- the gates'
+    # warchief is our own leader design (adjacent in spirit, original numbers).
+    "goblin warchief": {
+        "display": "Warchief", "srd": False, "ac": 14, "hp": 21,
+        "abilities": {"str": 12, "dex": 15, "con": 12, "int": 10, "wis": 9, "cha": 11},
+        "cr": 1,
+        "attacks": [
+            {"name": "Cleaver", "to_hit": 4, "dice": "1d8", "plus": 2,
+             "dmg_type": "slashing"},
+            {"name": "Javelin", "ranged": True, "to_hit": 4, "dice": "1d6", "plus": 2,
+             "dmg_type": "piercing"},
+        ],
+        "resistances": [], "immunities": [],
+        "senses": {"darkvision": 60, "passive_perception": 9},
+    },
+    # The grove-gates allies (encounter side 2, the helm's machinery). Both
+    # are game-design sheets for named story characters, not book monsters:
+    # Zevlor an old Hellrider holding a door, Wyll a warlock duelist whose
+    # one attack is his signature blast, Agonizing-Blast flavored (+CHA).
+    "zevlor": {
+        "display": "Zevlor", "srd": False, "ac": 16, "hp": 30,
+        "abilities": {"str": 14, "dex": 10, "con": 12, "int": 11, "wis": 12, "cha": 14},
+        "cr": 1,
+        "attacks": [
+            {"name": "Longsword", "to_hit": 5, "dice": "1d8", "plus": 3,
+             "dmg_type": "slashing"},
+        ],
+        "resistances": ["fire"],   # tiefling blood keeps its gift
+        "immunities": [],
+        "senses": {"darkvision": 60, "passive_perception": 13},
+    },
+    "wyll ally": {
+        "display": "Wyll", "srd": False, "ac": 13, "hp": 22,
+        "abilities": {"str": 9, "dex": 13, "con": 14, "int": 12, "wis": 11, "cha": 16},
+        "cr": 1,
+        "attacks": [
+            {"name": "Eld.Blast", "ranged": True, "to_hit": 5, "dice": "1d10", "plus": 3,
+             "dmg_type": "force"},
+        ],
+        "resistances": [], "immunities": [],
+        "senses": {"darkvision": 120, "passive_perception": 12},  # the stone eye
+    },
 }
 
 # Homebrew loot weapons (schema mirrors srd_data.WEAPONS + rider fields).

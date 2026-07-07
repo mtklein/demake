@@ -340,13 +340,14 @@ MemberLook member_look(int face, int cls) {
         L.objt = OBJT_LAEZEL; L.ko = OBJT_LAEZEL_KO; L.pal = 1; L.por = POR_LAEZEL;
     } else if (face == ORIG_SHADOW) {
         L.objt = OBJT_SHADOW; L.ko = OBJT_SHADOW_KO; L.pal = 2; L.por = POR_SHADOW;
+    } else if (face == ORIG_WYLL) {
+        L.objt = OBJT_WYLL; L.ko = OBJT_WYLL_KO; L.pal = 4; L.por = POR_WYLL;
     } else {
         L.objt = walk[cls]; L.ko = OBJT_HERO_KO; L.pal = 0; L.por = tavpor[cls];
         switch (face) {                       /* origin portraits (sprite stays class) */
             case ORIG_ASTARION: L.por = POR_ASTARION; break;
             case ORIG_GALE:     L.por = POR_GALE;     break;
             case ORIG_KARLACH:  L.por = POR_KARLACH;  break;
-            case ORIG_WYLL:     L.por = POR_WYLL;     break;
             case ORIG_DURGE:    L.por = POR_DURGE;    break;
         }
     }

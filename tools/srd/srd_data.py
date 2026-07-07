@@ -16,10 +16,13 @@
 #                cross-checked against SRD 5.2.1 via 5e-quint Surface records.
 #                5.1-vs-5.2.1 differences are noted inline.  Ensnaring Strike is
 #                not in SRD 5.1 at all; it is encoded from SRD 5.2.1.
-#   MONSTERS   - imp and boar from SRD 5.1 (dnd5eapi /api/2014/monsters).
+#   MONSTERS   - imp, boar, skeleton, bandit, and goblin from SRD 5.1
+#                (dnd5eapi /api/2014/monsters).
 #                intellect devourer, cambion, and mind flayer appear in NO SRD
 #                (neither 5.1 nor 5.2.1); their game statistics are reconstructed
 #                from the 2014 Monster Manual and are marked "srd": False.
+#                (The goblin boss is likewise MM-only -- the gates' warchief is
+#                original homebrew in overrides.py, per the piscodemon doctrine.)
 #   CONDITIONS - SRD 5.1 (dnd5eapi /api/2014/conditions), condition-implication
 #                structure cross-checked against the 5e-quint conditions algebra
 #                (proofs/conditions-algebra-inductive.qnt).
@@ -627,6 +630,30 @@ MONSTERS = {
         "immunities": [],
         "condition_immunities": [],
         "senses": {"passive_perception": 10},
+    },
+    "goblin": {
+        "srd": True,   # SRD 5.1 stat block, verbatim
+        "ac": 15, "hp": 7, "hp_dice": "2d6",
+        "abilities": {"str": 8, "dex": 14, "con": 10,
+                      "int": 10, "wis": 8, "cha": 8},
+        "speed": 30,
+        "cr": 0.25,
+        "attacks": [
+            {"name": "Scimitar", "to_hit": 4, "dice": "1d6", "plus": 2,
+             "dmg_type": "slashing"},
+            {"name": "Shortbow", "ranged": True, "to_hit": 4,
+             "dice": "1d6", "plus": 2, "dmg_type": "piercing",
+             "note": "range 80/320"},
+        ],
+        "traits": ["Nimble Escape"],
+        "trait_notes": {
+            "Nimble Escape": "can take the Disengage or Hide action as a "
+                             "bonus action on each of its turns",
+        },
+        "resistances": [],
+        "immunities": [],
+        "condition_immunities": [],
+        "senses": {"darkvision": 60, "passive_perception": 9},
     },
 }
 

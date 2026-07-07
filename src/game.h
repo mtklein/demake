@@ -22,8 +22,9 @@ typedef struct {
 
 enum { TAC_ORDERS, TAC_WISELY, TAC_ALLOUT, TAC_HEALER, TAC_NOSLOTS, TAC_COUNT };
 
-/* the beach arc's roster is five souls; three walk, the rest wait */
-enum { RESERVE_MAX = 2 };
+/* the beach arc's roster is six souls (Wyll joins at the grove gates);
+ * three walk, the rest wait */
+enum { RESERVE_MAX = 3 };
 
 typedef struct {
     PMember pm[3];
@@ -98,6 +99,8 @@ enum {
     BF_CAMP_SCENE   = 1 << 19,   /* the Under Selune scene played; never again */
     /* stone 6: the grove gates */
     BF_WARRYN_SEEN  = 1 << 20,   /* stood close enough; the tadpole knows its kin */
+    BF_GATES_WON    = 1 << 21,   /* the assault broken; the door still shut */
+    BF_CHEST_GATES  = 1 << 22,   /* the Hellrider cache shared out */
 };
 
 #define HERO_CLS (G.pm[0].cls)
@@ -120,6 +123,7 @@ void party_add_laezel(void);
 void party_add_shadowheart(void);
 void party_add_astarion(void);
 void party_add_gale(void);
+void party_add_wyll(void);       /* the gates victory: the sixth soul */
 void party_swap(int i, int r);   /* walking slot i (1..2; Tav holds 0) <-> reserve r */
 int  party_give_xp(u16 xp, char* levelup_names);  /* returns # of level-ups;
         * names gets one ' '-joined name per level-up gained THIS award:

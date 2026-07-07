@@ -40,6 +40,16 @@
 #else
 #define SAY_GA(t) say(t)
 #endif
+#ifdef POR_ZEVLOR
+#define SAY_ZV(t) say_p(POR_ZEVLOR, t)
+#else
+#define SAY_ZV(t) say(t)
+#endif
+#ifdef POR_WYLL
+#define SAY_WY(t) say_p(POR_WYLL, t)
+#else
+#define SAY_WY(t) say(t)
+#endif
 
 static int cur_room;
 static int n_us = -1, n_lz = -1, n_sh = -1, n_zh = -1, n_fl = -1;
@@ -59,12 +69,16 @@ static int n_loot[3];                /* the looter band at the tomb door */
 static int n_warryn;                 /* the small looter in the mask. That is
                                       * all the game will ever say about him. */
 static int n_withers;                /* the keeper of the crypt's ledgers */
-static int n_camp[4];                /* companions around the campfire */
-static const PMember* camp_member[4];
+static int n_zev;                    /* Zevlor, holding the grove door */
+static int n_wyllg;                  /* the Blade of Frontiers, out front */
+static int n_gob[6];                 /* the goblin assault (last = warchief) */
+static int n_camp[5];                /* companions around the campfire */
+static const PMember* camp_member[5];
 
-/* the fire at (7,4); whoever the beach has given back stands in its light */
-static const struct { s8 mx, my, face; } camp_spot[4] = {
-    { 6, 4, 3 }, { 8, 4, 2 }, { 7, 5, 1 }, { 6, 5, 1 },
+/* the fire at (7,4); whoever the beach has given back stands in its light
+ * (five spots: the full six-soul roster, less Tav) */
+static const struct { s8 mx, my, face; } camp_spot[5] = {
+    { 6, 4, 3 }, { 8, 4, 2 }, { 7, 5, 1 }, { 6, 5, 1 }, { 8, 5, 1 },
 };
 
 static void camp_add(int k, const PMember* p) {
@@ -157,7 +171,7 @@ static void heal_pod(void) {
 static int room_song(int id) {
     if (id == RM_HELM) return SONG_BOSS;
     if (id == RM_BEACH || id == RM_DUNES) return SONG_TADPOLE;  /* surf, on the surf */
-    if (id == RM_CHAPEL) return SONG_GAIA;   /* consecrated ground keeps the hymn */
+    if (id == RM_CHAPEL || id == RM_GATES) return SONG_GAIA;    /* hymn to the door */
     if (id == RM_CAMP) return SONG_SELUNE;   /* the song was written for here */
     return SONG_EXPLORE;
 }
@@ -197,7 +211,9 @@ void room_enter(int id, int sx, int sy, int face) {
     n_loot[0] = n_loot[1] = n_loot[2] = -1;
     n_warryn = -1;
     n_withers = -1;
-    n_camp[0] = n_camp[1] = n_camp[2] = n_camp[3] = -1;
+    n_zev = n_wyllg = -1;
+    for (int i = 0; i < 6; i++) n_gob[i] = -1;
+    for (int i = 0; i < 5; i++) n_camp[i] = -1;
 
     /* the camp is the arc's one night room: the beach tile family re-lit
      * by moonlight over BG palette 3; every other room restores daylight
@@ -217,6 +233,7 @@ void room_enter(int id, int sx, int sy, int face) {
         case RM_OSSUARY: field_load(map_ossuary, MAP_OSSUARY_W, MAP_OSSUARY_H); break;
         case RM_SANCTUM: field_load(map_sanctum, MAP_SANCTUM_W, MAP_SANCTUM_H); break;
         case RM_CAMP:    field_load(map_camp, MAP_CAMP_W, MAP_CAMP_H); break;
+        case RM_GATES:   field_load(map_gates, MAP_GATES_W, MAP_GATES_H); break;
     }
     field_spawn(sx, sy, face);
 
@@ -321,13 +338,33 @@ void room_enter(int id, int sx, int sy, int face) {
             break;
         case RM_CAMP: {
             /* the roster knows who made it back: the walking two plus the
-             * bench take the spots around the fire, up to all four */
+             * bench take the spots around the fire, up to all five */
             int k = 0;
-            for (int i = 1; i < G.nparty && k < 4; i++) camp_add(k++, &G.pm[i]);
-            for (int r = 0; r < G.nreserve && k < 4; r++) camp_add(k++, &G.reserve[r]);
+            for (int i = 1; i < G.nparty && k < 5; i++) camp_add(k++, &G.pm[i]);
+            for (int r = 0; r < G.nreserve && k < 5; r++) camp_add(k++, &G.reserve[r]);
             mgba_logf("camp souls=%d", k + 1);
             break;
         }
+        case RM_GATES:
+            /* Zevlor holds the door, before and after */
+            n_zev = field_add_npc(7, 2, OBJT_ZEVLOR, 6, 0, 0);
+            if (!(G.bflags & BF_GATES_WON)) {
+                /* the assault, mid-swing: the Blade of Frontiers out front
+                 * with two goblins on him, the rest pressing the wall */
+                if (G.origin != ORIG_WYLL) {
+                    n_wyllg = field_add_npc(5, 5, OBJT_WYLL, 4, 3, 0);
+                    mgba_log("gates wyll dueling");
+                } else {
+                    mgba_log("gates reroute wyll");
+                }
+                n_gob[0] = field_add_npc(4, 5, OBJT_GOBF, 1, 3, NPC_2FRAME);
+                n_gob[1] = field_add_npc(6, 5, OBJT_GOBF, 1, 2, NPC_2FRAME);
+                n_gob[2] = field_add_npc(6, 3, OBJT_GOBF, 1, 1, NPC_2FRAME);
+                n_gob[3] = field_add_npc(9, 4, OBJT_GOBF, 1, 2, NPC_2FRAME);
+                n_gob[4] = field_add_npc(8, 6, OBJT_GOBF, 1, 1, NPC_2FRAME);
+                n_gob[5] = field_add_npc(9, 3, OBJT_GOBBOSS, 1, 1, NPC_2FRAME);
+            }
+            break;
     }
 }
 
@@ -847,6 +884,24 @@ static void beach_go(int next, int sx, int sy) {
             say("The scree tops out on a bluff. A ruined chapel leans over its own graveyard; crows keep the roofline like sentries.");
             if (!(G.bflags & BF_LOOTERS_GONE))
                 say("Voices ahead. Living ones -- and arguing about a door.");
+            if (!(G.bflags & BF_GATES_WON))
+                say("And west along the bluff, under a smudge of smoke: the far-off ring of steel on steel.");
+            dlg_close();
+        }
+        if (next == RM_GATES) {
+            say("The bluff path opens onto beaten ground. A palisade of sharpened logs walls the north -- and a great banded door, shut.");
+            if (!(G.bflags & BF_GATES_WON)) {
+                say("Goblins swarm the wall. Arrows rattle off the logs from above; something inside is screaming orders in two languages.");
+                if (G.origin == ORIG_WYLL) {
+                    say("An old tiefling holds the door itself, longsword up, buying the wall time with his own arms.");
+                    SAY_ZV("ZEVLOR: \"The Blade of Frontiers?! Then the gulls owe me an apology. TO THE DOOR!\"");
+                } else {
+                    say("And out front, ALONE, a young man duels two goblins at once -- rapier flashing, coat snapping, entirely too pleased about it.");
+                    SAY_WY("WYLL: \"Company! Wonderful -- pick a goblin, friend, they're going spare!\"");
+                }
+            } else {
+                say("Goblin dead litter the beaten ground. The door has not opened; the grove keeps its own counsel.");
+            }
             dlg_close();
         }
         if (next == RM_CAMP) {
@@ -1482,7 +1537,7 @@ static void camp_interact(int mx, int my, int m) {
 
 /* a companion by the fire: a word, not a quest */
 static int camp_npc_talk(int idx) {
-    for (int k = 0; k < 4; k++) {
+    for (int k = 0; k < 5; k++) {
         if (idx < 0 || idx != n_camp[k] || !camp_member[k]) continue;
         char m[56];   /* name (7) + the 41-char line + NUL, with headroom */
         char* d = m;
@@ -1497,6 +1552,103 @@ static int camp_npc_talk(int idx) {
         return 1;
     }
     return 0;
+}
+
+/* ------------------------------------------------------------ the gates
+ * Stone 6, the finale: a goblin assault caught mid-swing. Zevlor holds
+ * the door and Wyll duels out front -- both fight as side-2 allies (the
+ * helm's machinery). The warchief's band is the last battle between the
+ * arc and its accounting; Wyll joins after it, the roster's sixth soul.
+ * The great door itself never opens: the grove interior is another
+ * release's story, and nothing here presumes its shape. */
+
+static void gates_victory(void) {
+    int zev_up = n_zev >= 0 && !(npcs[n_zev].flags & NPC_GONE);
+    say("The last goblin folds. For one long breath the beaten ground holds still -- then the wall above erupts in ragged tiefling cheering.");
+    if (zev_up)
+        SAY_ZV("ZEVLOR: \"Held. HELD! See to the wounded! And you four -- whatever wind blew you up this bluff, I am in its debt.\"");
+    else
+        say("Hellriders spill from a sally gap and drag their commander clear of the door -- breathing, cursing, giving orders flat on his back.");
+    if (G.origin == ORIG_WYLL) {
+        /* story surgery: the Blade of Frontiers is the player. The duel out
+         * front never happened; the legend arrived from the beach instead. */
+        SAY_ZV("ZEVLOR: \"The Blade of Frontiers, at my door, with the timing of a ballad. When the grove tells this story, no one will believe a word.\"");
+        URGE("The cheering washes over you. Somewhere under it, the old quiet thing wonders what the wall would sound like, falling.");
+    } else {
+        if (n_wyllg >= 0 && (npcs[n_wyllg].flags & NPC_GONE))
+            say("By the door, the young duelist picks himself up off the sand, rapier for a cane, dignity nearly intact.");
+        SAY_WY("WYLL: \"Wyll. The Blade of Frontiers -- you may have heard the ballads. Kindly ignore the verses about the ogre.\"");
+        SAY_WY("WYLL: \"You fight like a story worth following, and I find myself... between causes. Say the word and my blade is yours.\"");
+        say("Behind your eye the passenger stirs, curious: this one owes a debt, and something far away is holding the other end of it.");
+        say("Wyll joins the party!");
+        party_add_wyll();
+        if (n_wyllg >= 0) field_remove_npc(n_wyllg);
+        n_wyllg = -1;
+        mgba_logf("gates recruit wyll walk=%d reserve=%d", G.nparty, G.nreserve);
+    }
+    say("The great door stays barred. Beyond it: voices, weeping, counting. The grove keeps its own story -- this one ends at the wall.");
+    dlg_close();
+}
+
+static void gates_battle(void) {
+    SAY_ZV("ZEVLOR: \"Hellriders! The door HOLDS or the grove dies. TO ME!\"");
+    if (n_wyllg >= 0)
+        SAY_WY("WYLL: \"You heard the commander -- dance card's open, cut in anywhere!\"");
+    URGE("So many spines, all conveniently gathered. Behind your eye, the counting starts, and it is not counting goblins.");
+    dlg_close();
+    EncSpawn gs[8];
+    int n = 0;
+    for (int i = 0; i < 5; i++) {
+        gs[n].mon = R5M_GOBLIN; gs[n].npc = (s8)n_gob[i];
+        gs[n].xp = 50; gs[n].side = 1; n++;
+    }
+    gs[n].mon = R5M_GOB_BOSS; gs[n].npc = (s8)n_gob[5];
+    gs[n].xp = 100; gs[n].side = 1; n++;
+    gs[n].mon = R5M_ZEVLOR; gs[n].npc = (s8)n_zev;
+    gs[n].xp = 0; gs[n].side = 2; n++;
+    if (n_wyllg >= 0) {
+        gs[n].mon = R5M_WYLL; gs[n].npc = (s8)n_wyllg;
+        gs[n].xp = 0; gs[n].side = 2; n++;
+    }
+    encounter_run(gs, n, 0, 0);
+    G.bflags |= BF_GATES_WON;
+    mgba_log("gates held");
+    music(room_song(cur_room));
+    ev_light();
+    gates_victory();
+}
+
+static void gates_interact(int mx, int my, int m) {
+    (void)mx; (void)my;
+    if (m == MT_GATE_L || m == MT_GATE_R) {
+        if (!(G.bflags & BF_GATES_WON))
+            say("The great door shudders under fists and hatchets. It is losing the argument slowly.");
+        else {
+            say("The great door stays barred; behind it, the grove counts its dead and its luck.");
+            say("Whatever waits inside is another story. This one held the wall.");
+        }
+        dlg_close();
+        return;
+    }
+    if (m == MT_PALIS) {
+        say("Sharpened ship-timber and driftwood, lashed and earth-set. Half of Elturel's carpentry is in this wall, and all of its stubbornness.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_CHEST) {
+        if (!(G.bflags & BF_CHEST_GATES)) {
+            G.bflags |= BF_CHEST_GATES;
+            sfx_play(SFX_CONFIRM);
+            say("A Hellrider supply cache, half-buried by the fighting: two Potions, stamped with Elturel's sun.");
+            G.potions = (u8)(G.potions + 2);
+        } else say("Empty. The sun stamp stays with the crate.");
+        dlg_close();
+        return;
+    }
+    if (m == MT_ROCK) {
+        say("Bluff stone, chipped by arrows. The grove chose its ground well.");
+        dlg_close();
+    }
 }
 
 /* ------------------------------------------------------------ the crypt
@@ -1700,6 +1852,7 @@ void ev_interact(int mx, int my) {
         case RM_OSSUARY:
         case RM_SANCTUM: crypt_interact(mx, my, m); break;
         case RM_CAMP:    camp_interact(mx, my, m); break;
+        case RM_GATES:   gates_interact(mx, my, m); break;
     }
 }
 
@@ -1734,6 +1887,7 @@ void ev_step(int mx, int my) {
     if (cur_room == RM_CHAPEL) {
         if (my == 9) { beach_go(RM_DUNES, mx, 1); return; }   /* the scree */
         if (mx == 15) { beach_go(RM_CAMP, 1, 4); return; }    /* the camp path */
+        if (mx == 0) { beach_go(RM_GATES, 14, 4); return; }   /* the grove road */
         if (m == MT_TOMB_DOOR_O) { crypt_go(RM_CRYPT, 6, 7); return; }
         if (n_warryn >= 0 && !(G.bflags & BF_WARRYN_SEEN)) {
             /* step within reach of the masked looter (5,2): to those who
@@ -1747,6 +1901,12 @@ void ev_step(int mx, int my) {
     }
     if (cur_room == RM_CAMP) {
         if (mx == 0) beach_go(RM_CHAPEL, 14, 4);   /* back up to the yard */
+        return;
+    }
+    if (cur_room == RM_GATES) {
+        if (mx == 15) { beach_go(RM_CHAPEL, 1, 4); return; }  /* the bluff road */
+        /* close with the fight and it closes with you */
+        if (!(G.bflags & BF_GATES_WON) && mx <= 10) { gates_battle(); return; }
         return;
     }
     if (cur_room == RM_CRYPT) {
@@ -1824,6 +1984,31 @@ void ev_npc(int idx) {
         return;
     }
     if (cur_room == RM_CAMP && camp_npc_talk(idx)) return;
+    if (idx >= 0 && idx == n_zev) {
+        if (!(G.bflags & BF_GATES_WON)) {
+            SAY_ZV("ZEVLOR: \"Less talk. More steel!\"");
+            dlg_close();
+            gates_battle();
+            return;
+        }
+        SAY_ZV("ZEVLOR: \"The wall stands, and so, against all odds, do I. Elturel taught me to repay debts -- the grove will hear how this door held.\"");
+        dlg_close();
+        return;
+    }
+    if (idx >= 0 && idx == n_wyllg) {
+        SAY_WY("WYLL: \"Introductions AFTER the goblins, friend!\"");
+        dlg_close();
+        gates_battle();
+        return;
+    }
+    if (idx >= 0 && !(G.bflags & BF_GATES_WON) &&
+        (idx == n_gob[0] || idx == n_gob[1] || idx == n_gob[2] ||
+         idx == n_gob[3] || idx == n_gob[4] || idx == n_gob[5])) {
+        say("The goblin wheels on you, delighted. Fresh meat volunteers!");
+        dlg_close();
+        gates_battle();
+        return;
+    }
     if (idx >= 0 && idx == n_ast) { astarion_beat(); return; }
     if (idx >= 0 && idx == n_boar) { boar_beat(); return; }
     if (idx >= 0 && idx == n_warryn) {

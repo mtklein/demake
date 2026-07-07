@@ -605,6 +605,47 @@ def camp_night():
     ready()                            # second arrival: no scene, just night
     shot("n_replay")
 
+# --- stone 6: the grove gates ----------------------------------------------
+
+def _to_gates():
+    """chapel spawn (7,8) -> the west gap (0,4), skirting the looter band"""
+    walk("LEFT", 6)                    # (1,8)
+    walk("UP", 4)                      # (1,4)
+    walk("LEFT", 1)                    # (0,4): the grove road
+    ready()
+
+@scn
+def gates_wyll():
+    """The finale battle, canonical: arrive with Shadowheart + Lae'zel,
+    find Wyll dueling out front and Zevlor at the door, win the assault
+    with both allies on side 2, and recruit the sixth soul to the bench."""
+    beach_setup(0, [0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT)
+    beach_boot()
+    _to_chapel()                       # cage choice (0)
+    _to_gates()
+    shot("g_gates")                    # the assault tableau, pre-battle
+    walk("LEFT", 4)                    # (10,4): close with the fight
+    ready(30000)                       # battle + victory beat + recruit
+    shot("g_won")
+    walk("RIGHT", 3); walk("DOWN", 2)  # (13,6), above the Hellrider cache
+    face_interact("DOWN")
+    shot("g_cache")
+
+@scn
+def gates_reroute_wyll():
+    """Origin Wyll: the Blade of Frontiers is the player, so no duelist
+    waits out front -- the battle runs with Zevlor alone on side 2 and the
+    victory beat shades to Zevlor greeting the legend himself."""
+    beach_setup(11, [0], flags=GF_SH_FREED | GF_LAEZEL | GF_DECK_FOUGHT,
+                origin=5)
+    beach_boot()
+    _to_chapel()                       # cage choice (0)
+    _to_gates()
+    shot("g_reroute")
+    walk("LEFT", 4)                    # close with the fight
+    ready(30000)
+    shot("g_reroute_won")
+
 @scn
 def helm_sleepz():
     setup(3, [0, 1, 0, 0, 2], 2)

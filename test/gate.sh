@@ -36,6 +36,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            beach_full beach_medicine beach_flayer beach_origin \
            beach_recruits beach_reroute_astarion beach_reroute_gale \
            chapel_fight chapel_parley crypt_withers camp_night warryn_check \
+           gates_wyll gates_reroute_wyll \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
@@ -59,6 +60,9 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         # the campfire rest healed a poked-to-1-hp Tav back to full
         camp_night)                           want="camp rest from=1 full=1" ;;
         warryn_check)                         want="warryn lever" ;;
+        # the sixth soul: walking party full, so Wyll lands on the bench
+        gates_wyll)                           want="gates recruit wyll walk=3 reserve=1" ;;
+        gates_reroute_wyll)                   want="gates reroute wyll" ;;
         tether_check)                         want="tether"          ;;
         cone_show)                            want="cone shown npc=" ;;
         panic_check)                          want="PANIC poked"     ;;
@@ -99,6 +103,10 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         chapel_fight)   extra="init Bandit|enc result=WIN|looters resolved|tomb door opens" ;;
         # stone 6: the masked looter -- noticed, spoken to, levered past
         warryn_check)   extra="beach wake|warryn stirs|looters resolved|tomb door opens" ;;
+        # stone 6: the gates -- goblins + warchief in initiative, BOTH allies
+        # take real side-2 turns, the assault breaks, the sixth soul lands
+        gates_wyll)     extra="beach wake|gates wyll dueling|init Goblin|init Warchief|init Zevlor|init Wyll|Zevlor side2|Wyll side2|enc result=WIN|gates held" ;;
+        gates_reroute_wyll) extra="beach wake|init Goblin|init Warchief|init Zevlor|Zevlor side2|enc result=WIN|gates held" ;;
         chapel_parley)  extra="field-check Persuasion|looters resolved|tomb door opens|dark room=8 dim=1" ;;
         crypt_withers)  extra="dark room=8 dim=1|init Skeleton|enc result=WIN|withers wakes|dark room=10 dim=1|subclass pick Wyll" ;;
         # stone 5: three souls reach the camp, the scene fires once with a
@@ -133,8 +141,15 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
     fi
     if [ "$scn" = chapel_fight ]; then
         # the masked one fights with the band: four bandits enter initiative
-        n=$(echo "$out" | grep -c "init Bandit")
+        # (`|| true`: grep -c exits 1 at zero matches, and under set -e a
+        #  zero count must FAIL the slot, not silently kill the gate)
+        n=$(echo "$out" | grep -c "init Bandit" || true)
         [ "$n" -eq 4 ] || bad="${bad:+$bad,}band-count=$n"
+    fi
+    if [ "$scn" = gates_reroute_wyll ]; then
+        # story surgery: the player IS Wyll -- nobody may recruit him
+        n=$(echo "$out" | grep -c "gates recruit wyll" || true)
+        [ "$n" -eq 0 ] || bad="${bad:+$bad,}wyll-double=$n"
     fi
     if [ "$scn" != panic_check ] && echo "$out" | grep -q "PANIC"; then
         bad="${bad:+$bad,}panic"; echo "$out" | grep -A6 "PANIC" | head -10

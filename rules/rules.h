@@ -333,11 +333,13 @@ extern const R5Spell r5_spells[];
 #include "srd_ids.h"            /* generated R5S_* ids, legacy 13 first */
 
 extern const R5Monster r5_monsters[];
-/* IMP/BOAR/SKELETON/BANDIT are true SRD stat blocks (test-validated); the
- * rest are our prologue homebrew from tools/srd/overrides.py */
+/* IMP/BOAR/SKELETON/BANDIT/GOBLIN are true SRD stat blocks (test-validated);
+ * the rest are our prologue homebrew from tools/srd/overrides.py */
 enum { R5M_IMP, R5M_BOAR, R5M_DEVOURER, R5M_CAMBION, R5M_FLAYER, R5M_ZHALK,
        R5M_LESSER_IMP, R5M_LESSER_BOAR, R5M_THRALL,
        R5M_SKELETON, R5M_BANDIT,       /* the beach arc's crypt + chapel */
+       R5M_GOBLIN, R5M_GOB_BOSS,       /* the grove-gates assault */
+       R5M_ZEVLOR, R5M_WYLL,           /* allied side 2 at the gates */
        R5M_COUNT };
 
 #endif

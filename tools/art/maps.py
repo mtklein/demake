@@ -10,6 +10,7 @@ MAPLEG = {
     "h": "helm_floor", "V": "viewport",
     "s": "sand", "S": "sand_d", "u": "surf", "U": "sea", "k": "wreck",
     "G": "sand_g", "r": "rock", "n": "dune", "<": "wreck_l", ">": "wreck_r",
+    "P": "palis", "(": "gate_l", ")": "gate_r",
     "y": "flayer_dying", "Z": "cage", "z": "cage_open", "*": "sigil",
     "x": "scree", "w": "chapel_wall", "q": "tomb_door", "Q": "tomb_door_o",
     "e": "gravestone", "A": "cwall", "F": "cfloor", "N": "sconce",
@@ -125,20 +126,41 @@ MAPS = {
         "nnnnnnnnnssnnnnnnn",
     ],
     # The chapel yard on the bluff — the looter band argues before the tomb
-    # door (7,1)-(8,1); gravestones flank the worn path; chest (14,6);
-    # scree pass south (7,9)-(8,9) back down to the dunes; east gap (15,4)
-    # down into the lee of the bluff, where the camp is (stone 5).
+    # door (7,1)-(8,1), the masked one at (5,2); gravestones flank the worn
+    # path; chest (14,6); scree pass south (7,9)-(8,9) back down to the
+    # dunes; east gap (15,4) down into the lee of the bluff, where the camp
+    # is (stone 5); west gap (0,4) along the bluff to the grove gates
+    # (stone 6).
     "chapel": [
         "rrrrrrrrrrrrrrrr",
         "rwwwwwwqqwwwwwwr",
         "rGssessssssessGr",
         "rssssssssssssssr",
-        "rGsessssssssesss",
+        "sGsessssssssesss",
         "rssssssssssssssr",
         "rsesssssssssesTr",
         "rGssssssssssssGr",
         "rssGsssssssssssr",
         "rrrrrrrxxrrrrrrr",
+    ],
+    # The grove gates (stone 6's finale room) — a palisade of sharpened
+    # logs across the north, the great door at (7,1)-(8,1), open ground
+    # before it. Landmarks the events layer points at: Zevlor before the
+    # door (7,2); Wyll dueling out front (5,5) with goblins at (4,5) and
+    # (6,5); the rest of the assault at (6,3), (9,4), (8,6), the warchief
+    # at (9,3); Hellrider cache chest (13,7); east gap (15,4) back along
+    # the bluff to the chapel yard. The battle trips at mx<=10.
+    "gates": [
+        "rrrrrrrrrrrrrrrr",
+        "rPPPPPP()PPPPPPr",
+        "rsssssssssssssGr",
+        "rGsssssssssssssr",
+        "rsssssssssssssss",
+        "rssssssssssGsssr",
+        "rGsssssssssssssr",
+        "rssssGsssssssTsr",
+        "rsssssssssGssssr",
+        "rrrrrrrrrrrrrrrr",
     ],
     # The crypt entry hall (DARK) — pillars, rubble, grave-gift chest
     # (10,4); arch north (6,0) to the ossuary, arch south (6,8) out.

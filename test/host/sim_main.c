@@ -404,8 +404,9 @@ static void t_menu_crawl_fuzz(void) {
     mk_party(CLS_CLERIC, 2);
     party_add_laezel();
     party_add_shadowheart();
-    party_add_astarion();          /* a live reserve: the Party screen gets */
-    party_add_gale();              /* fuzzed along with everything else    */
+    party_add_astarion();          /* a full three-deep reserve: the Party */
+    party_add_gale();              /* screen gets fuzzed along with        */
+    party_add_wyll();              /* everything else                      */
     G.potions = 3;
     G.revivify = 2;
     G.everburn = 1;
@@ -484,7 +485,8 @@ static void t_tactics_set(void) {
 /* ------------------------------------------------- roster + reserve swap
  * Oracles are the SRD sheets, independent of party5.c: rogue d8 CON 13
  * (L1 9 hp, L2 15), wizard d6 CON 14 (L1 8 hp, L2 14, slots 2/3),
- * fighter d10 CON 14 (L1 12), cleric d8 CON 14 (L1 10, 2 slots). */
+ * fighter d10 CON 14 (L1 12), cleric d8 CON 14 (L1 10, 2 slots),
+ * warlock d8 + Wyll's human CON 15 (L1 10, L2 17, pact slots 1/2). */
 
 static void mk_roster5(int cls, int lvl) {
     mk_party(cls, lvl);
@@ -492,6 +494,11 @@ static void mk_roster5(int cls, int lvl) {
     party_add_shadowheart();
     party_add_astarion();
     party_add_gale();
+}
+
+static void mk_roster6(int cls, int lvl) {   /* the gates: Wyll makes six */
+    mk_roster5(cls, lvl);
+    party_add_wyll();
 }
 
 static void t_roster_recruit_overflow(void) {
@@ -525,10 +532,88 @@ static void t_roster_recruit_overflow(void) {
              bench5[1].slots[0]);
     T_ASSERT(G.rweapon[0] == R5W_DAGGER && G.rweapon[1] == R5W_QUARTERSTAFF,
              "bench weapons %d/%d", G.rweapon[0], G.rweapon[1]);
-    party_add_gale();                  /* a 6th soul has nowhere to land */
-    T_ASSERT(G.nparty == 3 && G.nreserve == 2,
+    /* the sixth soul: Wyll lands on the last bench slot with his whole
+     * canon identity -- human folk hero, warlock of the Fiend from L1 */
+    party_add_wyll();
+    T_ASSERT(G.nparty == 3 && G.nreserve == 3,
+             "Wyll not benched (nparty %d nreserve %d)", G.nparty, G.nreserve);
+    T_ASSERT(!strcmp(G.reserve[2].name, "WYLL") && G.reserve[2].cls == CLS_WARLOCK
+             && G.reserve[2].face == ORIG_WYLL,
+             "reserve 2 is %s cls %d face %d", G.reserve[2].name,
+             G.reserve[2].cls, G.reserve[2].face);
+    T_ASSERT(G.reserve[2].level == 2, "Wyll joined at Lv %d, want 2",
+             G.reserve[2].level);
+    T_ASSERT(G.reserve[2].race == R5RACE_HUMAN
+             && G.reserve[2].background == R5BG_FOLK_HERO,
+             "Wyll's blood: race %d bg %d, want human folk hero",
+             G.reserve[2].race, G.reserve[2].background);
+    T_ASSERT(G.reserve[2].subclass == R5SUB_FIEND,
+             "benched Wyll subclass %d, want the Fiend %d (warlock reveals at 1)",
+             G.reserve[2].subclass, R5SUB_FIEND);
+    /* human warlock L2: d8 max + CON 15 (+2) = 10, then +(5+2) = 17 */
+    T_ASSERT(bench5[2].hp == 17 && bench5[2].hpmax == 17,
+             "benched warlock L2 hp %d/%d, want 17/17",
+             bench5[2].hp, bench5[2].hpmax);
+    T_ASSERT(bench5[2].rsrc[R5R_PACT] == 2,
+             "benched warlock L2 pact slots %d, want 2 (SRD)",
+             bench5[2].rsrc[R5R_PACT]);
+    T_ASSERT(G.rweapon[2] == R5W_DAGGER, "Wyll's bench weapon %d", G.rweapon[2]);
+    party_add_gale();                  /* a 7th soul has nowhere to land */
+    T_ASSERT(G.nparty == 3 && G.nreserve == 3,
              "roster overflowed its cap (nparty %d nreserve %d)",
              G.nparty, G.nreserve);
+}
+
+/* the full bench: three benched souls cycle through the walking slots in
+ * ONE Party session, driven through the real menu (the reserve list is
+ * three rows for the first time). Wounds and spent slots travel with
+ * their owners; nobody's sheet is disturbed by merely touring. */
+static void t_roster_six_full_bench(void) {
+    sim_reset();
+    mk_roster6(CLS_BARD, 1);
+    T_ASSERT(G.nparty == 3 && G.nreserve == 3,
+             "six souls: nparty %d nreserve %d", G.nparty, G.nreserve);
+    party5[1].hp -= 3;                     /* Lae'zel carries a wound out */
+    T_ASSERT(r5_spend_slot(&party5[2], 1), "cleric slot spend failed");
+    int lz_max = party5[1].hpmax;
+    script_keys("DOWN DOWN DOWN DOWN DOWN A "
+                "A A "                /* slot 1 <-> r0: Astarion in, LZ out  */
+                "DOWN A DOWN A "      /* slot 2 <-> r1: Gale in, SH out      */
+                "A DOWN DOWN A "      /* slot 1 <-> r2: Wyll in, Ast to r2   */
+                "DOWN A DOWN A "      /* slot 2 <-> r1: SH back in, Gale out */
+                "B B");
+    field_menu();
+    /* walking: Tav, Wyll, Shadowheart */
+    T_ASSERT(!strcmp(G.pm[0].name, "TAV"), "Tav left slot 0 (%s)", G.pm[0].name);
+    T_ASSERT(!strcmp(G.pm[1].name, "WYLL") && G.pm[1].cls == CLS_WARLOCK,
+             "slot 1 holds %s cls %d, want Wyll", G.pm[1].name, G.pm[1].cls);
+    T_ASSERT(!strcmp(G.pm[2].name, "SHADOW."), "slot 2 holds %s", G.pm[2].name);
+    /* Wyll's twin is HIS canon sheet: human CHA 16, pact slot, the Fiend */
+    T_ASSERT(party5[1].ab[R5_CHA] == 16, "Wyll CHA %d, want 16 (human +1)",
+             party5[1].ab[R5_CHA]);
+    T_ASSERT(party5[1].rsrc[R5R_PACT] == 1, "Wyll L1 pact slots %d, want 1",
+             party5[1].rsrc[R5R_PACT]);
+    T_ASSERT(G.pm[1].subclass == R5SUB_FIEND, "walking Wyll subclass %d",
+             G.pm[1].subclass);
+    T_ASSERT(G.weapon[1] == R5W_DAGGER, "Wyll's weapon %d", G.weapon[1]);
+    /* Shadowheart came home with her spent slot still spent */
+    T_ASSERT(party5[2].slots[0] == 1,
+             "cleric slots %d after touring the bench, want 1", party5[2].slots[0]);
+    /* the bench: Lae'zel (wounded), Gale, Astarion */
+    T_ASSERT(!strcmp(G.reserve[0].name, "LAE'ZEL")
+             && !strcmp(G.reserve[1].name, "GALE")
+             && !strcmp(G.reserve[2].name, "ASTAR."),
+             "bench order (%s, %s, %s)", G.reserve[0].name,
+             G.reserve[1].name, G.reserve[2].name);
+    T_ASSERT(bench5[0].hp == lz_max - 3,
+             "benched Lae'zel hp %d, want the wound kept (%d)",
+             bench5[0].hp, lz_max - 3);
+    T_ASSERT(bench5[2].hp == 9 && bench5[2].hpmax == 9,
+             "benched rogue hp %d/%d, want 9/9 untouched",
+             bench5[2].hp, bench5[2].hpmax);
+    T_ASSERT(G.rweapon[0] == R5W_GREATSWORD && G.rweapon[1] == R5W_QUARTERSTAFF
+             && G.rweapon[2] == R5W_DAGGER,
+             "bench weapons %d/%d/%d", G.rweapon[0], G.rweapon[1], G.rweapon[2]);
 }
 
 static void t_party_swap_menu(void) {
@@ -714,6 +799,10 @@ static void t_companion_subclass_bench(void) {
     T_ASSERT(G.reserve[0].subclass == 255 && G.reserve[1].subclass == 255,
              "L1 bench auto-spec'd (%d, %d), want 255/255 (reveals at 3/2)",
              G.reserve[0].subclass, G.reserve[1].subclass);
+    party_add_wyll();              /* warlock reveals at 1: canon even at L1 */
+    T_ASSERT(G.reserve[2].subclass == R5SUB_FIEND,
+             "L1 benched Wyll subclass %d, want the Fiend %d",
+             G.reserve[2].subclass, R5SUB_FIEND);
     sim_reset();
     mk_party(CLS_BARD, 3);         /* the party is L3 before anyone joins */
     party_add_laezel();
@@ -1952,6 +2041,11 @@ static void t_member_look_identity(void) {
     MemberLook ga = member_look(ORIG_GALE, CLS_WIZARD);
     T_ASSERT(ga.objt == OBJT_HERO && ga.por == POR_GALE,
              "Gale look wrong (objt %d por %d)", ga.objt, ga.por);
+    /* Wyll is bespoke since the gates: his own walker, KO, palette, face */
+    MemberLook wy = member_look(ORIG_WYLL, CLS_WARLOCK);
+    T_ASSERT(wy.objt == OBJT_WYLL && wy.ko == OBJT_WYLL_KO && wy.pal == 4,
+             "Wyll look wrong (objt %d ko %d pal %d)", wy.objt, wy.ko, wy.pal);
+    T_ASSERT(wy.por == POR_WYLL, "Wyll portrait %d", wy.por);
     /* party_init wires member 0's face from the chosen origin */
     G.origin = ORIG_SHADOW;
     mk_party(CLS_CLERIC, 1);
@@ -2006,6 +2100,7 @@ static const Test tests[] = {
     { "items_potion",              t_items_potion },
     { "tactics_set",               t_tactics_set },
     { "roster_recruit_overflow",   t_roster_recruit_overflow },
+    { "roster_six_full_bench",     t_roster_six_full_bench },
     { "party_swap_menu",           t_party_swap_menu },
     { "bench_round_trip",          t_bench_round_trip },
     { "rest_heals_bench",          t_rest_heals_bench },
