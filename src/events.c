@@ -435,7 +435,7 @@ static void door_to(int next, int sx, int sy) {
                 say("The helm. Through the great viewport, all of Avernus burns.");
                 say("A cambion commander duels a mind flayer across the deck, blade against tentacle.");
                 SAY_ZH("ZHALK: \"Take this ship, or Zariel will have your head!\"");
-                say("A cold voice floods your mind: \"Thrall. The transponder. CONNECT THE NERVES.\"");
+                SAY_FL("A cold voice floods your mind: \"Thrall. The transponder. CONNECT THE NERVES.\"");
                 if (G.flags & GF_LAEZEL)
                     SAY_LZ("LAE'ZEL: \"The ghaik wants the ship grounded. For once, we agree. To the transponder!\"");
                 dlg_close();
