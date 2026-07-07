@@ -2190,10 +2190,12 @@ static void t_class_select_art(void) {
                  hero->tile, custom_walk[cls]);
         T_ASSERT(hero->pal == 0, "%s preview palette slot %d, want 0",
                  cls_display[cls], hero->pal);
-        if (cls < 4)   /* bard..wizard load their tav palette into slot 0 */
-            T_ASSERT(!memcmp((const void*)PAL_OBJ, pal_tav_classes[cls], 32),
-                     "%s: OBJ palette 0 not loaded from tav set %d",
-                     cls_display[cls], cls);
+        /* every class loads ITS OWN tav palette into OBJ bank 0 -- the fix
+         * for the fallback-blue bug, where cls >= 4 had no palette and wore
+         * whatever cls < 4 scheme was last in bank 0 (wizard's blue) */
+        T_ASSERT(!memcmp((const void*)PAL_OBJ, pal_tav_classes[cls], 32),
+                 "%s: OBJ palette 0 not loaded from tav set %d",
+                 cls_display[cls], cls);
     }
 }
 

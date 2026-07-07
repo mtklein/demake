@@ -648,7 +648,7 @@ def main():
         "extern const u16 pal_bg[256];",
         "extern const u16 pal_obj[256];",
         "extern const u16 pal_field_night[16];",
-        "extern const u16 pal_tav_classes[4][16];",
+        "extern const u16 pal_tav_classes[12][16];",   # one per CLS_*
     ]
     if pflat:
         h.append("extern const u16 portrait_tiles[%d];" % len(pflat))
@@ -666,10 +666,24 @@ def main():
     # palette 3 at room_enter (and every other room restores the daylight)
     c.append(emit_u16("pal_field_night", pal16(FT.NIGHT_PAL)))
 
-    tavorder = ["bard", "rogue", "ranger", "wizard"]
+    # OBJ bank 0 is swapped to the played hero's class palette at runtime
+    # (game_class_select preview + game_creation). Order MUST match game.h's
+    # CLS_* enum -- the game indexes pal_tav_classes[cls] by it. The asserts
+    # keep a future class from silently reintroducing the fallback-blue bug:
+    # every class must have a palette, and no two may share one.
+    tavorder = ["bard", "rogue", "ranger", "wizard", "fighter", "cleric",
+                "barbarian", "druid", "monk", "paladin", "sorcerer", "warlock"]
+    assert set(SF.PAL_TAV) == set(tavorder), (
+        "PAL_TAV must define exactly the twelve CLS_* classes; missing "
+        f"{set(tavorder) - set(SF.PAL_TAV)}, extra {set(SF.PAL_TAV) - set(tavorder)}")
+    seen = {}
+    for cls in tavorder:
+        key = tuple(map(tuple, SF.PAL_TAV[cls]))
+        assert key not in seen, f"PAL_TAV[{cls!r}] duplicates PAL_TAV[{seen[key]!r}]"
+        seen[key] = cls
     tavflat = [v for cls in tavorder for v in pal16(SF.PAL_TAV[cls])]
-    c.append("const u16 pal_tav_classes[4][16] = {")
-    for i in range(4):
+    c.append("const u16 pal_tav_classes[%d][16] = {" % len(tavorder))
+    for i in range(len(tavorder)):
         c.append("  {" + ",".join("0x%04x" % v for v in tavflat[i*16:(i+1)*16]) + "},")
     c.append("};")
 

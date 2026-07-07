@@ -377,7 +377,7 @@ int game_class_select(void) {
     for (;;) {
         blurb_draw(cls_blurb[sel]);
         MemberLook L = member_look(ORIG_CUSTOM, sel);   /* preview the class walker */
-        if (L.pal == 0 && sel < 4) memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);
+        if (L.pal == 0) memcpy16(PAL_OBJ, pal_tav_classes[sel], 16);   /* all twelve */
         obj_set(OBJ_PLAYER, SCR_CLASSSEL_HERO_X * 8 - 8, SCR_CLASSSEL_HERO_Y * 8 - 4,
                 1, L.objt, L.pal, 0);
 
@@ -921,11 +921,11 @@ void game_creation(int cls, int origin) {
     if (origin_class(origin) < 0)
         party_set_identity(race, bg, ab6);
     party5_refresh_all();
-    /* only the four launch classes have a tav palette (the class-select
-     * preview guards the same way); the old unguarded copy in main.c read
-     * past pal_tav_classes[4] for eight classes -- UBSan caught it the
-     * moment this line moved into the host build */
-    if (cls < 4) memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
+    /* every class carries a tav palette now (mkassets asserts all twelve),
+     * so bank 0 always wears the played class -- no fallback-blue for the
+     * eight that once lacked one. The bound keeps the index in the
+     * [CLS_COUNT] table (UBSan once caught a read past the old [4]). */
+    if (cls >= 0 && cls < CLS_COUNT) memcpy16(PAL_OBJ, pal_tav_classes[cls], 16);
     mgba_logf("create race=%d bg=%d ab=%d/%d/%d/%d/%d/%d",
               G.pm[0].race, G.pm[0].background,
               party5[0].ab[0], party5[0].ab[1], party5[0].ab[2],

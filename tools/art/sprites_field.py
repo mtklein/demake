@@ -12,11 +12,26 @@ def pal(skin, skinsh, hair, main, shade, trim, legs, boots):
     return [(0, 0, 0), (1, 1, 2), skin, skinsh, hair, main, shade, trim,
             legs, boots, (30, 30, 30)]
 
-PAL_TAV = {  # class palettes, copied to OBJ pal 0 at runtime
-    "bard":   pal((26, 19, 13), (20, 13, 9), (16, 6, 3),  (6, 20, 18), (4, 13, 12), (28, 22, 6), (8, 6, 10),  (10, 5, 2)),
-    "rogue":  pal((24, 18, 13), (18, 12, 9), (3, 3, 4),   (7, 7, 9),   (4, 4, 6),   (14, 3, 4),  (5, 5, 7),   (6, 4, 3)),
-    "ranger": pal((25, 18, 12), (19, 12, 8), (24, 20, 8), (5, 14, 6),  (3, 9, 4),   (16, 10, 4), (9, 7, 4),   (10, 6, 3)),
-    "wizard": pal((26, 20, 15), (20, 14, 10), (22, 22, 24), (7, 9, 24), (4, 5, 16), (28, 22, 6), (5, 6, 14),  (8, 5, 8)),
+# Class palettes copied to OBJ pal 0 at runtime (game_class_select preview +
+# game_creation), indexed by game.h's CLS_* enum. ALL TWELVE must be defined
+# -- mkassets asserts it -- so bank 0 always wears the played class. The eight
+# below the original four once had no entry, so a warlock/druid Tav fell back
+# to whatever cls<4 palette was last in bank 0 (wizard's blue): the "samey
+# blue" bug. Each scheme is distinct and class-evocative; the outfit main (5)
+# carries the read.
+PAL_TAV = {
+    "bard":      pal((26, 19, 13), (20, 13, 9),  (16, 6, 3),   (6, 20, 18),  (4, 13, 12),  (28, 22, 6),  (8, 6, 10),   (10, 5, 2)),   # teal doublet, gold trim
+    "rogue":     pal((24, 18, 13), (18, 12, 9),  (3, 3, 4),    (7, 7, 9),    (4, 4, 6),    (14, 3, 4),   (5, 5, 7),    (6, 4, 3)),    # black leathers, oxblood
+    "ranger":    pal((25, 18, 12), (19, 12, 8),  (24, 20, 8),  (5, 14, 6),   (3, 9, 4),    (16, 10, 4),  (9, 7, 4),    (10, 6, 3)),   # leaf-green tunic, tan
+    "wizard":    pal((26, 20, 15), (20, 14, 10), (22, 22, 24), (7, 9, 24),   (4, 5, 16),   (28, 22, 6),  (5, 6, 14),   (8, 5, 8)),    # blue robe, gold, grey hair
+    "fighter":   pal((25, 19, 14), (19, 13, 9),  (14, 8, 4),   (13, 14, 18), (8, 9, 12),   (22, 5, 5),   (9, 9, 12),   (7, 6, 6)),    # dark steel, crimson tabard
+    "cleric":    pal((26, 20, 15), (20, 14, 10), (21, 14, 6),  (27, 26, 22), (18, 18, 15), (30, 24, 8),  (16, 16, 14), (12, 10, 7)),  # ivory vestments, gold (radiant, not Shar)
+    "barbarian": pal((26, 18, 12), (20, 13, 8),  (22, 9, 3),   (14, 9, 6),   (9, 5, 3),    (24, 6, 4),   (11, 7, 4),   (7, 4, 2)),    # earthy hide, rust hair, red war-paint
+    "druid":     pal((24, 18, 13), (18, 13, 9),  (9, 7, 4),    (7, 16, 9),   (4, 10, 6),   (18, 24, 8),  (6, 11, 6),   (13, 9, 4)),   # verdant cloak, leaf, wood staff
+    "monk":      pal((26, 19, 13), (20, 13, 9),  (6, 4, 3),    (24, 18, 8),  (17, 12, 4),  (26, 10, 4),  (16, 11, 5),  (3, 2, 2)),    # saffron gi, deep-orange sash
+    "paladin":   pal((25, 19, 14), (19, 13, 9),  (24, 20, 10), (20, 20, 23), (12, 13, 17), (30, 25, 8),  (14, 14, 17), (26, 21, 7)),  # bright steel plate, gold tabard
+    "sorcerer":  pal((25, 19, 14), (19, 13, 9),  (8, 4, 10),   (16, 7, 22),  (10, 4, 15),  (26, 10, 26), (10, 5, 15),  (7, 3, 10)),   # violet coat, magenta arcane trim
+    "warlock":   pal((24, 18, 13), (18, 12, 9),  (5, 4, 7),    (9, 5, 14),   (5, 3, 8),    (14, 20, 12), (7, 4, 10),   (5, 3, 7)),    # dark eggplant coat, eldritch-green pact
 }
 
 PALS = {
