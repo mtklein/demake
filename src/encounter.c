@@ -200,9 +200,11 @@ static void pump1(void) { pump(1); }   /* one-frame step for the shared tumble *
  * only the meaningful roll gets the drama, which bounds the added frames. */
 static void tray_headline_d20(const R5Dice* d, int pal) {
     if (tray_n >= 8) return;
-    dice_roll_headline(OBJ_DICE + tray_n * 3, 6 + tray_n * 20, 20, 26,
-                       d->sides, d->rolls, d->n, pal, pump1);
-    tray_n = (int)(tray_n + d->n);
+    /* the beat may compact an advantage pair to its keeper: advance by the
+     * slots the settled roll actually occupies, so the next die packs flush */
+    int used = dice_roll_headline(OBJ_DICE + tray_n * 3, 6 + tray_n * 20, 20, 26,
+                                  d->sides, d->rolls, d->n, d->total, pal, pump1);
+    tray_n = (int)(tray_n + used);
 }
 
 static void tray_clear(void) {

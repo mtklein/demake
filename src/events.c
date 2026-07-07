@@ -161,7 +161,7 @@ static void fdie_show(int d20) {
     dice_stage_digits();
     u8 v = (u8)d20;
     int pal = d20 == 20 ? 9 : d20 == 1 ? 11 : 10;
-    dice_roll_headline(OBJ_FDIE, FDIE_X, 0, FDIE_Y, 20, &v, 1, pal, frame);
+    dice_roll_headline(OBJ_FDIE, FDIE_X, 0, FDIE_Y, 20, &v, 1, d20, pal, frame);
     for (int i = 0; i < 8; i++) frame();     /* a beat on the landed value */
     mgba_logf("field-die d20=%d shown", d20);
 }

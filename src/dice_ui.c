@@ -1,13 +1,15 @@
 /* The dice a roll is drawn AS IT LANDS: the shared face+digits primitive and
  * the headline tumble, used by both the combat tray and the field skill check.
- * Kept engine-thin -- only obj_set/obj_hide/memcpy16 and the generated tile
- * ids -- so both a GBA build and the host sim link the SAME code. */
+ * Kept engine-thin -- only obj_set/obj_hide/memcpy16, mgba_logf, and the
+ * generated tile ids -- so both a GBA build and the host sim link the SAME
+ * code. */
 #include "gba.h"
 #include "assets.h"
 #include "engine.h"
 #include "dice_ui.h"
 
 #define DICE_TUMBLE_F 12      /* headline spin length in frames (~0.2s) */
+#define DICE_KEEP_F   8       /* resolve-beat length (advantage/disadvantage) */
 
 static int die_objt(int sides) {
     switch (sides) {
@@ -37,8 +39,13 @@ void dice_draw_one(int base, int x, int y, int sides, int value, int pal) {
     }
 }
 
-void dice_roll_headline(int base, int x0, int spacing, int y, int sides,
-                        const u8* vals, int n, int pal, void (*step)(void)) {
+static void die_hide(int base) {
+    obj_hide(base); obj_hide(base + 1); obj_hide(base + 2);
+}
+
+int dice_roll_headline(int base, int x0, int spacing, int y, int sides,
+                       const u8* vals, int n, int total, int pal,
+                       void (*step)(void)) {
     /* purely presentational spin: seeded off the frame clock and the target
      * value so it looks lively and never repeats identically, but drawn from
      * NO game rng -- the result was decided before we animate toward it, so
@@ -56,4 +63,39 @@ void dice_roll_headline(int base, int x0, int spacing, int y, int sides,
     }
     for (int i = 0; i < n; i++)
         dice_draw_one(base + i * 3, x0 + i * spacing, y, sides, vals[i], pal);
+
+    /* Resolve beat for an advantage/disadvantage pair: show which die was
+     * kept. `total` is the die USED (higher under advantage, lower under
+     * disadvantage), so the KEEPER is the one whose value == total. In one
+     * continuous motion with the tumble: the DISCARD slides down and drops out
+     * (no spare OBJ palette to dim it, and the tray sits over open board with no
+     * bar to recede behind -- a clean drop reads best by eye), while the KEEPER
+     * shudders and eases into the lead slot so the tray compacts with no gap.
+     * A TIE (both == total) has no loser, and a straight (n==1) roll no pair:
+     * both settle untouched. Returns the slot count the result now occupies (1
+     * once a pair resolves to its keeper, else n) so the tray packs cleanly. */
+    if (n != 2 || vals[0] == vals[1]) return n;
+
+    int keep = vals[0] == total ? 0 : 1, drop = keep ^ 1;
+    int kbase = base + keep * 3, kx = x0 + keep * spacing;
+    int dbase = base + drop * 3, dx = x0 + drop * spacing;
+    mgba_logf("d20 keep=%d drop=%d", vals[keep], vals[drop]);
+    /* one rises, one falls: the keeper hops (jy) and shudders (jx) as it eases
+     * into the lead slot; the discard sinks straight down and out. Stack
+     * tables, not .bss -- a static here would shift the poked player addrs. */
+    const signed char jx[DICE_KEEP_F] = { 0, 3, -3, 2, -2, 1, -1, 0 };
+    const signed char jy[DICE_KEEP_F] = { 0, -2, -3, -2, -1, 0, 0, 0 };
+    for (int f = 0; f < DICE_KEEP_F; f++) {
+        /* the discard slides down out of the tray, then is gone for good */
+        if (f < 4) dice_draw_one(dbase, dx, y + f * 4, sides, vals[drop], pal);
+        else       die_hide(dbase);
+        /* the keeper eases from its landing spot into the lead slot, leaping */
+        int cx = kx + (x0 - kx) * (f + 1) / DICE_KEEP_F;
+        dice_draw_one(kbase, cx + jx[f], y + jy[f], sides, vals[keep], pal);
+        step();
+    }
+    /* land the keeper in the lead slot; free the slot it drifted in from */
+    if (keep != 0) die_hide(kbase);
+    dice_draw_one(base, x0, y, sides, vals[keep], pal);
+    return 1;
 }

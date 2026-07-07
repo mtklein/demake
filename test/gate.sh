@@ -38,6 +38,7 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
            chapel_fight chapel_parley crypt_withers camp_night warryn_check \
            gates_wyll gates_reroute_wyll gates_full critical_path \
            sneak_strike cone_ambush cone_show helm_sleepz tether_check panic_check \
+           dice_adv \
            wildshape_check levelup_check prepare_check origin_check \
            origin_flow_check durge_check creation_check skill_check \
            loot_check audit_check; do
@@ -70,6 +71,8 @@ for scn in bard_full wizard_zhalk rogue_mutilate ranger_full \
         critical_path)                        want="camp signposted" ;;
         tether_check)                         want="tether"          ;;
         cone_show)                            want="cone shown npc=" ;;
+        # the rogue's hidden strike rolls a d20 PAIR: the keep-emphasis fired
+        dice_adv)                             want="d20 keep=" ;;
         panic_check)                          want="PANIC poked"     ;;
         wildshape_check)                      want="wildshape boar"  ;;
         levelup_check)                        want="subclass pick"   ;;

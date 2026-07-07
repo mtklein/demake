@@ -17,6 +17,7 @@
 #include "rules.h"
 #include "encounter.h"
 #include "assets.h"
+#include "dice_ui.h"
 
 void field_menu(void);        /* menu.c  */
 int game_class_select(void);  /* game.c  */
@@ -1231,6 +1232,91 @@ static void t_battle_rogue_pick(void) {
     T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
 }
 
+/* A hidden rogue strikes with ADVANTAGE, the one battle path that forces a
+ * d20 PAIR (n==2): the AI hides as a bonus action, then attacks the same turn,
+ * so atk_flags raises R5F_ADV. The shared dice primitive's resolve beat then
+ * keeps the die USED and logs which -- this pins that the DISPLAY ran on n==2
+ * and chose the rules' die (higher of the pair), with the result UNMOVED (the
+ * beat draws from no rng, so the seeded stream is identical to a straight
+ * roll's). Stacked, not scripted: composition + the default AI force it. */
+static void t_battle_rogue_advantage(void) {
+    sim_reset();
+    mk_party(CLS_ROGUE, 3);
+    G_DEMO = 1;                    /* AI drives; the rogue hides then strikes */
+    int n0 = field_add_npc(9, 5, 0, 0, 0, 0);
+    int n1 = field_add_npc(11, 5, 0, 0, 0, 0);
+    EncSpawn es[2] = {
+        { R5M_THRALL, (s8)n0, 10, 1 },
+        { R5M_THRALL, (s8)n1, 10, 1 },
+    };
+    sim_budget(2000000, 0);
+    int r = encounter_run(es, 2, 0, 0);
+    T_ASSERT(r == ENC_WIN, "battle result %d, want ENC_WIN", r);
+    /* the advantage d20 (n==2) drove the keep-emphasis path in the primitive.
+     * Advantage here can only be the rogue's hide (a->hidden), since the foe is
+     * neither downed nor guiding-bolt-marked -- so n==2 is forced, not chanced */
+    T_ASSERT(log_contains("d20 keep="),
+             "advantage roll never reached the keep-emphasis display path");
+    /* display == rules, result unmoved: the FIRST advantage strike kept 12 and
+     * dropped 8 (12 is the higher die, advantage), and the attack it fed used
+     * that same 12. Pinned exact -- the beat consumes no rng, so this seeded
+     * stream holds until encounter.c's rolls change (then re-pin, don't relax) */
+    T_ASSERT(log_contains("d20 keep=12 drop=8"),
+             "kept/dropped pair not the expected advantage roll");
+    T_ASSERT(log_contains("atk TAV->Thrall d20=12"),
+             "the attack used a different die than the beat emphasised");
+}
+
+/* The keep-emphasis branches a real battle cannot force on demand: a TIE
+ * (equal dice -- 1-in-20) and a straight n==1 roll. Driving the SHARED
+ * primitive directly (the real code, not a mirror) pins its contract: an
+ * advantage pair compacts to its keeper in the lead slot (return 1, discard
+ * hidden, marker logged); a tie keeps BOTH untouched (return 2, no marker); a
+ * straight roll is one slot. The battle test above covers the live end-to-end
+ * path; this nails the edges. */
+static void keep_step(void) {}      /* per-frame pump: nothing to advance here */
+
+static void t_dice_keep_emphasis(void) {
+    sim_reset();                    /* clears the OAM shadow and the log buffer */
+    dice_stage_digits();
+    const int b = 56, x0 = 6, sp = 20, y = 26, d20 = 20;   /* b = the tray's OBJ base */
+
+    /* a TIE: total matches both, so there is no loser -- both settle, no beat */
+    u8 tie[2] = { 12, 12 };
+    int used = dice_roll_headline(b, x0, sp, y, d20, tie, 2, 12, 10, keep_step);
+    T_ASSERT(used == 2, "a tie must keep both dice (2 slots), got %d", used);
+    T_ASSERT(sim_obj(b + 2)->shown && sim_obj(b + 5)->shown, "a tie hid a die");
+    T_ASSERT(!log_contains("d20 keep="), "a tie must not log a keep decision");
+
+    /* a straight roll: one die, one slot, nothing to emphasise */
+    u8 one[1] = { 5 };
+    used = dice_roll_headline(b, x0, sp, y, d20, one, 1, 5, 10, keep_step);
+    T_ASSERT(used == 1, "a straight roll occupies 1 slot, got %d", used);
+    T_ASSERT(!log_contains("d20 keep="), "a straight roll must not log a keep");
+
+    /* an ADVANTAGE pair (rolled 8 and 17): the higher die is kept, the tray
+     * compacts to a single lead slot, and the discard's slot is freed */
+    u8 adv[2] = { 8, 17 };
+    used = dice_roll_headline(b, x0, sp, y, d20, adv, 2, 17, 10, keep_step);
+    T_ASSERT(used == 1, "a resolved pair compacts to 1 slot, got %d", used);
+    T_ASSERT(log_contains("d20 keep=17 drop=8"), "keep marker wrong or absent");
+    T_ASSERT(sim_obj(b + 2)->shown, "keeper face missing from the lead slot");
+    T_ASSERT(sim_obj(b + 2)->x == x0, "keeper not in the lead slot (x=%d)",
+             sim_obj(b + 2)->x);
+    T_ASSERT(!sim_obj(b + 5)->shown, "discard slot still shown after the drop");
+
+    /* a DISADVANTAGE pair (same 17 and 8, but total is the LOWER die): the
+     * keeper follows `total`, not "the bigger one" -- 8 is kept, 17 dropped */
+    u8 dis[2] = { 17, 8 };
+    used = dice_roll_headline(b, x0, sp, y, d20, dis, 2, 8, 10, keep_step);
+    T_ASSERT(used == 1, "a resolved pair compacts to 1 slot, got %d", used);
+    T_ASSERT(log_contains("d20 keep=8 drop=17"),
+             "disadvantage kept the wrong die (total, not max, must decide)");
+    T_ASSERT(sim_obj(b + 2)->shown && sim_obj(b + 2)->x == x0,
+             "disadvantage keeper not in the lead slot");
+    T_ASSERT(!sim_obj(b + 5)->shown, "discard slot still shown after the drop");
+}
+
 static void t_battle_ranger_conc(void) {
     sim_reset();
     mk_party(CLS_RANGER, 2);           /* L2: first slots, Hunter's Mark */
@@ -2146,6 +2232,8 @@ static const Test tests[] = {
     { "battle_helm_tav_down",      t_battle_helm_tav_down },
     { "battle_druid_wildshape",    t_battle_druid_wildshape },
     { "battle_rogue_pick",         t_battle_rogue_pick },
+    { "battle_rogue_advantage",    t_battle_rogue_advantage },
+    { "dice_keep_emphasis",        t_dice_keep_emphasis },
     { "battle_ranger_conc",        t_battle_ranger_conc },
     { "battle_dark_caster_disadvantage", t_battle_dark_caster_disadvantage },
     { "battle_dark_darkvision_race_clean", t_battle_dark_darkvision_race_clean },

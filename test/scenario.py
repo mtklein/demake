@@ -194,6 +194,26 @@ for _c in range(12):
     SCN[f"smoke_{_c}"] = _mk_smoke(_c)
 
 @scn
+def dice_adv():
+    """A rogue hides and strikes with ADVANTAGE in the deck brawl: the one path
+    that forces a combat d20 PAIR (n==2). The shared dice primitive's resolve
+    beat keeps the winner and drops the loser (winner rises + shakes, loser
+    slides out, tray compacts). The gate asserts the 'd20 keep=' display marker
+    fired on the ROM's real frame timing -- only the ROM proves the added beat
+    frames neither crash nor time out. The shots sample the brawl to catch a
+    settled, compacted tray for review."""
+    setup(1, [0, 1, 0, 0, 2])             # class 1 = rogue (Astarion's kit)
+    intro(); nursery(); surgery()
+    walk("DOWN", 1)                       # deck brawl: the rogue hides -> strikes adv
+    # Sample the brawl for a settled, compacted advantage tray. Shots are
+    # documentation, never asserted -- battle timing rides the tick-seeded rng
+    # (so the exact frame drifts), which is why the gate proves the feature by
+    # the 'd20 keep=' marker below and ready() plays the whole fight to fire it.
+    for i in range(30):
+        wait(30); shot(f"g_adv_{i:02d}")
+    ready(24000)
+
+@scn
 def creation_check():
     """custom wizard walks the creation screens with poked choices: hill
     dwarf, sage, and the class array with CON/INT swapped. The gate greps
