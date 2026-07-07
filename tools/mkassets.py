@@ -427,6 +427,17 @@ def build_sprites():
         for ft in frames:
             tiles += ft
             grouppals += [spec["pal"]] * (len(ft) // 4)
+    # OBJ bank budget: 0 is the runtime-swapped Tav palette, 1-6 are the
+    # character banks DEFINED by SF.PALS, 7 is the UI cursor, 8-15 the
+    # damage-type dice (which some markers -- alert, garnish -- reuse by
+    # reference, which is fine). What is NOT fine is SF.PALS *redefining*
+    # a reserved bank: PALS[7] once repainted the cursor into looter browns
+    # (the "black cursor" regression). Catch that at build, not by eye.
+    for idx in SF.PALS:
+        assert 1 <= idx <= 6, (
+            f"SF.PALS[{idx}] redefines a reserved OBJ bank (7=cursor, "
+            f"8-15=dice). Character palettes live in banks 1-6; a new "
+            f"sprite must SHARE one, not claim a fresh bank.")
     for idx, colors in SF.PALS.items():
         OBJ_PALS[idx] = pal16(colors)
     assert len(grouppals) == len(tiles) // 4

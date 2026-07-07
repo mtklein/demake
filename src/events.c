@@ -878,6 +878,8 @@ static void helm_battle(void) {
     if (us_with_us() && n_us >= 0) {
         hs[nh].mon = R5M_DEVOURER; hs[nh].npc = (s8)n_us; hs[nh].xp = 0; hs[nh].side = 2; nh++;
     }
+    encounter_song(SONG_BOSS);       /* Zhalk's theme carries the whole fight,
+                                      * not a swap back to the generic battle */
     int r = encounter_run(hs, nh, 15, 0);
     if (r == ENC_CONNECTED) crash_sequence(0);
     else crash_sequence(1);

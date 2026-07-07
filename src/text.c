@@ -118,13 +118,22 @@ static void dlg_draw_portrait(void) {
     dlg_inset = (dlg_por >= 0) ? 6 : 0;
 }
 
+/* Clear the dialog's writable interior and home the cursor. Non-inset clears
+ * the FULL interior (x=1..28), not just the text region (x=2..27): the combat
+ * message bar writes its text at x=1, and that stale leading char would
+ * otherwise survive under a dialog opened over the combat scene -- the
+ * "ATAV walks a new path" bug ('A' left over from "A new level!"). */
+static void dlg_clear_text(void) {
+    if (dlg_inset) txt_clear(7, DLG_TY, 21, DLG_ROWS);   /* portrait holds x=1..6 */
+    else           txt_clear(1, DLG_TY, 28, DLG_ROWS);
+    cx = cy = 0;
+}
+
 void dlg_set_portrait(int id) {
     dlg_por = id;
     if (dlg_on) {
         dlg_draw_portrait();
-        txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
-              dlg_inset ? 21 : DLG_W, DLG_ROWS);
-        cx = cy = 0;
+        dlg_clear_text();
     }
 }
 
@@ -136,9 +145,7 @@ void dlg_open(void) {
         dlg_draw_portrait();
         dlg_on = 1;
     }
-    txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
-              dlg_inset ? 21 : DLG_W, DLG_ROWS);
-    cx = cy = 0;
+    dlg_clear_text();
 }
 
 void dlg_close(void) {
@@ -167,9 +174,7 @@ static void dlg_wait_a(int marker) {
 
 static void dlg_page(void) {
     dlg_wait_a(1);
-    txt_clear(dlg_inset ? 7 : DLG_TX, DLG_TY,
-              dlg_inset ? 21 : DLG_W, DLG_ROWS);
-    cx = cy = 0;
+    dlg_clear_text();
 }
 
 static void dlg_newline(void) {
